@@ -150,16 +150,46 @@ export default function App() {
 
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
+    
+    // Sanitize inputs instantly by removing accidental whitespace padding
+    const cleanEmail = authEmail.trim();
+    const cleanPassword = authPassword.trim();
+
+    if (!cleanEmail || !cleanPassword) {
+      alert("❌ Input Error: Both Email and Password fields are strictly required.");
+      return;
+    }
+
+    // Safety Wall: Prevent Supabase 400 errors due to password length restrictions
+    if (cleanPassword.length < 6) {
+      alert("❌ Security Restriction: Passwords must be at least 6 characters long.");
+      return;
+    }
+
     setAuthLoading(true);
     try {
       if (isSignUp) {
-        await supabase.auth.signUp({ email: authEmail, password: authPassword });
-        alert("🚀 Profile token compiled! Sign in to enter the dashboard.");
+        const { data, error } = await supabase.auth.signUp({ 
+          email: cleanEmail, 
+          password: cleanPassword 
+        });
+        if (error) throw error;
+        alert("🚀 Account profile registered successfully! You can now type your credentials to Sign In.");
+        setIsSignUp(false); // Instantly switches them to the sign-in toggle view
       } else {
-        await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+        const { data, error } = await supabase.auth.signInWithPassword({ 
+          email: cleanEmail, 
+          password: cleanPassword 
+        });
+        if (error) throw error;
       }
-    } catch (err) { alert(err.message); }
-    setAuthLoading(false);
+    } catch (err) { 
+      // VITAL FIX: Forces the hidden Supabase error text to show up directly as an on-screen alert box
+      console.error("Supabase Auth Error Core Dump:", err);
+      alert(`Identity Validation Refused: ${err.message || err.error_description || JSON.stringify(err)}`);
+    } finally {
+      setAuthLoading(false); // Guarantees the button always resets from "Verifying..."
+    }
   };
 
   const handleSignOut = async () => {
