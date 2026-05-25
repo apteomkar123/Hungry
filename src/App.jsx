@@ -49,13 +49,11 @@ export default function App() {
       
       if (invError) throw invError;
       
-      // FIX: Added '?.', '||', and fallback filters to guarantee data streams never throw crashes
       const currentFridge = inventory 
         ? inventory
             .filter(i => i && i.item_name)
             .map(i => i.item_name.toLowerCase().trim()) 
         : [];
-        
       setFridge(currentFridge);
 
       calculateMacroMetrics(currentFridge);
@@ -67,23 +65,25 @@ export default function App() {
       const normalizedRecipes = (recipes || []).map(r => {
         let parsedIngredients = [];
         try {
-          parsedIngredients = typeof r.ingredients === 'string' ? JSON.parse(r.ingredients) : r.ingredients;
+          if (r.ingredients) {
+            parsedIngredients = typeof r.ingredients === 'string' ? JSON.parse(r.ingredients) : r.ingredients;
+          }
         } catch (e) {
           parsedIngredients = [];
         }
-        return { ...r, ingredients: parsedIngredients || [] };
+        return { ...r, ingredients: Array.isArray(parsedIngredients) ? parsedIngredients : [] };
       });
       setMasterRecipes(normalizedRecipes);
     } catch (err) {
-      console.error("Data normalization sync blocked:", err.message);
+      console.error("Data tracking stream error:", err.message);
     }
   };
-  
+
   useEffect(() => {
     if (user) fetchAppData();
   }, [user]);
 
-  // High-Resolution Premium Image Capture & Download
+  // High-Resolution Image Capture & Download 
   const handleDownloadRecipeImage = async () => {
     if (!snapshotCardRef.current) return;
     try {
@@ -97,17 +97,17 @@ export default function App() {
       const imageUri = canvas.toDataURL('image/png');
       const downloadLink = document.createElement('a');
       downloadLink.href = imageUri;
-      downloadLink.download = `smartfridge-${(activeModalRecipe.name || activeModalRecipe.recipeName).replace(/\s+/g, '-').toLowerCase()}.png`;
+      downloadLink.download = `recipe-${(activeModalRecipe.name || activeModalRecipe.recipeName || 'download').replace(/\s+/g, '-').toLowerCase()}.png`;
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
     } catch (err) {
-      console.error("Canvas export tracking failure:", err);
+      console.error("Canvas capture failure:", err);
     }
   };
 
   const handleGenerateAiRecipe = async () => {
-    if (fridge.length === 0) return alert("Your stock room is currently empty! Add some ingredients first.");
+    if (fridge.length === 0) return alert("Your pantry storage is completely empty! Add items first.");
     setAiGenerating(true);
     try {
       const response = await fetch('/.netlify/functions/scan-receipt', {
@@ -115,7 +115,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           image: "", 
-          customPrompt: `Review these exact user ingredients vectors: ${fridge.join(', ')}.` 
+          customPrompt: `Review these available ingredients: ${fridge.join(', ')}.` 
         })
       });
 
@@ -123,10 +123,10 @@ export default function App() {
         const data = await response.json();
         setActiveModalRecipe({
           name: data.recipeName,
-          ingredients: data.ingredients, 
+          ingredients: data.ingredients || [], 
           meal_type: 'AI Generation Matrix',
           isAiGeneratedElement: true,
-          steps: data.steps
+          steps: data.steps || []
         });
       }
     } catch (err) { 
@@ -135,13 +135,11 @@ export default function App() {
     setAiGenerating(false);
   };
 
-  // Trip Planner matching logic loops
   const triggerStoreTripPlanner = () => {
     const alerts = [];
     masterRecipes.forEach(recipe => {
       const total = recipe.ingredients ? recipe.ingredients.length : 0;
       const missing = recipe.ingredients ? recipe.ingredients.filter(ing => !fridge.includes(ing.toLowerCase().trim())) : [];
-      
       if (missing.length >= 1 && missing.length <= 3 && total > missing.length) {
         alerts.push({ recipe, missingItems: missing, mealType: recipe.meal_type || 'General' });
       }
@@ -156,12 +154,19 @@ export default function App() {
     try {
       if (isSignUp) {
         await supabase.auth.signUp({ email: authEmail, password: authPassword });
-        alert("🚀 Profile created successfully!");
+        alert("🚀 Profile token compiled! Sign in to enter the dashboard.");
       } else {
         await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
       }
     } catch (err) { alert(err.message); }
     setAuthLoading(false);
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setFridge([]);
+    setMasterRecipes([]);
+    setActiveModalRecipe(null);
   };
 
   const handleRemoveItem = async (itemName) => {
@@ -179,7 +184,7 @@ export default function App() {
       });
       if (response.ok) {
         const data = await response.json();
-        const cleanItems = data.added.map(item => item.trim().toLowerCase());
+        const cleanItems = data.added ? data.added.map(item => item.trim().toLowerCase()) : [];
         const uniqueItems = [...new Set(cleanItems)];
         const insertPayload = uniqueItems.map(item => ({ item_name: item, user_id: user.id }));
         
@@ -229,18 +234,20 @@ export default function App() {
   const generateExpirationTimelines = (rawInventory) => {
     const freshMap = {};
     rawInventory.forEach(row => {
-      const name = row.item_name.toLowerCase().trim();
-      freshMap[name] = { daysLeft: 6, statusLabel: 'STABLE' };
+      if (row && row.item_name) {
+        const name = row.item_name.toLowerCase().trim();
+        freshMap[name] = { daysLeft: 6, statusLabel: 'STABLE' };
+      }
     });
     setExpirationMap(freshMap);
   };
 
   const getStaticRecipeSteps = (recipe) => {
-    if (recipe.steps && recipe.steps.length > 0) return recipe.steps;
+    if (recipe && recipe.steps && recipe.steps.length > 0) return recipe.steps;
     return [
-      `Carefully prep your primary base component configuration (${recipe.ingredients[0] || 'vegetables'}).`,
+      `Carefully prep your primary base component configuration (${(recipe && recipe.ingredients && recipe.ingredients[0]) || 'vegetables'}).`,
       `Heat 2 tbsp of olive oil in an artisan skillet over medium heat.`,
-      `Incorporate secondary structural elements: ${recipe.ingredients.slice(1).join(', ')}.`,
+      `Incorporate secondary structural elements: ${(recipe && recipe.ingredients && recipe.ingredients.slice(1).join(', ')) || 'remaining elements'}.`,
       `Toss and cook thoroughly for 8-10 minutes, adjust seasoning to taste, and serve.`
     ];
   };
@@ -248,7 +255,7 @@ export default function App() {
   if (!user) {
     return (
       <div className="min-h-screen bg-[#f3f4f6] text-slate-800 font-sans antialiased flex items-center justify-center p-6">
-        <div className="bg-white/80 border border-slate-200/60 p-8 rounded-3xl w-full max-w-md shadow-xl backdrop-blur-xl relative">
+        <div className="bg-white border border-slate-200 p-8 rounded-3xl w-full max-w-md shadow-xl relative">
           <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
           <h2 className="text-2xl font-black text-center bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">SmartFridge AI</h2>
           <p className="text-slate-400 text-center text-xs font-semibold mt-1 uppercase tracking-wider">Secure Access Protocol</p>
@@ -257,7 +264,7 @@ export default function App() {
             <input type="password" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl text-xs font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" placeholder="Password" />
             <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-95 active:scale-[0.99] font-bold py-3.5 rounded-2xl text-xs uppercase tracking-widest text-white shadow-lg shadow-indigo-500/20 transition-all">{authLoading ? "Verifying..." : (isSignUp ? "Register Account" : "Sign In")}</button>
           </form>
-          <button onClick={() => setIsSignUp(!isSignUp)} className="text-xs text-center block w-full text-indigo-600 font-bold mt-5 hover:underline">{isSignUp ? "Have an account? Login" : "Create multi-tenant profile"}</button>
+          <button onClick={() => setIsSignUp(!isSignUp)} className="text-xs text-center block w-full text-indigo-600 font-bold mt-5 hover:underline">{isSignUp ? "Have an account? Login" : "Create Account"}</button>
         </div>
       </div>
     );
@@ -268,12 +275,12 @@ export default function App() {
     const owned = recipe.ingredients ? recipe.ingredients.filter(ing => fridge.includes(ing.toLowerCase().trim())).length : 0;
     const matchPercentage = total > 0 ? Math.round((owned / total) * 100) : 0;
     return { ...recipe, matchPercentage, ownedCount: owned, totalCount: total };
-  }).filter(recipe => !recipeSearch || recipe.name.toLowerCase().includes(recipeSearch.toLowerCase())).sort((a, b) => b.matchPercentage - a.matchPercentage);
+  }).filter(recipe => !recipeSearch || (recipe.name && recipe.name.toLowerCase().includes(recipeSearch.toLowerCase()))).sort((a, b) => b.matchPercentage - a.matchPercentage);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-12">
       
-      {/* Porcelain Top Navigation Row */}
+      {/* Porcelain Navigation Topbar */}
       <header className="bg-white/70 border-b border-slate-200/80 sticky top-0 z-40 backdrop-blur-xl px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm shadow-slate-100">
         <div>
           <h1 className="text-2xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent tracking-tight">SmartFridge AI</h1>
@@ -288,13 +295,13 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Bright Workspace */}
+      {/* Main Workspace Layout Grid */}
       <main className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Control Deck */}
+        {/* Left Side Panels */}
         <div className="space-y-6 lg:col-span-1">
           
-          {/* Nutrition Panel */}
+          {/* Metrics Box */}
           <div className="bg-white p-5 rounded-3xl border border-slate-200/60 shadow-sm">
             <h2 className="text-[11px] font-black tracking-widest uppercase text-slate-400 mb-4">📊 Nutrient Allocation Monitor</h2>
             <div className="grid grid-cols-3 gap-3 text-center">
@@ -313,24 +320,24 @@ export default function App() {
             </div>
           </div>
 
-          {/* Intake Scanning Node */}
+          {/* Scanner Box */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm">
             <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-4">📸 Receipt Intake Scanner</h2>
             <div className="relative border-2 border-dashed border-slate-200 hover:border-indigo-400 p-8 text-center bg-slate-50 rounded-2xl cursor-pointer transition-all group">
               <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
               <div className="space-y-1">
-                <span className="text-xl inline-block group-hover:scale-110 transition-transform">📄</span>
+                <span className="text-xl inline-block">📄</span>
                 <p className="text-xs font-bold text-slate-600 group-hover:text-indigo-600 transition-colors">Upload Grocery Receipt</p>
               </div>
             </div>
             <form onSubmit={handleAddManualItem} className="flex gap-2 pt-5 mt-5 border-t border-slate-100">
-              <input type="text" value={manualItem} onChange={(e) => setManualItem(e.target.value)} placeholder="Type manual item token..." className="flex-1 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all" />
+              <input type="text" value={manualItem} onChange={(e) => setManualItem(e.target.value)} placeholder="Type manual item token..." className="flex-1 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-indigo-500 transition-all" />
               <button type="submit" className="bg-slate-800 hover:bg-indigo-600 text-white text-xs font-bold px-4 rounded-xl transition-all">Add</button>
             </form>
-            {loading && <div className="mt-4 p-3 bg-indigo-50 text-center rounded-xl text-[10px] text-indigo-600 font-black tracking-widest animate-pulse">⚡ RUNNING OPTICAL MATRIX RESOLUTION ENGINE...</div>}
+            {loading && <div className="mt-4 p-3 bg-indigo-50 text-center rounded-xl text-[10px] text-indigo-600 font-black tracking-widest animate-pulse">⚡ RUNNING OPTICAL PARSER ENGINE...</div>}
           </div>
 
-          {/* Stock Room Rows */}
+          {/* Fridge List Box */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm">
             <h2 className="text-xs font-black text-slate-400 uppercase flex justify-between items-center mb-4">
               <span>🏡 Private Storage Items</span>
@@ -338,10 +345,10 @@ export default function App() {
             </h2>
             <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
               {fridge.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-4">No data streams found. Ingest a receipt to generate vectors.</p>
+                <p className="text-xs text-slate-400 italic py-4">No data streams found. Ingest an item to begin matching.</p>
               ) : (
                 fridge.map((item, idx) => (
-                  <div key={idx} className="bg-slate-50/80 border border-slate-200/40 p-3 rounded-xl flex justify-between items-center group shadow-sm">
+                  <div key={idx} className="bg-slate-50 border border-slate-200/40 p-3 rounded-xl flex justify-between items-center shadow-sm">
                     <span className="text-xs font-bold capitalize text-slate-700">{item}</span>
                     <button onClick={() => handleRemoveItem(item)} className="text-slate-300 hover:text-red-500 font-mono text-sm px-2 transition-colors">×</button>
                   </div>
@@ -351,14 +358,14 @@ export default function App() {
           </div>
         </div>
 
-        {/* Right Match Grid Dashboard */}
+        {/* Right Recipes Deck Dashboard */}
         <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
               <h2 className="text-xs font-black tracking-widest text-slate-400 uppercase">⚡ Alignment Index Deck</h2>
-              <p className="text-[11px] text-slate-400 mt-0.5">Ranked dynamically by high compound matching bounds</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Ranked dynamically by compound ingredient affinity</p>
             </div>
-            <input type="text" placeholder="Search master recipe indices..." value={recipeSearch} onChange={(e) => setRecipeSearch(e.target.value)} className="w-full sm:w-64 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400" />
+            <input type="text" placeholder="Search master recipe indices..." value={recipeSearch} onChange={(e) => setRecipeSearch(e.target.value)} className="w-full sm:w-64 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-indigo-500 transition-all" />
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[580px] overflow-y-auto pr-2">
@@ -386,7 +393,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* DYNAMIC BRIGHT RECIPE EXPAND WINDOW MODAL */}
+      {/* FULL EXPANDABLE RECIPE DETAILED VIEW WINDOW */}
       {activeModalRecipe && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white border border-slate-200 w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto transition-all">
@@ -404,15 +411,15 @@ export default function App() {
               </div>
             </div>
 
-            {/* PREMIUM RICH CAPTURE DISPLAY ELEMENT */}
+            {/* DYNAMIC PHOTO ELEMENT BLOCK TARGET */}
             <div ref={snapshotCardRef} className="bg-white border border-slate-100 p-6 rounded-2xl space-y-6 shadow-sm">
               <div className="border-b border-slate-100 pb-4 text-center">
                 <h2 className="text-xl font-black text-indigo-600 uppercase tracking-wide">{activeModalRecipe.name || activeModalRecipe.recipeName}</h2>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest font-mono mt-1">SmartFridge AI Custom Formulation Catalog</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest font-mono mt-1">SmartFridge AI Formulation Document</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl shadow-inner">
-                  <h4 className="text-[9px] font-black uppercase text-slate-400 font-mono border-b border-slate-200 pb-1 mb-3 tracking-wider">📋 Scaled Quantities</h4>
+                <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl">
+                  <h4 className="text-[9px] font-black uppercase text-slate-400 font-mono border-b border-slate-200 pb-1 mb-3 tracking-wider">📋 Scaled Portions</h4>
                   <ul className="space-y-2">
                     {activeModalRecipe.ingredients?.map((ing, idx) => (
                       <li key={idx} className="text-xs font-bold text-slate-700 capitalize flex flex-col border-b border-slate-200/40 pb-1.5"><span className="text-[8px] font-mono text-purple-500 font-black tracking-wide">1.5 Units Measure</span>{ing}</li>
@@ -420,7 +427,7 @@ export default function App() {
                   </ul>
                 </div>
                 <div className="md:col-span-2 space-y-3">
-                  <h4 className="text-[9px] font-black uppercase text-slate-400 font-mono border-b border-slate-100 tracking-wider pb-1">🔥 Preparation Progression Matrix</h4>
+                  <h4 className="text-[9px] font-black uppercase text-slate-400 font-mono border-b border-slate-100 tracking-wider pb-1">🔥 Culinary Execution Vector</h4>
                   <ol className="space-y-2.5">
                     {(activeModalRecipe.isAiGeneratedElement ? activeModalRecipe.steps : getStaticRecipeSteps(activeModalRecipe)).map((step, idx) => (
                       <li key={idx} className="bg-slate-50 border border-slate-200/40 p-3 rounded-xl text-xs text-slate-600 flex gap-3 leading-relaxed">
@@ -437,17 +444,17 @@ export default function App() {
         </div>
       )}
 
-      {/* Trip Planner Overlay Card */}
+      {/* Shopping Trip Planner Modal */}
       {isStoreAlertOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-white border border-slate-200 w-full max-w-xl rounded-3xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto animate-in zoom-in-95 duration-150">
+          <div className="bg-white border border-slate-200 w-full max-w-xl rounded-3xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-start border-b border-slate-100 pb-4 mb-4">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">🔮 Market Procurement Tracking</h3>
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">🔮 Market Procurement Vector</h3>
               <button onClick={() => setIsStoreAlertOpen(false)} className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-slate-200/60 hover:bg-slate-200 transition-colors">Dismiss</button>
             </div>
             <div className="space-y-2.5">
               {shoppingAlerts.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-6 text-center">No actionable gaps found in database parameters.</p>
+                <p className="text-xs text-slate-400 italic py-6 text-center">No actionable item gaps found in current profile vectors.</p>
               ) : (
                 shoppingAlerts.slice(0, 15).map((alert, i) => (
                   <div key={i} onClick={() => { setIsStoreAlertOpen(false); setActiveModalRecipe(alert.recipe); }} className="p-3.5 bg-slate-50 border border-slate-200/60 hover:border-indigo-400 rounded-2xl cursor-pointer transition-all shadow-sm group">
@@ -455,7 +462,7 @@ export default function App() {
                       <h4 className="font-extrabold text-slate-700 text-xs group-hover:text-indigo-600 transition-colors">{alert.recipe.name}</h4>
                       <span className="text-[8px] font-mono text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded uppercase font-bold tracking-wide">{alert.mealType}</span>
                     </div>
-                    <p className="text-xs text-slate-400 font-semibold mt-2">Target Grocery Purchases: <span className="text-indigo-600 font-mono text-xs capitalize font-bold ml-0.5">{alert.missingItems.join(', ')}</span></p>
+                    <p className="text-xs text-slate-400 font-semibold mt-2">Target Store Purchases: <span className="text-indigo-600 font-mono text-xs capitalize font-bold ml-0.5">{alert.missingItems.join(', ')}</span></p>
                   </div>
                 ))
               )}
