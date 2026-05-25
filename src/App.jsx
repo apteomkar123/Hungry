@@ -86,10 +86,10 @@ export default function App() {
             parsedIngredients = r.ingredients;
           } else if (typeof r.ingredients === 'string') {
             try {
-              // Double-layered fallback cleans up any escaped text characters
-              const flatString = r.ingredients.trim();
-              const primaryParse = JSON.parse(flatString);
-              parsedIngredients = typeof primaryParse === 'string' ? JSON.parse(primaryParse) : primaryParse;
+              // DOUBLE-LAYERED PARSE WALL: Cleans escaped quotes and string-wrapped brackets cleanly
+              const cleanString = r.ingredients.trim();
+              const initialAttempt = JSON.parse(cleanString);
+              parsedIngredients = typeof initialAttempt === 'string' ? JSON.parse(initialAttempt) : initialAttempt;
             } catch (e) {
               parsedIngredients = [];
             }
@@ -99,7 +99,7 @@ export default function App() {
       });
       setMasterRecipes(normalizedRecipes);
     } catch (err) {
-      console.error("Database tracking stream error:", err.message);
+      console.error("Database streaming data mapping error:", err.message);
     }
   };
 
@@ -126,14 +126,14 @@ export default function App() {
 
   const handleForgotPasswordSubmit = async (e) => {
     e.preventDefault();
-    if (!authEmail.trim()) return alert("Please type your email first.");
+    if (!authEmail.trim()) return alert("Please type your email address.");
     setAuthLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(authEmail.trim(), {
         redirectTo: window.location.origin,
       });
       if (error) throw error;
-      alert("📧 Recovery link dispatched cleanly!");
+      alert("📧 Password reset token successfully transmitted!");
       setIsForgotPasswordView(false);
     } catch (err) {
       alert(`Fault: ${err.message}`);
@@ -144,7 +144,7 @@ export default function App() {
 
   const handleResetPasswordConfirmation = async (e) => {
     e.preventDefault();
-    if (newPasswordValue.trim().length < 6) return alert("Passwords must be at least 6 characters long.");
+    if (newPasswordValue.trim().length < 6) return alert("Passwords must be at least 6 characters.");
     setAuthLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: newPasswordValue.trim() });
@@ -154,7 +154,7 @@ export default function App() {
       setNewPasswordValue('');
     } catch (err) {
       alert(`Fault: ${err.message}`);
-    } {
+    } finally {
       setAuthLoading(false);
     }
   };
@@ -166,12 +166,12 @@ export default function App() {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPasswordValue.trim() });
       if (error) throw error;
-      alert("🌟 Password settings re-aligned successfully!");
+      alert("🌟 Password settings updated successfully!");
       setIsSettingsOpen(false);
       setNewPasswordValue('');
     } catch (err) {
       alert(`Internal Update Error: ${err.message}`);
-    } {
+    } finally {
       setAuthLoading(false);
     }
   };
@@ -180,7 +180,7 @@ export default function App() {
     e.preventDefault();
     const cleanEmail = authEmail.trim();
     const cleanPassword = authPassword.trim();
-    if (!cleanEmail || !cleanPassword) return alert("Fields required.");
+    if (!cleanEmail || !cleanPassword) return alert("Credentials required.");
     if (cleanPassword.length < 6) return alert("Password must be at least 6 characters.");
 
     setAuthLoading(true);
@@ -196,39 +196,38 @@ export default function App() {
       }
     } catch (err) { 
       alert(`Refused: ${err.message}`);
-    } {
+    } finally {
       setAuthLoading(false);
     }
   };
 
-  // FIXED RE-ENGINEERED CANVAS IMAGE GENERATOR
+  // CORE FIX: Sandboxed configurations for html2canvas to stop parsing errors
   const handleDownloadRecipeImage = async () => {
     if (!snapshotCardRef.current) return;
     try {
-      // Captures snapshot without tracking foreign inline CSS layout tags
       const canvas = await html2canvas(snapshotCardRef.current, {
         backgroundColor: '#ffffff',
         scale: 2, 
         useCORS: true,
         allowTaint: true,
         logging: false,
-        windowWidth: 800
+        windowWidth: 750
       });
       
       const imageUri = canvas.toDataURL('image/png');
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.href = imageUri;
-      downloadAnchor.download = `recipe-card.png`;
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      document.body.removeChild(downloadAnchor);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = imageUri;
+      downloadLink.download = `recipe-card.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
     } catch (err) {
-      console.error("Canvas build error:", err);
+      console.error("Canvas conversion exception caught:", err);
     }
   };
 
   const handleGenerateAiRecipe = async () => {
-    if (fridge.length === 0) return alert("Stock empty.");
+    if (fridge.length === 0) return alert("Pantry empty.");
     setAiGenerating(true);
     try {
       const response = await fetch('/.netlify/functions/scan-receipt', {
@@ -350,14 +349,14 @@ export default function App() {
     if (recipe && recipe.steps && recipe.steps.length > 0) return recipe.steps;
     const itemsList = recipe && recipe.ingredients ? recipe.ingredients : ['ingredients'];
     return [
-      `Prep your primary base ingredient (${itemsList[0] || 'vegetables'}).`,
-      `Heat 2 tbsp of olive oil in a skillet layout over medium heat.`,
-      `Introduce remaining ingredient tokens: ${itemsList.slice(1).join(', ')}.`,
-      `Cook thoroughly for 8-10 minutes, season to taste, and plate your dish.`
+      `Prep your primary base component selection (${itemsList[0] || 'vegetables'}).`,
+      `Heat 2 tbsp of olive oil in an artisan skillet over medium heat.`,
+      `Introduce remaining recipe elements: ${itemsList.slice(1).join(', ')}.`,
+      `Cook thoroughly for 8-10 minutes, adjust seasoning to taste, and serve.`
     ];
   };
 
-  // Safe Dynamic Sorter Engine Mapping Chain
+  // CORE FIX: Clean-scope mapping chains evaluate match accuracy against ingredients seamlessly
   const processedRecipes = masterRecipes.map(recipe => {
     const recipeIngredients = recipe.ingredients || [];
     const total = recipeIngredients.length;
@@ -371,11 +370,11 @@ export default function App() {
     if (!recipeSearch) return true;
     return recipe.name && recipe.name.toLowerCase().includes(recipeSearch.toLowerCase());
   }).sort((a, b) => {
-    // Primary sorting evaluates the real calculated percentage first
+    // Rank strictly by highest calculated pantry match match count first
     if (b.matchPercentage !== a.matchPercentage) {
       return b.matchPercentage - a.matchPercentage;
     }
-    // Secondary fallback runs a clean alphabetical string check
+    // Secondary tiebreaker maps standard text comparison loops cleanly
     return (a.name || '').localeCompare(b.name || '');
   });
 
@@ -413,6 +412,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased pb-12">
       
+      {/* Navigation rows bar */}
       <header className="bg-white/80 border-b border-slate-200 sticky top-0 z-40 backdrop-blur-md px-4 sm:px-6 py-4 flex flex-col lg:flex-row justify-between items-center gap-4 shadow-sm">
         <div className="text-center lg:text-left">
           <h1 className="text-2xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent tracking-tight">SmartFridge AI</h1>
@@ -431,9 +431,10 @@ export default function App() {
         </div>
       </header>
 
+      {/* Main Grid Workspace */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="space-y-6 lg:col-span-1">
-          {/* Nutrition Monitors */}
+          {/* Nutrition Analytics */}
           <div className="bg-white p-5 rounded-3xl border border-slate-200/60 shadow-sm">
             <h2 className="text-[11px] font-black tracking-widest uppercase text-slate-400 mb-4">📊 Nutrient Allocation Monitor</h2>
             <div className="grid grid-cols-3 gap-3 text-center">
@@ -456,25 +457,25 @@ export default function App() {
             </form>
           </div>
 
-          {/* Storage list block */}
+          {/* Storage lists panel drawer */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm">
             <h2 className="text-xs font-black text-slate-400 uppercase flex justify-between items-center mb-4"><span>🏡 Private Storage Items</span><span className="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold">{fridge.length}</span></h2>
             <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {fridge.length === 0 ? <p className="text-xs text-slate-400 italic py-4">No ingredients added yet.</p> : fridge.map((item, idx) => (
+              {fridge.length === 0 ? <p className="text-xs text-slate-400 italic py-4">No elements added yet.</p> : fridge.map((item, idx) => (
                 <div key={idx} className="bg-slate-50 border border-slate-200/40 p-3 rounded-xl flex justify-between items-center shadow-sm"><span className="text-xs font-bold capitalize text-slate-700">{item}</span><button onClick={() => handleRemoveItem(item)} className="text-slate-300 hover:text-red-500 font-mono text-sm px-2 transition-colors">×</button></div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Recipes Grid */}
+        {/* Dynamic Personal Match Arrays Deck Container */}
         <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/60 shadow-sm">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
               <h2 className="text-xs font-black tracking-widest text-slate-400 uppercase">⚡ Personal Match Arrays</h2>
-              <p className="text-[11px] text-slate-400 mt-0.5">Filtering rows seamlessly from database</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Catered cleanly from the 6,000 table rows catalog</p>
             </div>
-            <input type="text" placeholder="Search catalog codes..." value={recipeSearch} onChange={(e) => setRecipeSearch(e.target.value)} className="w-full sm:w-64 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs text-slate-700 focus:outline-none" />
+            <input type="text" placeholder="Search master names..." value={recipeSearch} onChange={(e) => setRecipeSearch(e.target.value)} className="w-full sm:w-64 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-xs text-slate-700 focus:outline-none" />
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[580px] overflow-y-auto pr-2">
@@ -502,7 +503,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* EXPANDED RECIPE VIEWER MODAL */}
+      {/* FULL EXPANDABLE SEPARATED RECIPE DIALOG VIEWER */}
       {activeModalRecipe && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white border border-slate-200 w-full max-w-2xl rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
@@ -513,7 +514,7 @@ export default function App() {
                 <h3 className="text-xl font-black text-slate-800 tracking-tight mt-1">{activeModalRecipe.name || activeModalRecipe.recipeName}</h3>
               </div>
               <div className="flex gap-2 w-full sm:w-auto justify-end">
-                {/* Fixed Active Image Trigger */}
+                {/* Save Card Photo Core Interaction Trigger */}
                 <button onClick={handleDownloadRecipeImage} className="bg-slate-800 hover:bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition-all active:scale-95">
                   📸 Save Card Photo
                 </button>
@@ -521,7 +522,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* SEPARATED MULTIPLIER BAR: Kept outside the screenshot card container container to stop html2canvas crashes */}
+            {/* SEPARATED SERVINGS PANEL: Stays external from print zone to bypass text canvas errors */}
             <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl mb-6 flex items-center justify-between shadow-inner">
               <span className="text-xs font-extrabold text-slate-500 uppercase font-mono pl-1">👥 Increase Yield Servings:</span>
               <div className="flex gap-1">
@@ -539,16 +540,17 @@ export default function App() {
               </div>
             </div>
 
-            {/* THE ISOLATED SNAPSHOT BOX: Perfectly plain styles ensure instant photo downloads */}
+            {/* THE PRINT TARGET CONTAINER: Stripped layout text gradients for crisp canvas images */}
             <div className="p-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
               <div ref={snapshotCardRef} className="bg-white p-6 rounded-xl space-y-6">
                 <div className="border-b border-slate-100 pb-4 text-center">
+                  {/* Clean text configuration blocks background-clip crashes */}
                   <h2 className="text-xl font-black text-indigo-600 uppercase tracking-wide">{activeModalRecipe.name || activeModalRecipe.recipeName}</h2>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase font-mono mt-1">SmartFridge AI Formulation Card • Serving Index {servingMultiplier}x</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase font-mono mt-1">SmartFridge AI Custom Formulation Card • Serving Index {servingMultiplier}x</p>
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  
-                  {/* Ingredients Portions */}
+                  {/* Scaled Portions List */}
                   <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl shadow-inner">
                     <h4 className="text-[9px] font-black uppercase text-slate-400 font-mono border-b border-slate-200 pb-1 mb-3">📋 Component Specs</h4>
                     <ul className="space-y-2">
@@ -563,7 +565,7 @@ export default function App() {
                     </ul>
                   </div>
 
-                  {/* Directions Roadmap */}
+                  {/* Directions Roadmap Container */}
                   <div className="md:col-span-2 space-y-3">
                     <h4 className="text-[9px] font-black uppercase text-slate-400 font-mono border-b border-slate-100 pb-1">🔥 Preparation Progression Matrix</h4>
                     <ol className="space-y-2.5">
@@ -593,7 +595,7 @@ export default function App() {
             </div>
             <div className="space-y-2.5">
               {shoppingAlerts.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-6 text-center">Add ingredients to your stocks room to reveal missing grocery items.</p>
+                <p className="text-xs text-slate-400 italic py-6 text-center">Add ingredients to your stock room to uncover missing grocery items.</p>
               ) : (
                 shoppingAlerts.slice(0, 15).map((alert, i) => (
                   <div key={i} onClick={() => { setIsStoreAlertOpen(false); setServingMultiplier(1); setActiveModalRecipe(alert.recipe); }} className="p-3.5 bg-slate-50 border border-slate-200/60 hover:border-indigo-400 rounded-2xl cursor-pointer transition-all shadow-sm group">
@@ -610,7 +612,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Settings Panel */}
+      {/* Settings Panel Modal Box */}
       {isSettingsOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="bg-white border border-slate-200 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
