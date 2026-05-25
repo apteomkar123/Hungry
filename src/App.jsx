@@ -47,7 +47,7 @@ export default function App() {
       let { data: inventory, error: invError } = await supabase
         .from('fridge_inventory')
         .select('item_name, created_at')
-        .eq('user_id', user.id); // Secure multi-user filtering node
+        .eq('user_id', user.id);
       
       if (invError) throw invError;
       
@@ -94,7 +94,7 @@ export default function App() {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
         if (error) throw error;
-        alert("🚀 Account created successfully! Check your inbox for a verification email if required.");
+        alert("🚀 Account created successfully! Access your dashboard loops via sign in.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
         if (error) throw error;
@@ -110,9 +110,11 @@ export default function App() {
     await supabase.auth.signOut();
     setFridge([]);
     setMasterRecipes([]);
+    setAiRecipe(null);
+    setActiveModalRecipe(null);
   };
 
-  // Macro Metrics Math
+  // Macro Metrics Processing Matrix
   const calculateMacroMetrics = (items) => {
     let p = 0, c = 0, f = 0;
     items.forEach(item => {
@@ -152,44 +154,58 @@ export default function App() {
   const getStructuralStepsForRecipe = (recipe) => {
     if (recipe.steps && recipe.steps.length > 0) return recipe.steps;
     return [
-      `Carefully prep and scale your primary base of choice (${recipe.ingredients[0] || 'vegetables'}).`,
-      `Heat 2 tbsp of olive oil in an artisan skillet over medium-high heat and sauté ingredients.`,
-      `Introduce remaining inventory tracing elements: ${recipe.ingredients.slice(1).join(', ')}.`,
-      `Toss thoroughly for 8-10 minutes, adjust seasoning to taste, and serve immediately.`
+      `Carefully prep and scale your primary base component configuration (${recipe.ingredients[0] || 'vegetables'}).`,
+      `Heat 2 tbsp of olive oil or butter equivalent in an artisan skillet over medium heat.`,
+      `Incorporate secondary structural elements: ${recipe.ingredients.slice(1).join(', ')}.`,
+      `Toss and cook thoroughly for 8-10 minutes, garnish with herbs, and plate your dish.`
     ];
   };
 
   const handleShareRecipe = (recipe, isAi = false) => {
     const steps = isAi ? recipe.steps : getStructuralStepsForRecipe(recipe);
-    const ingredientsText = recipe.ingredients.map(ing => `• ${ing}`).join('\n');
+    const ingredientsText = recipe.ingredients.map(ing => `• 1.5 Units of ${ing}`).join('\n');
     const stepsText = steps.map((step, idx) => `${idx + 1}. ${step}`).join('\n');
-    const shareText = `🍳 SmartFridge AI Recipe Share!\n\nRECIPE: ${recipe.name || recipe.recipeName}\n\nINGREDIENTS:\n${ingredientsText}\n\nDIRECTIONS:\n${stepsText}`;
+    const shareText = `🍳 SmartFridge AI Recipe Sync Share!\n\nRECIPE: ${recipe.name || recipe.recipeName}\nTYPE: ${recipe.meal_type || 'Custom AI Generation'}\n\nINGREDIENTS:\n${ingredientsText}\n\nDIRECTIONS:\n${stepsText}`;
+    
     navigator.clipboard.writeText(shareText);
-    alert("🚀 Complete recipe text copied to clipboard!");
+    alert("🚀 Complete recipe specifications copied cleanly to clipboard layout!");
   };
 
   const handleGenerateAiRecipe = async () => {
-    if (fridge.length === 0) return alert("Pantry empty.");
+    if (fridge.length === 0) return alert("Pantry configuration offline. Add ingredients first.");
     setAiGenerating(true);
     try {
       const response = await fetch('/.netlify/functions/scan-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: "", customPrompt: `Generate a veggie recipe with: ${fridge.join(', ')}. Return clean JSON object.` })
+        body: JSON.stringify({ 
+          image: "", 
+          customPrompt: `Generate a premium custom vegetarian dish utilizing a highly compatible subset from these available options: ${fridge.join(', ')}.` 
+        })
       });
       if (response.ok) {
         const data = await response.json();
         setAiRecipe(data);
-        setActiveModalRecipe({ name: data.recipeName, ingredients: fridge, meal_type: 'AI Generation', isAiGeneratedElement: true, steps: data.steps });
+        setActiveModalRecipe({ 
+          name: data.recipeName, 
+          ingredients: fridge.filter((_, i) => i < 5), // Correlate matching sample subsets
+          meal_type: 'AI Generation Matrix', 
+          isAiGeneratedElement: true, 
+          steps: data.steps 
+        });
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err); 
+    }
     setAiGenerating(false);
   };
 
   const handleRemoveItem = async (itemName) => {
     try {
-      await supabase.from('fridge_inventory').delete().eq('item_name', itemName).eq('user_id', user.id);
+      // Instant local optimistic state flash
       setFridge(prev => prev.filter(item => item !== itemName));
+      await supabase.from('fridge_inventory').delete().eq('item_name', itemName).eq('user_id', user.id);
+      await fetchAppData();
     } catch (err) { console.error(err); }
   };
 
@@ -202,7 +218,13 @@ export default function App() {
       });
       if (response.ok) {
         const data = await response.json();
-        const insertPayload = data.added.map(item => ({ item_name: item.trim().toLowerCase(), user_id: user.id }));
+        const cleanItems = data.added.map(item => item.trim().toLowerCase());
+        const uniqueItems = [...new Set(cleanItems)];
+        const insertPayload = uniqueItems.map(item => ({ item_name: item, user_id: user.id }));
+        
+        // Instant structural local state hydration to bypass async lag barriers
+        setFridge(prev => [...new Set([...prev, ...uniqueItems])]);
+        
         await supabase.from('fridge_inventory').upsert(insertPayload, { onConflict: 'user_id,item_name' });
         await fetchAppData();
       }
@@ -228,8 +250,13 @@ export default function App() {
   const handleAddManualItem = async (e) => {
     e.preventDefault();
     if (!manualItem.trim()) return;
-    await supabase.from('fridge_inventory').upsert([{ item_name: manualItem.trim().toLowerCase(), user_id: user.id }], { onConflict: 'user_id,item_name' });
+    const sanitizedInput = manualItem.trim().toLowerCase();
+
+    // Instant optimistic data loop flash
+    setFridge(prev => [...new Set([...prev, sanitizedInput])]);
     setManualItem('');
+
+    await supabase.from('fridge_inventory').upsert([{ item_name: sanitizedInput, user_id: user.id }], { onConflict: 'user_id,item_name' });
     await fetchAppData();
   };
 
@@ -237,6 +264,7 @@ export default function App() {
     const alerts = [];
     masterRecipes.forEach(recipe => {
       const missing = recipe.ingredients ? recipe.ingredients.filter(ing => !fridge.includes(ing.toLowerCase().trim())) : [];
+      // Flexible Threshold captures any array tracking a difference optimization scale boundary
       if (missing.length >= 1 && missing.length <= 4) {
         alerts.push({ recipe, missingItems: missing, mealType: recipe.meal_type || 'General' });
       }
@@ -255,7 +283,7 @@ export default function App() {
     return recipe.name.toLowerCase().includes(recipeSearch.toLowerCase());
   }).sort((a, b) => b.matchPercentage - a.matchPercentage);
 
-  // AUTH PROTECTED SCREEN VIEW: Renders access system gateway frame if session identity token is unverified
+  // SECURE ACCOUNT GATEWAY DISPLAY LAYER
   if (!user) {
     return (
       <div className="min-h-screen bg-[#070a13] text-slate-200 font-sans antialiased flex items-center justify-center p-6">
@@ -293,7 +321,7 @@ export default function App() {
     );
   }
 
-  // STANDARD APPLICATION ENTRY INTERFACE
+  // SYSTEM CENTRAL DASHBOARD INTERFACE
   return (
     <div className="min-h-screen bg-[#070a13] text-slate-200 font-sans antialiased selection:bg-violet-500 pb-12">
       <header className="bg-[#0c1222]/90 border-b border-slate-800/80 sticky top-0 z-40 backdrop-blur-xl shadow-2xl">
@@ -367,7 +395,7 @@ export default function App() {
               {fridge.map((item, idx) => {
                 const decay = expirationMap[item] || { daysLeft: 7, statusLabel: 'STABLE' };
                 return (
-                  <div key={idx} className="bg-[#090d1a] border border-slate-800 p-2.5 rounded-xl flex items-center justify-between">
+                  <div key={idx} className="bg-[#090d1a] border border-slate-800 p-2.5 rounded-xl flex items-center justify-between group transform hover:translate-x-0.5 transition-all">
                     <div className="flex items-center gap-3">
                       <button onClick={() => handleRemoveItem(item)} className="text-slate-600 hover:text-red-400 font-mono text-sm">×</button>
                       <div>
@@ -382,7 +410,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Recipe Dashboard */}
+        {/* Recipe Dashboard Panel */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-[#0c1222] p-6 rounded-2xl border border-slate-800 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
@@ -392,10 +420,10 @@ export default function App() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[620px] overflow-y-auto pr-2">
               {processedRecipes.slice(0, 40).map((recipe) => (
-                <div key={recipe.id || recipe.name} onClick={() => setActiveModalRecipe(recipe)} className="p-4 bg-[#090d1a] border border-slate-800 rounded-xl cursor-pointer hover:border-violet-500/60 hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
+                <div key={recipe.id || recipe.name} onClick={() => setActiveModalRecipe(recipe)} className="p-4 bg-[#090d1a] border border-slate-800 rounded-xl cursor-pointer hover:border-violet-500/60 hover:-translate-y-0.5 transition-all flex flex-col justify-between group shadow-lg">
                   <div>
                     <div className="flex justify-between items-start gap-2">
-                      <h3 className="font-extrabold text-slate-200 group-hover:text-violet-400 text-xs line-clamp-2">{recipe.name}</h3>
+                      <h3 className="font-extrabold text-slate-200 group-hover:text-violet-400 text-xs line-clamp-2 tracking-tight">{recipe.name}</h3>
                       <span className="px-2 py-0.5 rounded text-[9px] font-mono font-black bg-slate-900 text-slate-400 shrink-0">{recipe.matchPercentage}%</span>
                     </div>
                     <span className="inline-block text-[8px] font-mono text-slate-500 border border-slate-800 px-1.5 py-0.5 rounded mt-2 uppercase">{recipe.meal_type}</span>
@@ -410,17 +438,17 @@ export default function App() {
         </div>
       </main>
 
-      {/* Full Recipe Modal Expand Block */}
+      {/* Full Recipe Modal Expand Block Frame Layout */}
       {activeModalRecipe && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-[#0c1222] border border-slate-800 w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#0c1222] border border-slate-800 w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-start border-b border-slate-800 pb-4 mb-5">
               <div>
                 <span className="bg-violet-950 border border-violet-800 text-violet-400 font-mono text-[9px] px-2 py-0.5 rounded uppercase tracking-widest font-black">{activeModalRecipe.meal_type}</span>
-                <h3 className="text-lg font-black text-slate-100 mt-1.5">{activeModalRecipe.name}</h3>
+                <h3 className="text-lg font-black text-slate-100 mt-1.5 tracking-tight">{activeModalRecipe.name}</h3>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => handleShareRecipe(activeModalRecipe, !!activeModalRecipe.isAiGeneratedElement)} className="bg-[#121c2c] border border-cyan-800/60 text-cyan-400 text-xs font-bold px-3 py-1.5 rounded-xl">🔗 Share</button>
+                <button onClick={() => handleShareRecipe(activeModalRecipe, !!activeModalRecipe.isAiGeneratedElement)} className="bg-[#121c2c] border border-cyan-800/60 text-cyan-400 text-xs font-bold px-3 py-1.5 rounded-xl hover:bg-cyan-950/40 transition-colors">🔗 Share</button>
                 <button onClick={() => setActiveModalRecipe(null)} className="bg-slate-800 text-slate-400 text-xs font-mono px-3 py-1.5 rounded-xl border border-slate-700">Close</button>
               </div>
             </div>
@@ -431,7 +459,7 @@ export default function App() {
                   {activeModalRecipe.ingredients?.map((ing, idx) => (
                     <li key={idx} className="text-xs text-slate-300 border-b border-slate-900 pb-1.5 flex flex-col capitalize">
                       <span className="font-mono text-[9px] text-violet-400 font-black">1.5 Units measure</span>
-                      <span className="mt-0.5 text-slate-200">{ing}</span>
+                      <span className="mt-0.5 text-slate-200 font-semibold">{ing}</span>
                     </li>
                   ))}
                 </ul>
@@ -440,9 +468,9 @@ export default function App() {
                 <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500">🔥 Directions Roadmap</h4>
                 <ol className="space-y-3">
                   {getStructuralStepsForRecipe(activeModalRecipe).map((step, idx) => (
-                    <li key={idx} className="bg-[#090d1a] border border-slate-800 p-3 rounded-xl text-xs text-slate-300 flex gap-3">
+                    <li key={idx} className="bg-[#090d1a] border border-slate-800 p-3 rounded-xl text-xs text-slate-300 flex gap-3 leading-relaxed">
                       <span className="font-mono font-black text-cyan-400 bg-slate-900 border border-slate-800 w-5 h-5 rounded flex items-center justify-center shrink-0">{idx + 1}</span>
-                      <p className="font-medium">{step}</p>
+                      <p className="font-medium text-slate-300">{step}</p>
                     </li>
                   ))}
                 </ol>
@@ -452,7 +480,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Trip Planner Portal */}
+      {/* Trip Planner Optimization Dialog */}
       {isStoreAlertOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="bg-[#0c1222] border border-slate-800 w-full max-w-xl rounded-2xl p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
