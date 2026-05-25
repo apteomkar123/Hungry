@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 
 export const handler = async (event, context) => {
-  // Enforce cors preflight requirements
+  // Handle CORS Preflight OPTIONS requests cleanly
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -26,13 +26,13 @@ export const handler = async (event, context) => {
     const ai = new GoogleGenAI({ apiKey });
     const bodyData = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
 
-    // PIPELINE ROUTE A: AI Custom Recipe Generator (Flexible & Curated)
+    // =========================================================================
+    // PIPELINE ROUTE A: AI Custom Recipe Generator (Flexible & Synced Schema)
+    // =========================================================================
     if (bodyData && bodyData.customPrompt) {
       const optimizedPrompt = `${bodyData.customPrompt} 
-      CRITICAL INSTRUCTIONS: You do NOT have to use every single ingredient listed if they do not pair well together. 
-      Select a highly cohesive, delicious subset of 3 to 6 of the best matching ingredients to build an elite vegetarian dish. 
-      Return ONLY a raw structural JSON object with keys "recipeName", "prepTime", and a "steps" array. 
-      Do not include markdown triple backtick formatting wrapper blocks.`;
+      Select a highly cohesive, delicious subset of 3 to 6 matching ingredients from your available stocks to build a dish. 
+      Ensure every single element listed in your ingredients array output is explicitly used and referenced within your structural steps.`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -45,9 +45,10 @@ export const handler = async (event, context) => {
             properties: {
               recipeName: { type: "STRING" },
               prepTime: { type: "STRING" },
+              ingredients: { type: "ARRAY", items: { type: "STRING" } }, // Strict ingredient alignment node
               steps: { type: "ARRAY", items: { type: "STRING" } }
             },
-            required: ["recipeName", "prepTime", "steps"]
+            required: ["recipeName", "prepTime", "ingredients", "steps"]
           }
         }
       });
@@ -63,11 +64,14 @@ export const handler = async (event, context) => {
       };
     }
 
+    // =========================================================================
     // PIPELINE ROUTE B: Optical Receipt Vision Processing
+    // =========================================================================
     if (!bodyData || !bodyData.image) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing image or custom prompt payload' }) };
     }
     
+    // Clean up base64 metadata headers if present
     let rawBase64 = bodyData.image.includes(',') ? bodyData.image.split(',')[1] : bodyData.image;
 
     const imagePart = {
@@ -77,20 +81,25 @@ export const handler = async (event, context) => {
       },
     };
 
-    const prompt = `Analyze this grocery receipt image. Identify the merchant store name and list all purchased food items. Decode any industrial shorthand flags into clean, plain English singular ingredient tokens. Return the clean food item names strictly as a JSON array of strings: ["Item1", "Item2"]. Do not include markdown code block formatting ticks.`;
+    const visionPrompt = `Analyze this grocery receipt image. Identify the merchant store name and list all purchased food items. Decode any industrial or store shorthand descriptions into clean, plain English singular ingredient names (e.g., change "LNTL RNGS SOUR CRM" to "Lentils", "CREMR OAT BRWN SGR" to "Oat Milk"). Return the clean food item names strictly as a JSON array of strings, like this: ["Item1", "Item2"]. Do not include conversational markdown text outside the array.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: [prompt, imagePart],
+      contents: [visionPrompt, imagePart],
       config: { temperature: 0.1 }
     });
 
     const returnedText = response.text.trim();
+    
+    // Bulletproof array extraction using RegEx
     const arrayRegex = /\[([\s\S]*?)\]/;
     const match = returnedText.match(arrayRegex);
 
     if (!match) {
-      return { statusCode: 422, body: JSON.stringify({ error: "Could not isolate JSON array from vision response." }) };
+      return { 
+        statusCode: 422, 
+        body: JSON.stringify({ error: "Could not isolate a structural JSON array from vision response." }) 
+      };
     }
 
     const cleanIngredients = JSON.parse(match[0]);
@@ -104,10 +113,11 @@ export const handler = async (event, context) => {
       },
       body: JSON.stringify({ success: true, added: cleanIngredients }),
     };
+
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: `Backend pipeline crash: ${error.message}` }),
+      body: JSON.stringify({ error: `Backend microservice pipeline crash: ${error.message}` }),
     };
   }
 };
