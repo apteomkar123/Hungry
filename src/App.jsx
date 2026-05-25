@@ -48,11 +48,18 @@ export default function App() {
         .eq('user_id', user.id);
       
       if (invError) throw invError;
-      const currentFridge = inventory ? inventory.map(i => i.item_name.toLowerCase().trim()) : [];
+      
+      // FIX: Added '?.', '||', and fallback filters to guarantee data streams never throw crashes
+      const currentFridge = inventory 
+        ? inventory
+            .filter(i => i && i.item_name)
+            .map(i => i.item_name.toLowerCase().trim()) 
+        : [];
+        
       setFridge(currentFridge);
 
       calculateMacroMetrics(currentFridge);
-      if (inventory) generateExpirationTimelines(inventory);
+      if (inventory && inventory.length > 0) generateExpirationTimelines(inventory);
 
       let { data: recipes, error: recError } = await supabase.from('recipes').select('*');
       if (recError) throw recError;
@@ -68,10 +75,10 @@ export default function App() {
       });
       setMasterRecipes(normalizedRecipes);
     } catch (err) {
-      console.error(err.message);
+      console.error("Data normalization sync blocked:", err.message);
     }
   };
-
+  
   useEffect(() => {
     if (user) fetchAppData();
   }, [user]);
