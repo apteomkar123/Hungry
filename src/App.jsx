@@ -97,29 +97,49 @@ export default function App() {
     e.preventDefault();
     if (!manualItem.trim()) return;
 
-    await supabase.from('fridge_inventory').upsert([{ item_name: manualItem.trim() }], { onConflict: 'item_name' });
-    setManualItem('');
-    await fetchAppData();
+    // Capture explicit error responses from Supabase
+    const { error } = await supabase
+      .from('fridge_inventory')
+      .upsert([{ item_name: manualItem.trim() }], { onConflict: 'item_name' });
+
+    if (error) {
+      alert(`Supabase Manual Add Error: ${error.message} - ${error.details}`);
+    } else {
+      setManualItem('');
+      await fetchAppData();
+    }
   };
 
-  // Feature: Calculate missing ingredient targets before shopping trips
-  const triggerStoreTripPlanner = () => {
-    const alerts = [];
-    masterRecipes.forEach(recipe => {
-      const missing = recipe.ingredients.filter(ing => 
-        !fridge.includes(ing.toLowerCase().trim())
-      );
-      // Look for dishes requiring only 1 or 2 more target items from the store
-      if (missing.length >= 1 && missing.length <= 2) {
-        alerts.push({
-          recipeName: recipe.name,
-          missingItems: missing,
-          mealType: recipe.meal_type
-        });
+  const sendImageToBackend = async (base64Data) => {
+    try {
+      const response = await fetch('/.netlify/functions/scan-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64Data })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const insertPayload = data.added.map(item => ({ item_name: item.trim() }));
+        
+        // Capture explicit error responses from Supabase for receipt items
+        const { error } = await supabase
+          .from('fridge_inventory')
+          .upsert(insertPayload, { onConflict: 'item_name' });
+
+        if (error) {
+          alert(`Supabase Receipt Save Error: ${error.message}`);
+        } else {
+          await fetchAppData();
+        }
+      } else {
+        const errorText = await response.text();
+        alert(`Parsing verification failure (Status ${response.status}): ${errorText}`);
       }
-    });
-    setShoppingAlerts(alerts);
-    setIsStoreAlertOpen(true);
+    } catch (err) {
+      alert(`Network/Client Error: ${err.message}`);
+    }
+    setLoading(false);
   };
 
   // Feature: Calculate continuous ingredient matching match ratios
