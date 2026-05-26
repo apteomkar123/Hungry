@@ -93,11 +93,15 @@ export default function App() {
   const fetchAppData = async () => {
     if (!user) return;
     try {
-      // 1. Fetch Pantry Inventory with Column Alignment Fallbacks
-      let { data: inventory, error: invErr } = await supabase.from('fridge_inventory').select('*');
-      
+      // 1. Fetch Pantry Inventory with User ID Bounds to Avoid Security Rule Crashes
+      let { data: inventory, error: invErr } = await supabase
+        .from('fridge_inventory')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      if (invErr) console.warn("Pantry query warning:", invErr.message);
+
       const normalizedFridge = (inventory || []).map(row => {
-        // Fallback checks support multiple schema structures safely
         const rawNameField = row.item_name || row.item || row.name || '';
         return {
           id: row.id,
@@ -112,15 +116,22 @@ export default function App() {
       calculateMacroMetrics(plainTokensArray);
       if (plainTokensArray.length > 0) generateExpirationTimelines(plainTokensArray);
 
-      // 2. Fetch Shopping List
-      let { data: shopItems } = await supabase.from('shopping_list').select('*').order('created_at', { ascending: true });
+      // 2. Fetch User Shopping List
+      let { data: shopItems } = await supabase
+        .from('shopping_list')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
       setShoppingList(shopItems || []);
 
-      // 3. Fetch Profile Saved Pinned Recipes
-      let { data: likedRecipes } = await supabase.from('saved_recipes').select('*');
+      // 3. Fetch User Saved Recipes Vector Block
+      let { data: likedRecipes } = await supabase
+        .from('saved_recipes')
+        .select('*')
+        .eq('user_id', user.id);
       setSavedRecipes(likedRecipes || []);
 
-      // 4. Download Global Recipes Matrix Catalog
+      // 4. Load 6,000 Catalog Recipe Rows Completely In Sub-Process
       let { data: recipes, error: recErr } = await supabase.from('recipes').select('*');
       if (recErr) throw recErr;
 
@@ -142,7 +153,7 @@ export default function App() {
       });
       setMasterRecipes(normalizedRecipes);
     } catch (err) {
-      console.error("Hydration safety engine intercepted drop: ", err.message);
+      console.error("Hydration safety runtime block active:", err.message);
     }
   };
 
@@ -150,7 +161,7 @@ export default function App() {
     if (user) fetchAppData();
   }, [user]);
 
-  // INLINE LIVE STORAGE MANIPULATOR LOOP
+  // INLINE LIVE PANTRY STATE UPDATER
   const handleUpdateInlineItem = async (id, updatedRawValue) => {
     try {
       setFridge(prev => (prev || []).map(item => item.id === id ? { ...item, raw_name: updatedRawValue, item_name: cleanIngredientLocally(updatedRawValue) } : item));
@@ -160,7 +171,7 @@ export default function App() {
     }
   };
 
-  // PROFILE SHOPPING MANAGER ENGINE
+  // SHOPPING LIST METHODS SYSTEM
   const handleAddShoppingItem = async (e, textOverride = '') => {
     if (e) e.preventDefault();
     const targetText = textOverride || shoppingInput;
@@ -199,7 +210,7 @@ export default function App() {
     }
   };
 
-  // PROFILE SAVED RECIPES SELECTIONS
+  // SAVED RECIPES SELECTIONS
   const handleSaveRecipeToProfile = async (recipe) => {
     try {
       if ((savedRecipes || []).some(r => r.recipe_id === String(recipe.id))) return alert("Recipe catalog card already liked!");
@@ -231,7 +242,7 @@ export default function App() {
     }
   };
 
-  // BULLETPROOF CAPTURE ENGINE: Computes explicit viewport dimensions to clear browser freezes
+  // HIGH-FIDELITY VIEWPORT SNAPSHOT CAPTURE MACHINE
   const handleDownloadRecipeImage = async () => {
     if (!snapshotCardRef.current) return;
     try {
@@ -387,8 +398,8 @@ export default function App() {
     ];
   };
 
-  // HIGH-PERFORMANCE DEEP SHORT-CIRCUIT PROTECTION WALLS
-  const tokensListArray = ((fridge || []).map(f => f.item_name) || []).filter(Boolean);
+  // INSULATED WORD AFFINITY COMPLEX DECK INTERSECTION SORT ENGINE
+  const tokensListArray = Array.isArray(fridge) ? fridge.map(f => f.item_name).filter(Boolean) : [];
   
   const processedRecipes = (masterRecipes || []).map(recipe => {
     const recipeIngredients = recipe.ingredients || [];
@@ -416,25 +427,25 @@ export default function App() {
         <div className="bg-slate-900 border-4 border-slate-800 p-8 rounded-none w-full max-w-md shadow-2xl relative">
           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-500 to-orange-600"></div>
           {isForgotPasswordView ? (
-            <>
+            <div className="font-sans">
               <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-100 font-sans">Recover Account</h2>
-              <form onSubmit={handleForgotPasswordSubmit} className="space-y-4 mt-6">
+              <form onSubmit={handleForgotPasswordSubmit} className="space-y-4 mt-6 font-sans">
                 <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-800 px-4 py-3 rounded-none text-sm font-black text-slate-100 uppercase tracking-wider focus:border-amber-500 focus:outline-none font-sans" placeholder="Type your email" />
                 <button type="submit" className="w-full bg-amber-500 text-slate-950 font-black py-4 text-xs uppercase tracking-widest hover:bg-amber-400 font-sans">Send Reset Link</button>
               </form>
               <button onClick={() => setIsForgotPasswordView(false)} className="text-xs text-center block w-full text-amber-500 font-black mt-5 hover:underline uppercase tracking-widest font-sans">Return to Login</button>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="font-sans">
               <h2 className="text-4xl font-black uppercase tracking-tighter bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent font-sans">SmartFridge AI</h2>
-              <form onSubmit={handleAuthSubmit} className="space-y-4 mt-6">
+              <form onSubmit={handleAuthSubmit} className="space-y-4 mt-6 font-sans">
                 <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-800 px-4 py-3 rounded-none text-sm font-black text-slate-100 focus:border-amber-500 focus:outline-none font-sans" placeholder="Email Address" />
                 <input type="password" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-800 px-4 py-3 rounded-none text-sm font-black text-slate-100 focus:border-amber-500 focus:outline-none font-sans" placeholder="Password" />
-                <div className="text-right"><button type="button" onClick={() => setIsForgotPasswordView(true)} className="text-[10px] text-slate-500 hover:text-amber-500 uppercase font-black tracking-widest font-sans">Forgot Password?</button></div>
+                <div className="text-right font-sans"><button type="button" onClick={() => setIsForgotPasswordView(true)} className="text-[10px] text-slate-500 hover:text-amber-500 uppercase font-black tracking-widest font-sans">Forgot Password?</button></div>
                 <button type="submit" className="w-full bg-gradient-to-r from-amber-500 to-orange-600 font-black py-4 text-xs uppercase tracking-widest text-slate-950 shadow-lg hover:from-amber-400 hover:to-orange-500 font-sans">{authLoading ? "Verifying..." : (isSignUp ? "Register" : "Sign In")}</button>
               </form>
               <button onClick={() => setIsSignUp(!isSignUp)} className="text-xs text-center block w-full text-amber-500 font-black mt-5 hover:underline uppercase tracking-widest font-sans">{isSignUp ? "Have an account? Login" : "Create Account"}</button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -442,7 +453,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans tracking-tight antialiased pb-12 selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans tracking-tight antialiased pb-12 selection:bg-amber-500 selection:text-slate-950 w-full overflow-x-hidden">
       
       {/* HIGH CONTRAST BOLD NAVIGATION TOPBAR HEADER BLOCK */}
       <header className="bg-slate-900 border-b-4 border-slate-800 sticky top-0 z-40 px-4 sm:px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 w-full shadow-xl">
@@ -475,7 +486,7 @@ export default function App() {
           {/* Intake Scanner */}
           <div className="bg-slate-900 p-6 rounded-none border-2 border-slate-800 shadow-xl font-sans">
             <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 font-sans">📸 Receipt Intake Scanner</h2>
-            <div className="relative border-4 border-dashed border-slate-800 hover:border-amber-500 p-8 text-center bg-slate-955 rounded-none cursor-pointer transition-colors group font-sans">
+            <div className="relative border-4 border-dashed border-slate-800 hover:border-amber-500 p-8 text-center bg-slate-950 rounded-none cursor-pointer transition-colors group font-sans">
               <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10 font-sans" />
               <p className="text-xs font-black uppercase tracking-widest text-slate-300 group-hover:text-amber-400 font-sans">Upload Grocery Receipt</p>
             </div>
@@ -485,7 +496,7 @@ export default function App() {
             </form>
           </div>
 
-          {/* Pantry inline grid box with complete check parameters */}
+          {/* Pantry Control Block */}
           <div className="bg-slate-900 p-6 rounded-none border-2 border-slate-800 shadow-xl font-sans">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest flex justify-between items-center mb-4 font-sans"><span>🏡 Storage Pantry Stock</span><span className="bg-slate-950 text-amber-500 border-2 border-slate-800 px-2.5 py-0.5 text-[10px] font-black font-mono">{fridge ? fridge.length : 0}</span></h2>
             <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1 font-sans">
@@ -529,7 +540,7 @@ export default function App() {
 
         {/* Right Columns Layout Workspace */}
         <div className="lg:col-span-2 space-y-6 font-sans">
-          {/* Saved Liked recipes component element panel block */}
+          {/* Pinned Recipes Container */}
           {savedRecipes && savedRecipes.length > 0 && (
             <div className="bg-slate-900 p-6 rounded-none border-2 border-slate-800 shadow-xl font-sans">
               <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 font-sans">⭐ Saved Liked Recipes ({savedRecipes.length})</h2>
@@ -544,7 +555,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Personal match dashboard deck lists container layout */}
+          {/* Recipe List Frame */}
           <div className="bg-slate-900 p-4 sm:p-6 rounded-none border-2 border-slate-800 shadow-xl font-sans">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 font-sans">
               <div>
@@ -581,7 +592,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* DETAILED RECIPE OVERLAY MODAL DISPLAY COMPONENT MODULE */}
+      {/* DETAILED RECIPE OVERLAY MODAL */}
       {activeModalRecipe && (
         <div className="fixed inset-0 bg-slate-955/80 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto font-sans">
           <div className="bg-slate-900 border-4 border-slate-800 w-full max-w-2xl rounded-none p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto font-sans">
@@ -597,7 +608,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Dynamic Servings Scaler */}
+            {/* Servings scaler */}
             <div className="bg-slate-950 border-2 border-slate-800 p-3 rounded-none mb-6 flex items-center justify-between shadow-inner font-sans">
               <span className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 font-sans">👥 Adjust Servings Yield Index:</span>
               <div className="flex gap-1 font-sans">
@@ -607,7 +618,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* PRINT VECTOR BLUEPRINT DRAWING FRAME LAYOUT */}
+            {/* Snapshot Print Card */}
             <div className="p-2 bg-white rounded-none border-2 border-slate-200 font-sans">
               <div ref={snapshotCardRef} className="bg-white p-6 space-y-6 font-sans">
                 <div className="border-b-2 border-slate-200 pb-4 text-center font-sans">
@@ -616,7 +627,6 @@ export default function App() {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
-                  {/* Ingredient specification segments mapping list handles fallback arrays */}
                   <div className="bg-slate-50 border-2 border-slate-200 p-4 rounded-none shadow-inner font-sans">
                     <h4 className="text-[9px] font-black uppercase text-slate-400 font-mono border-b-2 border-slate-200 pb-1 mb-3 font-mono">📋 Component Specifications</h4>
                     <ul className="space-y-3 font-sans">
@@ -624,11 +634,10 @@ export default function App() {
                         const cleanIng = String(ing || '').toLowerCase().trim();
                         const isOwned = tokensListArray.some(token => token && (cleanIng.includes(token) || token.includes(cleanIng)));
                         return (
-                          <li key={idx} className="text-xs font-black text-slate-900 capitalize flex flex-col border-b border-slate-200 pb-2 font-sans">
+                          <li key={idx} className="text-xs font-black text-slate-900 capitalize flex flex-col border-b-2 border-slate-200 pb-2 font-sans">
                             <span className="text-[8px] font-mono text-indigo-600 font-black tracking-wide uppercase font-mono">{getCleanMeasurement(ing, servingMultiplier)}</span>
                             <div className="flex justify-between items-center gap-1 mt-0.5 font-sans">
                               <span className={isOwned ? 'text-slate-900 font-sans' : 'text-slate-400 font-semibold font-sans'}>{ing}</span>
-                              {/* Add to shopping manager action item click button override parameters */}
                               {!isOwned && (
                                 <button data-html2canvas-ignore="true" onClick={() => handleAddShoppingItem(null, ing)} className="text-[9px] bg-amber-50 hover:bg-amber-100 text-amber-800 px-1.5 py-0.5 font-sans font-black uppercase tracking-wider border border-amber-200 shrink-0">
                                   + Buy item
@@ -687,7 +696,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Internal user settings dialog drawer panels */}
+      {/* Internal user settings box */}
       {isSettingsOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 font-sans">
           <div className="bg-white border-4 border-slate-200 p-6 rounded-none w-full max-w-sm shadow-2xl font-sans">
