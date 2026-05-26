@@ -62,10 +62,14 @@ export default function App() {
   // LOCAL SAFETY STRING SANITIZER
   const cleanIngredientLocally = (rawName) => {
     if (!rawName) return '';
-    let name = String(rawName).toLowerCase().trim();
-    name = name.replace(/\d+\s*(pack|pk|ct|count|oz|lb|g|ml|pcs|bag|box|can|container|bottle|pieces|slice|fluid)\b/g, '');
-    name = name.replace(/\b(organic|fresh|large|small|medium|brown|white|pasture|raised|premium|extra|natural|sweet|whole|sliced|diced|shredded)\b/g, '');
-    return name.replace(/[^a-zA-Z ]/g, '').trim();
+    try {
+      let name = String(rawName).toLowerCase().trim();
+      name = name.replace(/\d+\s*(pack|pk|ct|count|oz|lb|g|ml|pcs|bag|box|can|container|bottle|pieces|slice|fluid)\b/g, '');
+      name = name.replace(/\b(organic|fresh|large|small|medium|brown|white|pasture|raised|premium|extra|natural|sweet|whole|sliced|diced|shredded)\b/g, '');
+      return name.replace(/[^a-zA-Z ]/g, '').trim();
+    } catch (e) {
+      return '';
+    }
   };
 
   // ASYNCHRONOUS BACKGROUND INTERNET LOOKUP ENGINE
@@ -89,27 +93,31 @@ export default function App() {
   const fetchAppData = async () => {
     if (!user) return;
     try {
-      // 1. Fetch Pantry Inventory
-      let { data: inventory, error: invErr } = await supabase.from('fridge_inventory').select('*').eq('user_id', user.id);
-      if (invErr) throw invErr;
-
-      const normalizedFridge = (inventory || []).map(row => ({
-        id: row.id,
-        raw_name: row.item_name || '',
-        item_name: cleanIngredientLocally(row.item_name || '')
-      }));
+      // 1. Fetch Pantry Inventory with Column Alignment Fallbacks
+      let { data: inventory, error: invErr } = await supabase.from('fridge_inventory').select('*');
+      
+      const normalizedFridge = (inventory || []).map(row => {
+        // Fallback checks support multiple schema structures safely
+        const rawNameField = row.item_name || row.item || row.name || '';
+        return {
+          id: row.id,
+          raw_name: rawNameField,
+          item_name: cleanIngredientLocally(rawNameField)
+        };
+      }).filter(item => item.raw_name);
+      
       setFridge(normalizedFridge);
 
-      const plainTokensArray = normalizedFridge.map(f => f.item_name);
+      const plainTokensArray = normalizedFridge.map(f => f.item_name).filter(Boolean);
       calculateMacroMetrics(plainTokensArray);
       if (plainTokensArray.length > 0) generateExpirationTimelines(plainTokensArray);
 
-      // 2. Fetch Shopping List Vector Array
-      let { data: shopItems } = await supabase.from('shopping_list').select('*').eq('user_id', user.id).order('created_at', { ascending: true });
+      // 2. Fetch Shopping List
+      let { data: shopItems } = await supabase.from('shopping_list').select('*').order('created_at', { ascending: true });
       setShoppingList(shopItems || []);
 
       // 3. Fetch Profile Saved Pinned Recipes
-      let { data: likedRecipes } = await supabase.from('saved_recipes').select('*').eq('user_id', user.id);
+      let { data: likedRecipes } = await supabase.from('saved_recipes').select('*');
       setSavedRecipes(likedRecipes || []);
 
       // 4. Download Global Recipes Matrix Catalog
@@ -128,8 +136,8 @@ export default function App() {
         }
         return { 
           ...r, 
-          name: r.name || 'Untitled Culinary Mix',
-          ingredients: Array.isArray(extracted) ? extracted.map(i => cleanIngredientLocally(i)) : [] 
+          name: r.name || 'Untitled Recipe Card',
+          ingredients: Array.isArray(extracted) ? extracted.map(i => cleanIngredientLocally(i)).filter(Boolean) : [] 
         };
       });
       setMasterRecipes(normalizedRecipes);
@@ -144,8 +152,12 @@ export default function App() {
 
   // INLINE LIVE STORAGE MANIPULATOR LOOP
   const handleUpdateInlineItem = async (id, updatedRawValue) => {
-    setFridge(prev => (prev || []).map(item => item.id === id ? { ...item, raw_name: updatedRawValue, item_name: cleanIngredientLocally(updatedRawValue) } : item));
-    await supabase.from('fridge_inventory').update({ item_name: updatedRawValue }).eq('id', id);
+    try {
+      setFridge(prev => (prev || []).map(item => item.id === id ? { ...item, raw_name: updatedRawValue, item_name: cleanIngredientLocally(updatedRawValue) } : item));
+      await supabase.from('fridge_inventory').update({ item_name: updatedRawValue }).eq('id', id);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   // PROFILE SHOPPING MANAGER ENGINE
@@ -154,49 +166,69 @@ export default function App() {
     const targetText = textOverride || shoppingInput;
     if (!targetText.trim()) return;
 
-    const resolvedTokenName = cleanIngredientLocally(targetText);
-    const { data, error } = await supabase.from('shopping_list').insert([{
-      user_id: user.id,
-      item_name: resolvedTokenName,
-      is_completed: false
-    }]).select();
+    try {
+      const resolvedTokenName = cleanIngredientLocally(targetText);
+      const { data, error } = await supabase.from('shopping_list').insert([{
+        user_id: user.id,
+        item_name: resolvedTokenName,
+        is_completed: false
+      }]).select();
 
-    if (!error && data) setShoppingList(prev => [...(prev || []), data[0]]);
-    if (!textOverride) setShoppingInput('');
+      if (!error && data) setShoppingList(prev => [...(prev || []), data[0]]);
+      if (!textOverride) setShoppingInput('');
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleToggleShoppingCompleted = async (id, status) => {
-    setShoppingList(prev => (prev || []).map(item => item.id === id ? { ...item, is_completed: !status } : item));
-    await supabase.from('shopping_list').update({ is_completed: !status }).eq('id', id);
+    try {
+      setShoppingList(prev => (prev || []).map(item => item.id === id ? { ...item, is_completed: !status } : item));
+      await supabase.from('shopping_list').update({ is_completed: !status }).eq('id', id);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleClearShoppingItem = async (id) => {
-    setShoppingList(prev => (prev || []).filter(item => item.id !== id));
-    await supabase.from('shopping_list').delete().eq('id', id);
+    try {
+      setShoppingList(prev => (prev || []).filter(item => item.id !== id));
+      await supabase.from('shopping_list').delete().eq('id', id);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   // PROFILE SAVED RECIPES SELECTIONS
   const handleSaveRecipeToProfile = async (recipe) => {
-    if ((savedRecipes || []).some(r => r.recipe_id === String(recipe.id))) return alert("Recipe catalog card already liked!");
-    
-    const { data, error } = await supabase.from('saved_recipes').insert([{
-      user_id: user.id,
-      recipe_id: String(recipe.id),
-      recipe_name: recipe.name || 'Custom Formulation',
-      ingredients: recipe.ingredients || [],
-      steps: recipe.steps || [],
-      meal_type: recipe.meal_type || 'General'
-    }]).select();
+    try {
+      if ((savedRecipes || []).some(r => r.recipe_id === String(recipe.id))) return alert("Recipe catalog card already liked!");
+      
+      const { data, error } = await supabase.from('saved_recipes').insert([{
+        user_id: user.id,
+        recipe_id: String(recipe.id),
+        recipe_name: recipe.name || 'Custom Formulation',
+        ingredients: recipe.ingredients || [],
+        steps: recipe.steps || [],
+        meal_type: recipe.meal_type || 'General'
+      }]).select();
 
-    if (!error && data) {
-      setSavedRecipes(prev => [...(prev || []), data[0]]);
-      alert("⭐ Recipe card linked smoothly to account records!");
+      if (!error && data) {
+        setSavedRecipes(prev => [...(prev || []), data[0]]);
+        alert("⭐ Recipe card linked smoothly to account records!");
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
   const handleRemoveSavedRecipe = async (id) => {
-    setSavedRecipes(prev => (prev || []).filter(r => r.id !== id));
-    await supabase.from('saved_recipes').delete().eq('id', id);
+    try {
+      setSavedRecipes(prev => (prev || []).filter(r => r.id !== id));
+      await supabase.from('saved_recipes').delete().eq('id', id);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   // BULLETPROOF CAPTURE ENGINE: Computes explicit viewport dimensions to clear browser freezes
@@ -210,8 +242,8 @@ export default function App() {
         useCORS: true,
         allowTaint: true,
         logging: false,
-        width: element.getBoundingClientRect().width,
-        height: element.getBoundingClientRect().height,
+        width: element.offsetWidth || 600,
+        height: element.offsetHeight || 500,
         windowWidth: 800
       });
       const dataUri = canvas.toDataURL('image/png');
@@ -256,7 +288,7 @@ export default function App() {
     const tokensList = (fridge || []).map(f => f.item_name).filter(Boolean);
     (masterRecipes || []).forEach(recipe => {
       const recipeIngredients = recipe.ingredients || [];
-      const missing = recipeIngredients.filter(ing => !tokensList.some(token => token && (ing.includes(token) || token.includes(ing))));
+      const missing = recipeIngredients.filter(ing => !tokensList.some(token => token && ing && (ing.includes(token) || token.includes(ing))));
       if (missing.length >= 1 && missing.length <= 3 && recipeIngredients.length > missing.length) {
         alerts.push({ recipe, missingItems: missing, mealType: recipe.meal_type || 'General' });
       }
@@ -355,14 +387,16 @@ export default function App() {
     ];
   };
 
-  // HIGH-PERFORMANCE DYNAMIC WORD AFFINITY CROSS MATRIX INTERSECTION SORTER ENGINE
-  const tokensListArray = (fridge || []).map(f => f.item_name).filter(Boolean);
+  // HIGH-PERFORMANCE DEEP SHORT-CIRCUIT PROTECTION WALLS
+  const tokensListArray = ((fridge || []).map(f => f.item_name) || []).filter(Boolean);
+  
   const processedRecipes = (masterRecipes || []).map(recipe => {
     const recipeIngredients = recipe.ingredients || [];
     const total = recipeIngredients.length;
     
     const ownedCount = recipeIngredients.filter(ing => {
-      const cleanIng = (ing || '').toLowerCase().trim();
+      const cleanIng = String(ing || '').toLowerCase().trim();
+      if (!cleanIng) return false;
       return tokensListArray.some(token => token && (cleanIng.includes(token) || token.includes(cleanIng)));
     }).length;
     
@@ -436,12 +470,12 @@ export default function App() {
       {/* Main Grid Workspace */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8 font-sans">
         
-        {/* Left Side Control Columns */}
+        {/* Left Control Desk Columns */}
         <div className="space-y-6 lg:col-span-1 font-sans">
           {/* Intake Scanner */}
           <div className="bg-slate-900 p-6 rounded-none border-2 border-slate-800 shadow-xl font-sans">
             <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 font-sans">📸 Receipt Intake Scanner</h2>
-            <div className="relative border-4 border-dashed border-slate-800 hover:border-amber-500 p-8 text-center bg-slate-950 rounded-none cursor-pointer transition-colors group font-sans">
+            <div className="relative border-4 border-dashed border-slate-800 hover:border-amber-500 p-8 text-center bg-slate-955 rounded-none cursor-pointer transition-colors group font-sans">
               <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10 font-sans" />
               <p className="text-xs font-black uppercase tracking-widest text-slate-300 group-hover:text-amber-400 font-sans">Upload Grocery Receipt</p>
             </div>
@@ -451,7 +485,7 @@ export default function App() {
             </form>
           </div>
 
-          {/* INTERACTIVE INLINE PANTRY COMPONENT GRID BOX */}
+          {/* Pantry inline grid box with complete check parameters */}
           <div className="bg-slate-900 p-6 rounded-none border-2 border-slate-800 shadow-xl font-sans">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest flex justify-between items-center mb-4 font-sans"><span>🏡 Storage Pantry Stock</span><span className="bg-slate-950 text-amber-500 border-2 border-slate-800 px-2.5 py-0.5 text-[10px] font-black font-mono">{fridge ? fridge.length : 0}</span></h2>
             <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1 font-sans">
@@ -472,7 +506,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* PROFILE SHOPPING LIST UTILITY COMPONENT PANEL */}
+          {/* Shopping list panel */}
           <div className="bg-slate-900 p-6 rounded-none border-2 border-slate-800 shadow-xl font-sans">
             <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 font-sans">📝 Profile Shopping List</h2>
             <form onSubmit={(e) => handleAddShoppingItem(e, '')} className="flex gap-2 mb-4 font-sans">
@@ -493,9 +527,9 @@ export default function App() {
           </div>
         </div>
 
-        {/* Right Layout Workspace Columns */}
+        {/* Right Columns Layout Workspace */}
         <div className="lg:col-span-2 space-y-6 font-sans">
-          {/* PINNED UNIQUE RECIPE TRACKING DASHBOARD NODE */}
+          {/* Saved Liked recipes component element panel block */}
           {savedRecipes && savedRecipes.length > 0 && (
             <div className="bg-slate-900 p-6 rounded-none border-2 border-slate-800 shadow-xl font-sans">
               <h2 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 font-sans">⭐ Saved Liked Recipes ({savedRecipes.length})</h2>
@@ -510,7 +544,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Core Sorter Engine Results Grid Panel */}
+          {/* Personal match dashboard deck lists container layout */}
           <div className="bg-slate-900 p-4 sm:p-6 rounded-none border-2 border-slate-800 shadow-xl font-sans">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 font-sans">
               <div>
@@ -547,9 +581,9 @@ export default function App() {
         </div>
       </main>
 
-      {/* DETAILED CARD BLUEPRINT EXPANSION DRAWER MODAL CONTAINER */}
+      {/* DETAILED RECIPE OVERLAY MODAL DISPLAY COMPONENT MODULE */}
       {activeModalRecipe && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto font-sans">
+        <div className="fixed inset-0 bg-slate-955/80 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto font-sans">
           <div className="bg-slate-900 border-4 border-slate-800 w-full max-w-2xl rounded-none p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto font-sans">
             
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b-2 border-slate-800 pb-4 mb-5 font-sans">
@@ -563,7 +597,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Serving count multiplier stepper */}
+            {/* Dynamic Servings Scaler */}
             <div className="bg-slate-950 border-2 border-slate-800 p-3 rounded-none mb-6 flex items-center justify-between shadow-inner font-sans">
               <span className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 font-sans">👥 Adjust Servings Yield Index:</span>
               <div className="flex gap-1 font-sans">
@@ -573,7 +607,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* GRAPHICS BLUEPRINT CONTAINER TARGET SECTION */}
+            {/* PRINT VECTOR BLUEPRINT DRAWING FRAME LAYOUT */}
             <div className="p-2 bg-white rounded-none border-2 border-slate-200 font-sans">
               <div ref={snapshotCardRef} className="bg-white p-6 space-y-6 font-sans">
                 <div className="border-b-2 border-slate-200 pb-4 text-center font-sans">
@@ -582,19 +616,19 @@ export default function App() {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
-                  {/* Ingredients section with dynamic shopping hooks */}
+                  {/* Ingredient specification segments mapping list handles fallback arrays */}
                   <div className="bg-slate-50 border-2 border-slate-200 p-4 rounded-none shadow-inner font-sans">
                     <h4 className="text-[9px] font-black uppercase text-slate-400 font-mono border-b-2 border-slate-200 pb-1 mb-3 font-mono">📋 Component Specifications</h4>
                     <ul className="space-y-3 font-sans">
                       {(activeModalRecipe.ingredients || []).map((ing, idx) => {
-                        const cleanIng = (ing || '').toLowerCase().trim();
-                        const isOwned = (tokensListArray || []).some(token => token && (cleanIng.includes(token) || token.includes(cleanIng)));
+                        const cleanIng = String(ing || '').toLowerCase().trim();
+                        const isOwned = tokensListArray.some(token => token && (cleanIng.includes(token) || token.includes(cleanIng)));
                         return (
                           <li key={idx} className="text-xs font-black text-slate-900 capitalize flex flex-col border-b border-slate-200 pb-2 font-sans">
                             <span className="text-[8px] font-mono text-indigo-600 font-black tracking-wide uppercase font-mono">{getCleanMeasurement(ing, servingMultiplier)}</span>
                             <div className="flex justify-between items-center gap-1 mt-0.5 font-sans">
                               <span className={isOwned ? 'text-slate-900 font-sans' : 'text-slate-400 font-semibold font-sans'}>{ing}</span>
-                              {/* Inline purchase item trigger hook button */}
+                              {/* Add to shopping manager action item click button override parameters */}
                               {!isOwned && (
                                 <button data-html2canvas-ignore="true" onClick={() => handleAddShoppingItem(null, ing)} className="text-[9px] bg-amber-50 hover:bg-amber-100 text-amber-800 px-1.5 py-0.5 font-sans font-black uppercase tracking-wider border border-amber-200 shrink-0">
                                   + Buy item
@@ -653,7 +687,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Internal Settings Modal Box */}
+      {/* Internal user settings dialog drawer panels */}
       {isSettingsOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 font-sans">
           <div className="bg-white border-4 border-slate-200 p-6 rounded-none w-full max-w-sm shadow-2xl font-sans">
