@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
-import { 
-  cleanIngredientLocally, 
-  normalizeIngredientTokens, 
-  getStaticRecipeSteps, 
-  matchesRecipeFilter,
-  isVegetarianIngredient
+import {
+  cleanIngredientLocally,
+  normalizeIngredientTokens,
+  getStaticRecipeSteps,
+  matchesRecipeFilter
 } from './recipeUtils';
 
 const RecipeContext = createContext();
@@ -48,7 +47,7 @@ export const RecipeProvider = ({ children, fridge }) => {
     return () => clearTimeout(handler);
   }, [savedSearch]);
 
-  const fetchOnlineRecipes = async () => {
+  const fetchMealDbRecipes = async () => {
     const letters = 'abcdefghijklmnopqrstuvwxyz'.split('');
     const results = await Promise.all(letters.map(async (l) => {
       try {
@@ -57,7 +56,7 @@ export const RecipeProvider = ({ children, fridge }) => {
         return data.meals || [];
       } catch (err) { return []; }
     }));
-    
+
     const meals = results.flat();
     const unique = Array.from(new Map(meals.map(m => [m.idMeal, m])).values());
     return unique.map(m => {
@@ -69,22 +68,42 @@ export const RecipeProvider = ({ children, fridge }) => {
         id: m.idMeal,
         name: m.strMeal,
         meal_type: m.strCategory || 'General',
+        cuisine: m.strArea || '',
         ingredients: ings,
         steps: String(m.strInstructions || '').split(/\r?\n+/).filter(Boolean)
       };
     });
   };
 
+  const fetchSpoonacularRecipes = async () => {
+    try {
+      const res = await fetch('/.netlify/functions/get-recipes');
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.recipes || [];
+    } catch (err) {
+      return [];
+    }
+  };
+
   const loadRecipes = useCallback(async () => {
     setLoading(true);
     try {
-      const online = await fetchOnlineRecipes();
-      const normalized = online.map(r => ({
+      const [mealDb, spoonacular] = await Promise.all([
+        fetchMealDbRecipes(),
+        fetchSpoonacularRecipes()
+      ]);
+
+      const mealDbIds = new Set(mealDb.map(r => String(r.id)));
+      const uniqueSpoonacular = spoonacular.filter(r => !mealDbIds.has(String(r.id)));
+      const combined = [...mealDb, ...uniqueSpoonacular];
+
+      const normalized = combined.map(r => ({
         ...r,
-        cleanedIngredients: r.ingredients.map(cleanIngredientLocally).filter(Boolean),
+        cleanedIngredients: (r.ingredients || []).map(cleanIngredientLocally).filter(Boolean),
         steps: getStaticRecipeSteps(r)
-      })).filter(r => isVegetarianIngredient(r.cleanedIngredients.join(' ')));
-      
+      }));
+
       setMasterRecipes(normalized);
 
       if (user) {
