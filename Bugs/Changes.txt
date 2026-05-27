@@ -1,7 +1,0 @@
-Take out the fridge AI scan feature for now
-The add manually feature is not working for the pantry stock or the shopping cart.
-The receipt scan feature isn't working
-There are no suggested recipes according to ingredients available in the pantry.
-The bag icon in the top right corner does nothing.
-The "Hungry" text should be in the blue color, noto white, it's not showing up in the grey containers. Make the containers white, and the header more rounded.
-Add a feature to add your name to it.
