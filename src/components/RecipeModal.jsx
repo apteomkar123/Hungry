@@ -47,7 +47,10 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           customPrompt: `Suggest a common vegetarian substitute for "${ingredient}" in a recipe.`
         })
       });
-      if (!response.ok) throw new Error(`Server error ${response.status}`);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error ${response.status}`);
+      }
       const text = await response.text();
       const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
       let parsed = {};

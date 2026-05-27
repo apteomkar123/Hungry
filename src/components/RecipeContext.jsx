@@ -123,7 +123,10 @@ export const RecipeProvider = ({ children, fridge }) => {
         body: JSON.stringify({ customPrompt: prompt })
       });
 
-      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error ${res.status}`);
+      }
 
       const text = await res.text();
       const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
