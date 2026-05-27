@@ -123,6 +123,26 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const handleDeleteHousehold = async (householdId) => {
+    if (!user) return;
+    if (!window.confirm('Delete this household? This cannot be undone.')) return;
+
+    const { error: deleteError } = await supabase.from('households').delete().eq('id', householdId);
+    if (deleteError) return alert(`Failed to delete: ${deleteError.message}`);
+
+    const meta = user.user_metadata || {};
+    const currentIds = meta.household_ids || (meta.household_id ? [meta.household_id] : []);
+    const newIds = currentIds.filter(id => id !== householdId);
+    const newActiveId = meta.active_household_id === householdId ? (newIds[0] || null) : meta.active_household_id;
+
+    await supabase.auth.updateUser({ data: { household_ids: newIds, active_household_id: newActiveId } });
+
+    setHouseholds(prev => prev.filter(h => h.id !== householdId));
+    if (activeHousehold?.id === householdId) {
+      setActiveHousehold(households.find(h => h.id !== householdId) || null);
+    }
+  };
+
   const handleSignOut = async () => { await supabase.auth.signOut(); };
 
   return (
@@ -136,6 +156,7 @@ export const UserProvider = ({ children }) => {
       handleJoinHousehold,
       handleCreateHousehold,
       handleSetActiveHousehold,
+      handleDeleteHousehold,
       handleUpdateBudgetLimit,
       handleSignOut,
       loading

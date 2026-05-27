@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Copy, Plus, Home, Check } from 'lucide-react';
+import { Users, Copy, Plus, Home, Check, Trash2 } from 'lucide-react';
 import { useUser } from './UserContext';
 
 export default function HouseholdSettings() {
@@ -12,6 +12,7 @@ export default function HouseholdSettings() {
     handleCreateHousehold: onCreate,
     handleJoinHousehold: onJoin,
     handleSetActiveHousehold: onSetActive,
+    handleDeleteHousehold: onDelete,
   } = useUser();
 
   const [name, setName] = useState('');
@@ -69,14 +70,23 @@ export default function HouseholdSettings() {
                     <span className={`text-sm font-black ${isActive ? 'text-[#1F6FB8]' : 'text-slate-700'}`}>{hh.name}</span>
                     {isActive && <span className="text-[9px] font-black text-[#6BAEE0] bg-white border border-sky-200 px-2 py-0.5 rounded-full uppercase">Active</span>}
                   </div>
-                  {!isActive && (
+                  <div className="flex items-center gap-2">
+                    {!isActive && (
+                      <button
+                        onClick={() => onSetActive(hh.id)}
+                        className="text-[10px] font-black text-[#6BAEE0] bg-sky-50 border border-sky-100 px-3 py-1.5 rounded-xl hover:bg-sky-100 transition-all"
+                      >
+                        Switch
+                      </button>
+                    )}
                     <button
-                      onClick={() => onSetActive(hh.id)}
-                      className="text-[10px] font-black text-[#6BAEE0] bg-sky-50 border border-sky-100 px-3 py-1.5 rounded-xl hover:bg-sky-100 transition-all"
+                      onClick={() => onDelete(hh.id)}
+                      className="text-[10px] font-black text-red-400 bg-red-50 border border-red-100 p-1.5 rounded-xl hover:bg-red-100 transition-all"
+                      title="Delete household"
                     >
-                      Switch
+                      <Trash2 size={12} />
                     </button>
-                  )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-widest">Invite:</span>

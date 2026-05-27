@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 
-export default function PantryManager({ fridge, activeHousehold, handleAddManualItem, handleUpdateInlineItem, handleRemoveItem, receiptLoading, receiptMessage, handleFileUpload, barcodeInput, setBarcodeInput, handleBarcodeLookup, barcodeLoading, barcodeResult, isScanningBarcode, setIsScanningBarcode }) {
+export default function PantryManager({ fridge, activeHousehold, households = [], handleAddManualItem, handleUpdateInlineItem, handleRemoveItem, handleToggleItemHousehold, receiptLoading, receiptMessage, handleFileUpload, barcodeInput, setBarcodeInput, handleBarcodeLookup, barcodeLoading, barcodeResult, isScanningBarcode, setIsScanningBarcode }) {
   const [manualItem, setManualItem] = useState('');
-  const [isShared, setIsShared] = useState(false);
+  const [selectedHouseholdId, setSelectedHouseholdId] = useState(null);
   const [barcodeOpacity, setBarcodeOpacity] = useState(1);
 
   const isExpiringSoon = (date) => {
@@ -50,8 +50,22 @@ export default function PantryManager({ fridge, activeHousehold, handleAddManual
   const submitItem = (e) => {
     e.preventDefault();
     if (!manualItem.trim()) return;
-    handleAddManualItem(manualItem, isShared);
+    handleAddManualItem(manualItem, selectedHouseholdId);
     setManualItem('');
+  };
+
+  // Cycle an existing item through personal → household1 → household2 → personal
+  const cycleItemHousehold = (item) => {
+    if (!handleToggleItemHousehold || households.length === 0) return;
+    const currentIdx = households.findIndex(h => h.id === item.household_id);
+    const nextIdx = currentIdx + 1;
+    const next = nextIdx < households.length ? households[nextIdx] : null;
+    handleToggleItemHousehold(item.id, next?.id || null);
+  };
+
+  const getHouseholdLabel = (householdId) => {
+    if (!householdId) return null;
+    return households.find(h => h.id === householdId)?.name || 'Shared';
   };
 
   return (
@@ -78,19 +92,35 @@ export default function PantryManager({ fridge, activeHousehold, handleAddManual
               </button>
             </div>
 
-            {activeHousehold && (
-              <button
-                type="button"
-                onClick={() => setIsShared(s => !s)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[11px] font-bold transition-all border ${
-                  isShared
-                    ? 'bg-sky-50 text-[#6BAEE0] border-sky-200'
-                    : 'bg-white text-slate-400 border-blue-50 hover:border-sky-200'
-                }`}
-              >
-                {isShared ? <Users size={13} /> : <User size={13} />}
-                {isShared ? `Shared with ${activeHousehold.name}` : 'Personal (just me)'}
-              </button>
+            {/* Household selector — shown if user belongs to any households */}
+            {households.length > 0 && (
+              <div className="flex gap-2 flex-wrap pt-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedHouseholdId(null)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[11px] font-bold transition-all border ${
+                    !selectedHouseholdId
+                      ? 'bg-sky-50 text-[#6BAEE0] border-sky-200'
+                      : 'bg-white text-slate-400 border-blue-50 hover:border-sky-200'
+                  }`}
+                >
+                  <User size={13} /> Personal
+                </button>
+                {households.map(hh => (
+                  <button
+                    key={hh.id}
+                    type="button"
+                    onClick={() => setSelectedHouseholdId(hh.id)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[11px] font-bold transition-all border ${
+                      selectedHouseholdId === hh.id
+                        ? 'bg-sky-50 text-[#6BAEE0] border-sky-200'
+                        : 'bg-white text-slate-400 border-blue-50 hover:border-sky-200'
+                    }`}
+                  >
+                    <Users size={13} /> {hh.name}
+                  </button>
+                ))}
+              </div>
             )}
           </form>
 
@@ -161,17 +191,31 @@ export default function PantryManager({ fridge, activeHousehold, handleAddManual
             fridge.map((item) => (
               <div key={item.id} className="bg-white border border-blue-50 p-4 rounded-2xl flex items-center justify-between gap-4 shadow-sm group hover:shadow-md transition-all">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <input
                       type="text"
                       defaultValue={item.raw_name}
                       onBlur={(e) => handleUpdateInlineItem(item.id, e.target.value)}
                       className="flex-1 bg-transparent text-xs font-bold text-slate-800 border-b border-transparent hover:border-blue-100 focus:border-sky-400 focus:outline-none pb-1 min-w-0"
                     />
-                    {item.household_id && activeHousehold && (
-                      <span className="shrink-0 flex items-center gap-1 text-[9px] font-black text-[#6BAEE0] bg-sky-50 border border-sky-100 px-2 py-0.5 rounded-full uppercase tracking-wide">
-                        <Users size={9} /> Shared
-                      </span>
+                    {/* Clickable household badge — tap to cycle Personal ↔ Household */}
+                    {households.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => cycleItemHousehold(item)}
+                        title="Click to change: Personal or Household"
+                        className={`shrink-0 flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide border transition-all ${
+                          item.household_id
+                            ? 'text-[#6BAEE0] bg-sky-50 border-sky-100 hover:bg-sky-100'
+                            : 'text-slate-400 bg-slate-50 border-slate-100 hover:border-sky-200 hover:text-[#6BAEE0]'
+                        }`}
+                      >
+                        {item.household_id ? (
+                          <><Users size={9} /> {getHouseholdLabel(item.household_id)}</>
+                        ) : (
+                          <><User size={9} /> Personal</>
+                        )}
+                      </button>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-1">

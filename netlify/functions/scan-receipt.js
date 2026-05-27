@@ -2,7 +2,7 @@ const GEMINI_MODEL = 'gemini-2.0-flash';
 const HEADERS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
 const callGemini = async (apiKey, parts, generationConfig = {}) => {
-  const bodyContents = parts.map((part) => {
+  const geminiParts = parts.map((part) => {
     if (typeof part === 'string') return { text: part };
     if (part?.text) return { text: part.text };
     return part;
@@ -13,7 +13,7 @@ const callGemini = async (apiKey, parts, generationConfig = {}) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: bodyContents,
+      contents: [{ role: 'user', parts: geminiParts }],
       generationConfig: { temperature: 0.2, ...generationConfig }
     })
   });

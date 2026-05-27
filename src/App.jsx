@@ -15,7 +15,7 @@ import { RecipeProvider, useRecipes } from './components/RecipeContext';
 import { useInventory } from './components/useInventory';
 
 function AppContent({ inventory }) {
-  const { household: activeHousehold } = useUser();
+  const { household: activeHousehold, households } = useUser();
   const {
     fridge,
     shoppingList,
@@ -30,6 +30,7 @@ function AppContent({ inventory }) {
     setIsScanningBarcode,
     handleAddManualItem,
     handleRemoveItem,
+    handleToggleItemHousehold,
     handleAddShoppingItem,
     handleToggleShoppingCompleted,
     handleClearShoppingItem,
@@ -71,9 +72,11 @@ function AppContent({ inventory }) {
             <PantryManager
               fridge={fridge}
               activeHousehold={activeHousehold}
+              households={households}
               handleAddManualItem={handleAddManualItem}
               handleUpdateInlineItem={handleUpdateInlineItem}
               handleRemoveItem={handleRemoveItem}
+              handleToggleItemHousehold={handleToggleItemHousehold}
               receiptLoading={receiptLoading}
               receiptMessage={receiptMessage}
               handleFileUpload={handleFileUpload}

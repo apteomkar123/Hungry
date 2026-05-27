@@ -173,31 +173,32 @@ export const useInventory = (user, household) => {
     fetchAppData();
   }, [fetchAppData]);
 
-  const handleAddManualItem = useCallback(async (itemName, isShared = false) => {
+  const handleAddManualItem = useCallback(async (itemName, targetHouseholdId = null) => {
     if (!itemName || !itemName.trim() || !user) return;
 
     const sanitized = await resolveSanitizedTokenOnline(itemName);
     if (!sanitized) return;
 
-    const sharedHouseholdId = isShared && household?.id ? household.id : null;
     const tempId = `temp-${Date.now()}`;
-    setFridge(prev => [...prev, { id: tempId, raw_name: itemName, item_name: sanitized, household_id: sharedHouseholdId }]);
+    setFridge(prev => [...prev, { id: tempId, raw_name: itemName, item_name: sanitized, household_id: targetHouseholdId }]);
     triggerHaptic(50);
 
     const newItem = {
       item_name: sanitized,
       user_id: user.id,
-      household_id: sharedHouseholdId
+      household_id: targetHouseholdId
     };
 
     const savedData = await performMutation('fridge_inventory', 'INSERT', newItem);
     if (savedData && savedData.id) {
-      // Replace temp id with the real server-assigned id
       setFridge(prev => prev.map(item => item.id === tempId ? { ...item, id: savedData.id } : item));
-    } else if (!savedData) {
-      // Offline: keep temp item as-is; it'll sync when back online
     }
-  }, [user, household, resolveSanitizedTokenOnline, performMutation]);
+  }, [user, resolveSanitizedTokenOnline, performMutation]);
+
+  const handleToggleItemHousehold = useCallback(async (id, newHouseholdId) => {
+    setFridge(prev => prev.map(item => item.id === id ? { ...item, household_id: newHouseholdId } : item));
+    await performMutation('fridge_inventory', 'UPDATE', { household_id: newHouseholdId }, id);
+  }, [performMutation]);
 
   const handleRemoveItem = useCallback(async (id) => {
     setFridge(prev => prev.filter(item => item.id !== id));
@@ -344,6 +345,7 @@ export const useInventory = (user, household) => {
     setIsScanningBarcode,
     handleAddManualItem,
     handleRemoveItem,
+    handleToggleItemHousehold,
     handleAddShoppingItem,
     handleToggleShoppingCompleted,
     handleClearShoppingItem,
