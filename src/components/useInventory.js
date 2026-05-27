@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
-import { cleanIngredientLocally, triggerHaptic } from '../utils/recipeUtils';
+import { cleanIngredientLocally, triggerHaptic } from './recipeUtils';
 import { put, getAll, remove, OBJECT_STORES } from '../dbUtils';
 
 export const useInventory = (user, household) => {
