@@ -43,11 +43,11 @@ export const handler = async (event, context) => {
 
     // 2. CHANNELS GATE B: AI Recipe Generator Core Integration
     if (bodyData && bodyData.customPrompt) {
-      // Logic Fix: Check if this is a recipe request or a single substitution request
-      const isRecipeRequest = bodyData.customPrompt.toLowerCase().includes('recipe');
-      const prompt = isRecipeRequest && bodyData.customPrompt.includes('Formulate')
-        ? `${bodyData.customPrompt}. Formulate a creative vegetarian recipe. Respond with a strict raw JSON object: { "recipeName": "string", "ingredients": ["item strings"], "steps": ["step strings"] }.`
-        : `${bodyData.customPrompt} Respond with a strict raw JSON object: { "recipeName": "substitution_name" }.`;
+      const text = bodyData.customPrompt.toLowerCase();
+      const isRecipeRequest = text.includes('recipe') || text.includes('cook') || text.includes('meal') || text.includes('generate');
+      const prompt = isRecipeRequest
+        ? `${bodyData.customPrompt}. Generate a creative vegetarian recipe. Return ONLY a valid JSON object: { "recipeName": "string", "ingredients": ["string"], "steps": ["string"] }.`
+        : `${bodyData.customPrompt}. Suggest a substitution. Return ONLY a valid JSON object: { "recipeName": "substitution_name" }.`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-1.5-flash',

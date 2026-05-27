@@ -85,6 +85,16 @@ Add a search bar and filter options to the 'saved' recipes tab in App.jsx so use
 Fix the Create Household feature in UserContext.jsx by ensuring the profile record is updated correctly and the UI state refreshes immediately after creation.
 Enhance the AnalyticsDashboard to visualize nutrition metrics using a simple CSS-based bar chart or a small charting library like Recharts
 Can you add a detailed spending breakdown to the AnalyticsDashboard that shows estimated savings based on missing versus purchased items?
+Household feature has disappeared
+Screen still goes completely blank when I close a recipe card out with the x button
+AI Recipe generator not working
+When I try to manually add to the shopping list, nothing gets added, nothing happens
+Recipe cards don't open in shopping suggestions
+Ingredient swap doesn't work when an ingredient isn't available
+Adding items to the shopping cart through the recipe card doesn't work either
+The whole app reloads when I remove a recipe from my favorites list
+When a star a recipe, the star should turn yellow to signify that it's been starred
+
 
 TESTED
 ------

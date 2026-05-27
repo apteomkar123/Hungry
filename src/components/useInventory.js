@@ -7,13 +7,13 @@ export const useInventory = (user, household) => {
   const [fridge, setFridge] = useState([]);
   const [shoppingList, setShoppingList] = useState([]);
   const [nutritionMetrics, setNutritionMetrics] = useState({ protein: 0, carbs: 0, fat: 0 });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [barcodeLoading, setBarcodeLoading] = useState(false);
   const [barcodeResult, setBarcodeResult] = useState('');
   const [isScanningBarcode, setIsScanningBarcode] = useState(false);
-    const [barcodeInput, setBarcodeInput] = useState('');
-    const [storeName, setStoreName] = useState('General Grocery');
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [storeName, setStoreName] = useState('General Grocery');
   const [error, setError] = useState(null);
 
   const calculateMacroMetrics = useCallback((tokens) => {
@@ -27,7 +27,7 @@ export const useInventory = (user, household) => {
     setNutritionMetrics({ protein: p, carbs: c, fat: f });
   }, []);
 
-  // Offline Persistence: Hydrate state from LocalStorage on mount
+  // Hydrate from LocalStorage on first mount for instant offline display
   useEffect(() => {
     const cachedFridge = localStorage.getItem('hungry_pantry_v1');
     const cachedShopping = localStorage.getItem('hungry_shopping_v1');
@@ -37,7 +37,7 @@ export const useInventory = (user, household) => {
     } catch (e) { console.error("Failed to parse cache", e); }
   }, []);
 
-  // Sync to LocalStorage for Offline Access
+  // Sync state to LocalStorage for offline access
   useEffect(() => {
     localStorage.setItem('hungry_pantry_v1', JSON.stringify(fridge));
   }, [fridge]);
@@ -49,19 +49,19 @@ export const useInventory = (user, household) => {
   const performMutation = useCallback(async (table, action, data, id_value = null) => {
     if (navigator.onLine) {
       try {
-        let error;
-        if (action === 'INSERT') ({ error } = await supabase.from(table).insert([data]));
-        else if (action === 'DELETE') ({ error } = await supabase.from(table).delete().eq('id', id_value));
-        else if (action === 'UPDATE') ({ error } = await supabase.from(table).update(data).eq('id', id_value));
-        
-        if (!error) return true;
+        let result;
+        if (action === 'INSERT') result = await supabase.from(table).insert([data]).select().single();
+        else if (action === 'DELETE') result = await supabase.from(table).delete().eq('id', id_value);
+        else if (action === 'UPDATE') result = await supabase.from(table).update(data).eq('id', id_value);
+
+        if (!result.error) return result.data || true;
       } catch (e) {
         console.error("Supabase mutation failed, queuing...", e);
       }
     }
 
     await put(OBJECT_STORES.SYNC_QUEUE, { table, action, data, id_value, timestamp: Date.now() });
-    return false;
+    return null;
   }, []);
 
   const syncOfflineChanges = useCallback(async () => {
@@ -74,7 +74,6 @@ export const useInventory = (user, household) => {
       for (const task of queue) {
         let error;
 
-        // Conflict Resolution Strategy: Last Intent Wins (Remote vs Local)
         if (task.action === 'UPDATE' || task.action === 'DELETE') {
           const { data: remoteMetadata } = await supabase
             .from(task.table)
@@ -144,7 +143,7 @@ export const useInventory = (user, household) => {
       const shopQuery = supabase.from('shopping_list').select('*').order('created_at', { ascending: true });
       if (household?.id) shopQuery.eq('household_id', household.id);
       else shopQuery.eq('user_id', user.id);
-      
+
       let { data: shopItems, error: shopError } = await shopQuery;
       if (shopError) throw shopError;
       setShoppingList(shopItems || []);
@@ -161,38 +160,47 @@ export const useInventory = (user, household) => {
   }, [fetchAppData]);
 
   const handleAddManualItem = useCallback(async (itemName) => {
-    setLoading(true);
+    if (!itemName || !itemName.trim() || !user) return;
+
     const sanitized = await resolveSanitizedTokenOnline(itemName);
     if (!sanitized) return;
 
-    const newItem = { 
-      item_name: sanitized, 
-      user_id: user.id,
-      household_id: household?.id || null 
-    };
-
-    setFridge(prev => [...prev, { ...newItem, id: `temp-${Date.now()}`, raw_name: itemName }]);
+    const tempId = `temp-${Date.now()}`;
+    setFridge(prev => [...prev, { id: tempId, raw_name: itemName, item_name: sanitized }]);
     triggerHaptic(50);
 
-    const success = await performMutation('fridge_inventory', 'INSERT', newItem);
-    if (success) fetchAppData();
-    setLoading(false);
-  }, [user, household, resolveSanitizedTokenOnline, performMutation, fetchAppData]);
+    const newItem = {
+      item_name: sanitized,
+      user_id: user.id,
+      household_id: household?.id || null
+    };
+
+    const savedData = await performMutation('fridge_inventory', 'INSERT', newItem);
+    if (savedData && savedData.id) {
+      // Replace temp id with the real server-assigned id
+      setFridge(prev => prev.map(item => item.id === tempId ? { ...item, id: savedData.id } : item));
+    } else if (!savedData) {
+      // Offline: keep temp item as-is; it'll sync when back online
+    }
+  }, [user, household, resolveSanitizedTokenOnline, performMutation]);
 
   const handleRemoveItem = useCallback(async (id) => {
     setFridge(prev => prev.filter(item => item.id !== id));
-    const success = await performMutation('fridge_inventory', 'DELETE', null, id);
-    if (success) fetchAppData();
-  }, [performMutation, fetchAppData]);
+    await performMutation('fridge_inventory', 'DELETE', null, id);
+  }, [performMutation]);
 
   const handleAddShoppingItem = useCallback(async (itemName, price = 0) => {
-    if (!itemName) return;
+    if (!itemName || !user) return;
     const sanitized = cleanIngredientLocally(itemName);
     if (!sanitized) return;
-    
-    const alreadyLocal = shoppingList.some(i => i.item_name.toLowerCase() === sanitized.toLowerCase());
-    if (alreadyLocal) return alert('Item already in list');
 
+    const alreadyLocal = shoppingList.some(i => i.item_name?.toLowerCase() === sanitized.toLowerCase());
+    if (alreadyLocal) {
+      alert('Already in your shopping list');
+      return;
+    }
+
+    const tempId = `temp-${Date.now()}`;
     const newItem = {
       user_id: user.id,
       household_id: household?.id || null,
@@ -201,23 +209,23 @@ export const useInventory = (user, household) => {
       price
     };
 
-    setShoppingList(prev => [...prev, { ...newItem, id: `temp-${Date.now()}` }]);
+    setShoppingList(prev => [...prev, { ...newItem, id: tempId }]);
 
-    const success = await performMutation('shopping_list', 'INSERT', newItem);
-    if (success) fetchAppData();
-  }, [user, household, performMutation, fetchAppData, shoppingList]);
+    const savedData = await performMutation('shopping_list', 'INSERT', newItem);
+    if (savedData && savedData.id) {
+      setShoppingList(prev => prev.map(item => item.id === tempId ? { ...item, id: savedData.id } : item));
+    }
+  }, [user, household, performMutation, shoppingList]);
 
-  const handleToggleShoppingCompleted = useCallback(async (id, status) => {
-    setShoppingList(prev => prev.map(item => item.id === id ? { ...item, is_completed: !status } : item));
-    const success = await performMutation('shopping_list', 'UPDATE', { is_completed: !status }, id);
-    if (success) fetchAppData();
-  }, [performMutation, fetchAppData]);
+  const handleToggleShoppingCompleted = useCallback(async (id, currentStatus) => {
+    setShoppingList(prev => prev.map(item => item.id === id ? { ...item, is_completed: !currentStatus } : item));
+    await performMutation('shopping_list', 'UPDATE', { is_completed: !currentStatus }, id);
+  }, [performMutation]);
 
   const handleClearShoppingItem = useCallback(async (id) => {
     setShoppingList(prev => prev.filter(item => item.id !== id));
-    const success = await performMutation('shopping_list', 'DELETE', null, id);
-    if (success) fetchAppData();
-  }, [performMutation, fetchAppData]);
+    await performMutation('shopping_list', 'DELETE', null, id);
+  }, [performMutation]);
 
   const handleBarcodeLookup = useCallback(async (barcode) => {
     setBarcodeLoading(true);
@@ -228,19 +236,25 @@ export const useInventory = (user, household) => {
       const data = await response.json();
       if (data?.status === 1 && data.product) {
         const name = data.product.product_name || data.product.brands || '';
-        await handleAddManualItem(name);
-        setBarcodeResult(`Added ${name}`);
-        try { await new Audio('/sounds/success.mp3').play(); } catch(e){}
-        triggerHaptic(100);
-        setBarcodeInput('');
-        setIsScanningBarcode(false);
-      } else { setBarcodeResult("Product not found"); }
+        if (name) {
+          await handleAddManualItem(name);
+          setBarcodeResult(`Added: ${name}`);
+          try { await new Audio('/sounds/success.mp3').play(); } catch (e) {}
+          triggerHaptic(100);
+          setBarcodeInput('');
+          setIsScanningBarcode(false);
+        } else {
+          setBarcodeResult('Product found but has no name');
+        }
+      } else {
+        setBarcodeResult('Product not found');
+      }
     } catch (e) {
-      setBarcodeResult("Lookup failed");
+      setBarcodeResult('Lookup failed');
     } finally {
       setBarcodeLoading(false);
     }
-  }, [handleAddManualItem, setIsScanningBarcode, setBarcodeInput]);
+  }, [handleAddManualItem]);
 
   const handleFileUpload = useCallback(async (file) => {
     if (!file) return;
@@ -248,47 +262,53 @@ export const useInventory = (user, household) => {
     const img = new Image();
     img.src = URL.createObjectURL(file);
     img.onload = async () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 600; 
-      canvas.height = (img.height / img.width) * 600 || 800;
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      const base64Data = canvas.toDataURL('image/jpeg', 0.75);
       try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 600;
+        canvas.height = (img.height / img.width) * 600 || 800;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const base64Data = canvas.toDataURL('image/jpeg', 0.75);
+
         await put(OBJECT_STORES.RECEIPT_IMAGES, { id: `receipt-${Date.now()}`, imageData: base64Data, timestamp: Date.now() });
+
         const response = await fetch('/.netlify/functions/scan-receipt', {
           method: 'POST',
           body: JSON.stringify({ image: base64Data })
         });
         const data = await response.json();
         if (data.storeName) setStoreName(data.storeName);
-        if (data.added) {
+        if (Array.isArray(data.added)) {
           for (const item of data.added) {
             await handleAddManualItem(item);
           }
         }
-      } catch(e) { console.error(e); }
-      finally { setReceiptLoading(false); }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setReceiptLoading(false);
+      }
     };
-  }, [user, household, handleAddManualItem, setStoreName]);
+    img.onerror = () => setReceiptLoading(false);
+  }, [handleAddManualItem]);
 
   const handleUpdateInlineItem = useCallback(async (id, newName) => {
     const sanitized = cleanIngredientLocally(newName);
     setFridge(prev => prev.map(item => item.id === id ? { ...item, raw_name: newName, item_name: sanitized } : item));
-    const success = await performMutation('fridge_inventory', 'UPDATE', { item_name: sanitized }, id);
-    if (success) fetchAppData();
-  }, [performMutation, fetchAppData]);
+    await performMutation('fridge_inventory', 'UPDATE', { item_name: sanitized }, id);
+  }, [performMutation]);
 
   return {
     fridge,
     shoppingList,
     nutritionMetrics,
     loading,
+    error,
     receiptLoading,
     barcodeLoading,
     barcodeResult,
     isScanningBarcode,
-      barcodeInput,
-      setBarcodeInput,
+    barcodeInput,
+    setBarcodeInput,
     storeName,
     setIsScanningBarcode,
     handleAddManualItem,

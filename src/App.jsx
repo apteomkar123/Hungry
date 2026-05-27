@@ -1,6 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from './supabaseClient';
-import domtoimage from 'dom-to-image-more';
+import React, { useState } from 'react';
 import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2 } from 'lucide-react';
 import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic } from './components/recipeUtils';
 import Header from './components/Header';
@@ -16,22 +14,17 @@ import { useUser } from './components/UserContext';
 import { RecipeProvider, useRecipes } from './components/RecipeContext';
 import { useInventory } from './components/useInventory';
 
-function MainApp() {
-  const { user, household, loading: authLoading } = useUser();
-  const inventory = useInventory(user, household);
-
+function AppContent({ inventory }) {
   const {
     fridge,
     shoppingList,
     nutritionMetrics,
-    loading: inventoryLoading,
     receiptLoading,
     barcodeLoading,
     barcodeResult,
     isScanningBarcode,
     barcodeInput,
     setBarcodeInput,
-    error: inventoryError,
     setIsScanningBarcode,
     handleAddManualItem,
     handleRemoveItem,
@@ -41,11 +34,9 @@ function MainApp() {
     handleBarcodeLookup,
     handleFileUpload,
     handleUpdateInlineItem
-  } = inventory; // Consume useInventory directly here
+  } = inventory;
 
   const {
-    processedRecipes,
-    handleGenerateAiRecipe,
     activeModalRecipe,
     setActiveModalRecipe,
     savedRecipes,
@@ -58,23 +49,12 @@ function MainApp() {
     shoppingAlerts,
     isStoreAlertOpen,
     setIsStoreAlertOpen,
-    triggerStoreTripPlanner
   } = useRecipes();
 
-  const [activeTab, setActiveTab] = useState('pantry'); // Local state for active tab
+  const [activeTab, setActiveTab] = useState('pantry');
   const [isCookingMode, setIsCookingMode] = useState(false);
-  const snapshotCardRef = useRef(null);
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-blue-50 text-slate-900 font-sans font-black tracking-tight antialiased flex items-center justify-center p-6 select-none">
-        <AuthManager />
-      </div>
-    );
-  }
-
-  if (authLoading || inventoryLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>; // Use authLoading from useUser
-  if (inventoryError) return <div className="min-h-screen flex items-center justify-center text-red-500">Error: {inventoryError}</div>;
+  const addedItems = new Set(shoppingList.map(i => cleanIngredientLocally(i.item_name)));
 
   return (
     <div className="min-h-screen bg-blue-50/50 text-slate-800 font-sans antialiased pb-24 selection:bg-[#6BAEE0] selection:text-white">
@@ -85,11 +65,11 @@ function MainApp() {
       <main className="w-full flex justify-center px-4 sm:px-6 py-8">
         <div className="w-full max-w-5xl">
           {activeTab === 'pantry' && (
-            <PantryManager 
+            <PantryManager
               fridge={fridge}
-              handleAddManualItem={handleAddManualItem} // Pass the function from useInventory
-              handleUpdateInlineItem={handleUpdateInlineItem} // Pass the function from useInventory
-              handleRemoveItem={handleRemoveItem} // Pass the function from useInventory
+              handleAddManualItem={handleAddManualItem}
+              handleUpdateInlineItem={handleUpdateInlineItem}
+              handleRemoveItem={handleRemoveItem}
               receiptLoading={receiptLoading}
               handleFileUpload={handleFileUpload}
               barcodeInput={barcodeInput}
@@ -102,17 +82,30 @@ function MainApp() {
             />
           )}
           {activeTab === 'recipes' && <RecipeExplorer />}
-          {activeTab === 'shopping' && <ShoppingListManager list={shoppingList} onAdd={handleAddShoppingItem} onToggle={handleToggleShoppingCompleted} onClear={handleClearShoppingItem} />}
-          {activeTab === 'analytics' && <AnalyticsDashboard metrics={nutritionMetrics} fridge={fridge} shoppingList={shoppingList} />}
+          {activeTab === 'shopping' && (
+            <ShoppingListManager
+              list={shoppingList}
+              onAdd={handleAddShoppingItem}
+              onToggle={handleToggleShoppingCompleted}
+              onClear={handleClearShoppingItem}
+            />
+          )}
+          {activeTab === 'analytics' && (
+            <AnalyticsDashboard
+              metrics={nutritionMetrics}
+              fridge={fridge}
+              shoppingList={shoppingList}
+            />
+          )}
           {activeTab === 'household' && <HouseholdSettings />}
           {activeTab === 'saved' && (
             <div className="space-y-6">
               <div className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
                 <div className="relative mb-6">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="text" 
-                    placeholder="Search saved recipes..." 
+                  <input
+                    type="text"
+                    placeholder="Search saved recipes..."
                     value={savedSearch}
                     onChange={(e) => setSavedSearch(e.target.value)}
                     className="w-full bg-blue-50/50 border border-blue-100 pl-12 pr-6 py-4 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none transition-all"
@@ -120,7 +113,11 @@ function MainApp() {
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {['all', 'breakfast', 'lunch', 'dinner', 'snack', 'dessert', 'vegetarian', 'vegan'].map((f) => (
-                    <button key={f} onClick={() => setSavedFilter(f)} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedFilter === f ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}>
+                    <button
+                      key={f}
+                      onClick={() => setSavedFilter(f)}
+                      className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedFilter === f ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}
+                    >
                       {f}
                     </button>
                   ))}
@@ -133,12 +130,15 @@ function MainApp() {
                 ) : (
                   filteredSavedRecipes.map(recipe => (
                     <div key={recipe.id} className="bg-white/80 p-6 rounded-3xl border border-blue-100 flex justify-between items-center shadow-sm hover:shadow-md transition-all group">
-                      <div className="flex-1 cursor-pointer" onClick={() => setActiveModalRecipe({
-                        ...recipe,
-                        id: recipe.recipe_id,
-                        name: recipe.recipe_name,
-                        cleanedIngredients: recipe.ingredients ? recipe.ingredients.map(cleanIngredientLocally) : []
-                      })}>
+                      <div
+                        className="flex-1 cursor-pointer"
+                        onClick={() => setActiveModalRecipe({
+                          ...recipe,
+                          id: recipe.recipe_id,
+                          name: recipe.recipe_name,
+                          cleanedIngredients: recipe.ingredients ? recipe.ingredients.map(cleanIngredientLocally) : []
+                        })}
+                      >
                         <span className="text-[8px] font-mono font-black text-slate-400 uppercase bg-blue-50/50 px-2 py-1 rounded-md">{recipe.meal_type}</span>
                         <h3 className="font-bold text-slate-700 mt-1 group-hover:text-[#6BAEE0] transition-colors">{recipe.recipe_name}</h3>
                       </div>
@@ -162,7 +162,7 @@ function MainApp() {
       </nav>
 
       {activeModalRecipe && (
-        <RecipeModal 
+        <RecipeModal
           onStartCooking={() => setIsCookingMode(true)}
           addedItems={addedItems}
           onAddIngredient={handleAddShoppingItem}
@@ -170,9 +170,11 @@ function MainApp() {
       )}
 
       {isCookingMode && activeModalRecipe && (
-        <CookingMode 
-          steps={getStaticRecipeSteps(activeModalRecipe)} 
-          onClose={() => setIsCookingMode(false)} 
+        <CookingMode
+          steps={getStaticRecipeSteps(activeModalRecipe)}
+          onClose={() => {
+            setIsCookingMode(false);
+          }}
         />
       )}
 
@@ -204,7 +206,7 @@ function MainApp() {
                         <span key={i} className="text-[11px] text-slate-600 bg-white border border-blue-100 rounded-full px-3 py-1">{item}</span>
                       ))}
                     </div>
-                    <button 
+                    <button
                       onClick={() => { setActiveModalRecipe(alert.recipe); setIsStoreAlertOpen(false); }}
                       className="mt-3 text-xs font-bold text-[#6BAEE0] hover:underline"
                     >
@@ -215,7 +217,12 @@ function MainApp() {
               </div>
             )}
             <div className="mt-6 text-right">
-              <button onClick={() => { setIsStoreAlertOpen(false); setActiveTab('shopping'); }} className="bg-[#6BAEE0] text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-100">Go to Shopping List</button>
+              <button
+                onClick={() => { setIsStoreAlertOpen(false); setActiveTab('shopping'); }}
+                className="bg-[#6BAEE0] text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-100"
+              >
+                Go to Shopping List
+              </button>
             </div>
           </div>
         </div>
@@ -224,13 +231,33 @@ function MainApp() {
   );
 }
 
-export default function App() {
-  const { user, household } = useUser();
-  const inventory = useInventory(user, household); // Call useInventory once here
+function MainApp() {
+  const { user, household, loading: authLoading } = useUser();
+  const inventory = useInventory(user, household);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-blue-50">
+        <div className="text-slate-400 font-semibold">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-blue-50 text-slate-900 font-sans font-black tracking-tight antialiased flex items-center justify-center p-6 select-none">
+        <AuthManager />
+      </div>
+    );
+  }
 
   return (
     <RecipeProvider fridge={inventory.fridge}>
-      <MainApp /> {/* MainApp now consumes useInventory directly */}
+      <AppContent inventory={inventory} />
     </RecipeProvider>
   );
+}
+
+export default function App() {
+  return <MainApp />;
 }

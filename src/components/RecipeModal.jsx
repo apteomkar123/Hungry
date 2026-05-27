@@ -79,7 +79,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           <section className="space-y-4">
             <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Ingredients</h4>
             <div className="space-y-3">
-              {recipe.ingredients.map((ing, idx) => (
+              {(recipe.ingredients || []).map((ing, idx) => (
                 <div key={idx} className="flex flex-col border-b border-blue-50 pb-2">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-slate-700">{substitutes[ing] || parseRecipeIngredientMeasurements(ing, multiplier)}</span>
@@ -91,7 +91,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
                       >
                         <RefreshCw size={12} className={loadingSub === ing ? 'animate-spin' : ''} />
                       </button>
-                      {!addedItems.has(cleanIngredientLocally(ing)) && (
+                      {!addedItems?.has(cleanIngredientLocally(ing)) && (
                         <button onClick={() => onAddIngredient(cleanIngredientLocally(ing))} className="bg-sky-50 text-[#6BAEE0] p-1 rounded-md"><Plus size={12} /></button>
                       )}
                     </div>
@@ -105,7 +105,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           <section className="space-y-4">
             <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Procedure</h4>
             <div className="space-y-4">
-              {recipe.steps.map((step, idx) => (
+              {(recipe.steps || []).map((step, idx) => (
                 <div key={idx} className="flex gap-3">
                   <span className="w-6 h-6 bg-blue-50 text-[#6BAEE0] rounded-lg flex items-center justify-center text-[10px] font-black shrink-0">{idx + 1}</span>
                   <p className="text-xs text-slate-600 leading-relaxed">{step}</p>

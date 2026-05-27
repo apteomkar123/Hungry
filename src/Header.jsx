@@ -8,7 +8,7 @@ const triggerHaptic = (intensity = 10) => {
   }
 };
 
-export default function Header({ user, handleGenerateAiRecipe, triggerStoreTripPlanner, handleSignOut }) {
+export default function Header({ user, userName, handleGenerateAiRecipe, triggerStoreTripPlanner, handleSignOut }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
 
@@ -21,7 +21,7 @@ export default function Header({ user, handleGenerateAiRecipe, triggerStoreTripP
         </div>
         <div className="flex flex-col">
           <h1 className="logo-text text-2xl bg-[#6BAEE0] bg-clip-text text-transparent leading-none">Hungry</h1>
-          <p className="text-slate-500 text-[10px] font-bold mt-0.5">{greeting}, <span className="text-[#6BAEE0]">{user.email.split('@')[0]}!</span></p>
+          <p className="text-slate-500 text-[10px] font-bold mt-0.5">{greeting}, <span className="text-[#6BAEE0]">{userName || user?.email?.split('@')[0] || 'Chef'}!</span></p>
         </div>
       </div>
       <div className="flex items-center gap-3">

@@ -80,14 +80,25 @@ export const UserProvider = ({ children }) => {
 
   const handleCreateHousehold = async (name) => {
     if (!name || !name.trim()) return alert("Please enter a name for your household.");
-    const { data: hh, error: hhError } = await supabase.from('households').insert([{ name: name.trim() }]).select().single();
+
+    const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const { data: hh, error: hhError } = await supabase
+      .from('households')
+      .insert([{ name: name.trim(), invite_code: inviteCode }])
+      .select()
+      .single();
     if (hhError) return alert(hhError.message);
 
-    if (hh) {
-      const { error: profError } = await supabase.from('profiles').update({ household_id: hh.id }).eq('id', user.id);
-      if (profError) return alert("Created household, but failed to join. Please try joining with code.");
-      setHousehold(hh);
-      await fetchProfileAndHousehold(user.id); // Ensure state is refreshed immediately
+    if (hh && user) {
+      const { error: profError } = await supabase
+        .from('profiles')
+        .update({ household_id: hh.id })
+        .eq('id', user.id);
+      if (profError) {
+        alert(`Created household "${hh.name}", but failed to link your profile. Error: ${profError.message}`);
+        return;
+      }
+      await fetchProfileAndHousehold(user.id);
     }
   };
 

@@ -112,27 +112,49 @@ export const RecipeProvider = ({ children, fridge }) => {
 
   const handleGenerateAiRecipe = async () => {
     const pantry = (fridge || []).map(f => cleanIngredientLocally(f.item_name)).filter(Boolean);
-    if (pantry.length === 0) return alert("Pantry is empty");
-    
+    if (pantry.length === 0) return alert("Add items to your pantry first so AI knows what you have.");
+
     setAiGenerating(true);
     try {
-      const prompt = `Create a unique vegetarian recipe name, ingredient list, and steps using: ${pantry.slice(0, 10).join(', ')}. Return raw JSON.`;
+      const prompt = `Create a unique vegetarian recipe name, ingredient list, and steps using: ${pantry.slice(0, 10).join(', ')}. Return raw JSON only.`;
       const res = await fetch('/.netlify/functions/scan-receipt', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customPrompt: prompt })
       });
-      const parsed = await res.json();
+
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+
+      const text = await res.text();
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (e) {
+        throw new Error('AI returned an unreadable response. Please try again.');
+      }
+
+      if (!parsed.recipeName) throw new Error('AI response was missing recipe name. Please try again.');
+
+      const ingredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : [];
+      const steps = Array.isArray(parsed.steps) && parsed.steps.length > 0
+        ? parsed.steps
+        : ['Follow the ingredient list to prepare this dish.'];
+
       setActiveModalRecipe({
         id: `ai-${Date.now()}`,
         name: parsed.recipeName,
         meal_type: 'Creative',
-        ingredients: parsed.ingredients,
-        cleanedIngredients: parsed.ingredients.map(cleanIngredientLocally).filter(Boolean),
-        steps: parsed.steps
+        ingredients,
+        cleanedIngredients: ingredients.map(cleanIngredientLocally).filter(Boolean),
+        steps
       });
       setMultiplier(1);
-    } catch (err) { console.error(err); }
-    finally { setAiGenerating(false); }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Could not generate recipe. Please try again.');
+    } finally {
+      setAiGenerating(false);
+    }
   };
 
     const processedRecipes = useMemo(() => {
