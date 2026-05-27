@@ -1,1 +1,29 @@
-#6BAEE0
+
+
+
+
+
+
+
+
+DONE
+----
+Change color to #6BAEE0
+Change font to Yellowtail
+When adding an ingredient to your shopping list through a recipe card, it should only add the ingredient name, not the amount.
+In the santized versions of the the items in the pantry stock, don't include ammounts, just the name of the item. Also, use the internet and context clues to figure out what the food is. For example, shredded pepper jack is obviosuly cheese, so the santized version should be cheese.
+Change the "buy" to "add" next to ingrediesnt in recipes. Add an animation when the add is clicked, and once clicked, the button should go away.
+Procesure should look better, better font, and not all caps. Overall the "Preparation Progression Matrix" and other subtitle fonts need to be changed too, something more pleasing to the eye.
+Change the app name to Hungry.\
+Units need to be american Units
+Items added to list from the recipe should only add the ingredient, not the amount, and should not be able to be added more than once. If it's already in the list, then show the user a message that says already in list. 
+The AI recipe generator is just showing the top suggested recipe instead of actually generating one.
+Take out the debug preview at the top
+Make the interface more sleek and modern, use a more gentler text and a blue and white theme.
+Take out the number of recipes loaded from the top of the page
+Add animations to make the app look more dynamic
+Make the recipe card look better, it looks to industrial right now
+Use a modern design language, use more round and take inspiration from Apple's Liquid Glass UI 
+
+TESTED
+------
