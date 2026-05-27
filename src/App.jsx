@@ -137,6 +137,7 @@ export default function App()
   const [manualItem, setManualItem] = useState('');
   const [shoppingInput, setShoppingInput] = useState('');
   const [storeName, setStoreName] = useState('General Grocery');
+  const [userName, setUserName] = useState('');
   
   // Advanced Matrix Tracking States
   const [aiGenerating, setAiGenerating] = useState(false);
