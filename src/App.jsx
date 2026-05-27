@@ -736,11 +736,33 @@ export default function App() {
         <div className="bg-slate-900 border-4 border-slate-800 p-8 rounded-none w-full max-w-md shadow-2xl relative">
           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-500 to-orange-600"></div>
           <h2 className="text-4xl font-black uppercase tracking-tighter bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent font-sans">SmartFridge AI</h2>
-          <form onSubmit={handleAuthSubmit} className="space-y-4 mt-6 font-sans">
-            <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-800 px-4 py-3 text-sm font-black text-slate-100 focus:border-amber-500 focus:outline-none" placeholder="Email Address" />
-            <input type="password" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-800 px-4 py-3 text-sm font-black text-slate-100 focus:border-amber-500 focus:outline-none" placeholder="Password" />
-            <button type="submit" className="w-full bg-gradient-to-r from-amber-500 to-orange-600 font-black py-4 text-xs uppercase tracking-widest text-slate-950 shadow-lg">{authLoading ? "Verifying..." : "Sign In"}</button>
-          </form>
+          
+          {isForgotPasswordView ? (
+            <form onSubmit={async (e) => { e.preventDefault(); try { await supabase.auth.resetPasswordForEmail(authEmail); alert('Password reset link sent to your email!'); setIsForgotPasswordView(false); setAuthEmail(''); } catch (err) { alert(err.message); } }} className="space-y-4 mt-6 font-sans">
+              <p className="text-xs text-slate-400 mb-4">Enter your email to receive a password reset link.</p>
+              <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-800 px-4 py-3 text-sm font-black text-slate-100 focus:border-amber-500 focus:outline-none" placeholder="Email Address" />
+              <button type="submit" className="w-full bg-gradient-to-r from-amber-500 to-orange-600 font-black py-4 text-xs uppercase tracking-widest text-slate-950 shadow-lg">{authLoading ? "Sending..." : "Send Reset Link"}</button>
+              <button type="button" onClick={() => { setIsForgotPasswordView(false); setAuthEmail(''); }} className="w-full bg-slate-950 border-2 border-slate-800 font-black py-3 text-xs uppercase tracking-widest text-slate-300 hover:text-amber-400 hover:border-amber-500 shadow-lg">Back to Sign In</button>
+            </form>
+          ) : isSignUp ? (
+            <form onSubmit={handleAuthSubmit} className="space-y-4 mt-6 font-sans">
+              <p className="text-xs text-slate-400 mb-2">Create a new account</p>
+              <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-800 px-4 py-3 text-sm font-black text-slate-100 focus:border-amber-500 focus:outline-none" placeholder="Email Address" />
+              <input type="password" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-800 px-4 py-3 text-sm font-black text-slate-100 focus:border-amber-500 focus:outline-none" placeholder="Password" />
+              <button type="submit" className="w-full bg-gradient-to-r from-amber-500 to-orange-600 font-black py-4 text-xs uppercase tracking-widest text-slate-950 shadow-lg">{authLoading ? "Creating..." : "Create Account"}</button>
+              <button type="button" onClick={() => { setIsSignUp(false); setAuthEmail(''); setAuthPassword(''); }} className="w-full bg-slate-950 border-2 border-slate-800 font-black py-3 text-xs uppercase tracking-widest text-slate-300 hover:text-amber-400 hover:border-amber-500 shadow-lg">Back to Sign In</button>
+            </form>
+          ) : (
+            <form onSubmit={handleAuthSubmit} className="space-y-4 mt-6 font-sans">
+              <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-800 px-4 py-3 text-sm font-black text-slate-100 focus:border-amber-500 focus:outline-none" placeholder="Email Address" />
+              <input type="password" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-800 px-4 py-3 text-sm font-black text-slate-100 focus:border-amber-500 focus:outline-none" placeholder="Password" />
+              <button type="submit" className="w-full bg-gradient-to-r from-amber-500 to-orange-600 font-black py-4 text-xs uppercase tracking-widest text-slate-950 shadow-lg">{authLoading ? "Verifying..." : "Sign In"}</button>
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => { setIsSignUp(true); setAuthEmail(''); setAuthPassword(''); }} className="flex-1 bg-slate-950 border-2 border-slate-800 font-black py-3 text-xs uppercase tracking-widest text-slate-300 hover:text-amber-400 hover:border-amber-500 shadow-lg">Create Account</button>
+                <button type="button" onClick={() => { setIsForgotPasswordView(true); setAuthPassword(''); }} className="flex-1 bg-slate-950 border-2 border-slate-800 font-black py-3 text-xs uppercase tracking-widest text-slate-300 hover:text-amber-400 hover:border-amber-500 shadow-lg">Forgot Password</button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     );
