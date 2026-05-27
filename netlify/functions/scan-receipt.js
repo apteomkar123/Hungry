@@ -16,7 +16,9 @@ const callGemini = async (apiKey, parts, generationConfig = {}) => {
     throw new Error(`Gemini ${res.status}: ${errBody.slice(0, 300)}`);
   }
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Gemini returned an empty response');
+  return text;
 };
 
 export const handler = async (event) => {
@@ -54,10 +56,7 @@ export const handler = async (event) => {
         ? `${bodyData.customPrompt}. Generate a creative vegetarian recipe. Return ONLY valid JSON with no extra text: { "recipeName": "string", "ingredients": ["string"], "steps": ["string"] }.`
         : `${bodyData.customPrompt}. Return ONLY valid JSON with no extra text: { "recipeName": "substitute_name_here" }.`;
 
-      const rawText = await callGemini(apiKey, [{ text: prompt }], {
-        temperature: 0.2,
-        responseMimeType: 'application/json'
-      });
+      const rawText = await callGemini(apiKey, [{ text: prompt }], { temperature: 0.7 });
 
       return {
         statusCode: 200, headers: HEADERS,
@@ -72,7 +71,7 @@ export const handler = async (event) => {
       const rawText = await callGemini(
         apiKey,
         [{ text: prompt }, { inlineData: { data: rawBase64, mimeType: 'image/jpeg' } }],
-        { temperature: 0.1, responseMimeType: 'application/json' }
+        { temperature: 0.1 }
       );
 
       let result = { storeName: 'General Grocery', items: [] };

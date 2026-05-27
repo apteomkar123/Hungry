@@ -14,6 +14,7 @@ export const useInventory = (user, household) => {
   const [isScanningBarcode, setIsScanningBarcode] = useState(false);
   const [barcodeInput, setBarcodeInput] = useState('');
   const [storeName, setStoreName] = useState('General Grocery');
+  const [receiptMessage, setReceiptMessage] = useState('');
   const [error, setError] = useState(null);
 
   const calculateMacroMetrics = useCallback((tokens) => {
@@ -253,18 +254,22 @@ export const useInventory = (user, household) => {
         if (name) {
           await handleAddManualItem(name);
           setBarcodeResult(`Added: ${name}`);
+          setTimeout(() => setBarcodeResult(''), 8000);
           try { await new Audio('/sounds/success.mp3').play(); } catch (e) {}
           triggerHaptic(100);
           setBarcodeInput('');
           setIsScanningBarcode(false);
         } else {
           setBarcodeResult('Product found but has no name');
+          setTimeout(() => setBarcodeResult(''), 8000);
         }
       } else {
         setBarcodeResult('Product not found');
+        setTimeout(() => setBarcodeResult(''), 8000);
       }
     } catch (e) {
       setBarcodeResult('Lookup failed');
+      setTimeout(() => setBarcodeResult(''), 8000);
     } finally {
       setBarcodeLoading(false);
     }
@@ -287,17 +292,28 @@ export const useInventory = (user, household) => {
 
         const response = await fetch('/.netlify/functions/scan-receipt', {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: base64Data })
         });
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `Server error ${response.status}`);
+        }
         const data = await response.json();
         if (data.storeName) setStoreName(data.storeName);
-        if (Array.isArray(data.added)) {
+        if (Array.isArray(data.added) && data.added.length > 0) {
           for (const item of data.added) {
             await handleAddManualItem(item);
           }
+          setReceiptMessage(`Added ${data.added.length} item${data.added.length !== 1 ? 's' : ''} from receipt`);
+        } else {
+          setReceiptMessage('Receipt scanned — no food items found. Try a clearer photo.');
         }
+        setTimeout(() => setReceiptMessage(''), 6000);
       } catch (e) {
         console.error(e);
+        setReceiptMessage(`Scan failed: ${e.message || 'Please try again.'}`);
+        setTimeout(() => setReceiptMessage(''), 6000);
       } finally {
         setReceiptLoading(false);
       }
@@ -318,6 +334,7 @@ export const useInventory = (user, household) => {
     loading,
     error,
     receiptLoading,
+    receiptMessage,
     barcodeLoading,
     barcodeResult,
     isScanningBarcode,

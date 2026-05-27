@@ -104,7 +104,7 @@ Personal name doesn't get saved and added to the greeting. Greeting should greet
 Swapping ingredient doesn't work from a recipe card
 AI recipe generator gives server error 502
 Carry along the tags and filter over to the saved recipes tab
-
+Allow the user to create multiple households. Pantry items can either be shared in the household, or can be for the individual.
 
 
 TESTED

@@ -56,9 +56,14 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
         parsed = { recipeName: text.replace(/["{}]/g, '').trim() };
       }
       const subValue = (parsed.recipeName || '').trim();
-      if (subValue) setSubstitutes(prev => ({ ...prev, [ingredient]: subValue }));
+      if (subValue) {
+        setSubstitutes(prev => ({ ...prev, [ingredient]: subValue }));
+      } else {
+        alert('Could not find a substitute. Please try again.');
+      }
     } catch (err) {
       console.error('Swap failed:', err);
+      alert('Could not find a substitute. Please try again.');
     }
     setLoadingSub(null);
   };

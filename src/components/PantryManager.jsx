@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 
-export default function PantryManager({ fridge, activeHousehold, handleAddManualItem, handleUpdateInlineItem, handleRemoveItem, receiptLoading, handleFileUpload, barcodeInput, setBarcodeInput, handleBarcodeLookup, barcodeLoading, barcodeResult, isScanningBarcode, setIsScanningBarcode }) {
+export default function PantryManager({ fridge, activeHousehold, handleAddManualItem, handleUpdateInlineItem, handleRemoveItem, receiptLoading, receiptMessage, handleFileUpload, barcodeInput, setBarcodeInput, handleBarcodeLookup, barcodeLoading, barcodeResult, isScanningBarcode, setIsScanningBarcode }) {
   const [manualItem, setManualItem] = useState('');
   const [isShared, setIsShared] = useState(false);
+  const [barcodeOpacity, setBarcodeOpacity] = useState(1);
 
   const isExpiringSoon = (date) => {
     if (!date) return false;
@@ -13,6 +14,16 @@ export default function PantryManager({ fridge, activeHousehold, handleAddManual
     const diff = (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
     return diff <= 7 && diff > 0;
   };
+
+  useEffect(() => {
+    if (barcodeResult) {
+      setBarcodeOpacity(1);
+      const fadeTimer = setTimeout(() => setBarcodeOpacity(0), 7000);
+      return () => clearTimeout(fadeTimer);
+    } else {
+      setBarcodeOpacity(1);
+    }
+  }, [barcodeResult]);
 
   useEffect(() => {
     let html5QrCode;
@@ -87,8 +98,9 @@ export default function PantryManager({ fridge, activeHousehold, handleAddManual
             <label htmlFor="receipt-upload" className="cursor-pointer bg-sky-50 text-[#1F6FB8] border border-sky-100 px-5 py-4 rounded-2xl text-xs font-bold text-slate-800 hover:bg-sky-100 transition-all shadow-sm text-center flex items-center justify-center gap-2">
               {receiptLoading ? 'Scanning receipt…' : 'Scan receipt'}
             </label>
-            <input id="receipt-upload" type="file" accept="image/*" capture="environment" onChange={(e) => handleFileUpload(e.target.files[0])} className="hidden" />
+            <input id="receipt-upload" type="file" accept="image/*" capture="environment" onChange={(e) => { e.target.value = ''; handleFileUpload(e.target.files[0]); }} className="hidden" />
           </div>
+          {receiptMessage && <p className="text-[12px] text-slate-500">{receiptMessage}</p>}
 
           <div className="grid gap-3 sm:grid-cols-[2fr_auto]">
             <input type="text" value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} placeholder="Enter barcode / UPC" className="bg-white border border-blue-100 px-5 py-4 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none transition-all shadow-sm" />
@@ -127,7 +139,11 @@ export default function PantryManager({ fridge, activeHousehold, handleAddManual
             </div>
           )}
 
-          {barcodeResult && <p className="text-[12px] text-slate-500">{barcodeResult}</p>}
+          {barcodeResult && (
+            <p className="text-[12px] text-slate-500 transition-opacity duration-1000" style={{ opacity: barcodeOpacity }}>
+              {barcodeResult}
+            </p>
+          )}
         </div>
       </section>
 

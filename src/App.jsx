@@ -21,6 +21,7 @@ function AppContent({ inventory }) {
     shoppingList,
     nutritionMetrics,
     receiptLoading,
+    receiptMessage,
     barcodeLoading,
     barcodeResult,
     isScanningBarcode,
@@ -74,6 +75,7 @@ function AppContent({ inventory }) {
               handleUpdateInlineItem={handleUpdateInlineItem}
               handleRemoveItem={handleRemoveItem}
               receiptLoading={receiptLoading}
+              receiptMessage={receiptMessage}
               handleFileUpload={handleFileUpload}
               barcodeInput={barcodeInput}
               setBarcodeInput={setBarcodeInput}
