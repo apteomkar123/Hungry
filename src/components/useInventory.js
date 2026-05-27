@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { cleanIngredientLocally, triggerHaptic } from '../utils/recipeUtils';
-import { put, getAll, remove, OBJECT_STORES } from '../utils/dbUtils';
+import { put, getAll, remove, OBJECT_STORES } from '../dbUtils';
 
 export const useInventory = (user, household) => {
   const [fridge, setFridge] = useState([]);
