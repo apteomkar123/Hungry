@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { X, Share2, Play, RefreshCw, Plus } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
-import { formatIngredientMeasurement } from './recipeUtils';
 
 export default function RecipeModal({ onStartCooking, addedItems, onAddIngredient }) {
   const { household } = useUser();
@@ -47,8 +46,16 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           customPrompt: `Suggest a common vegetarian substitute for "${ingredient}" in the context of a recipe. Return ONLY the name of the substitute.` 
         })
       });
-      const data = await response.json();
-      setSubstitutes(prev => ({ ...prev, [ingredient]: data.recipeName || "Try another swap" }));
+      const text = await response.text();
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (e) {
+        // Fallback for non-JSON or malformed AI text
+        parsed = { recipeName: text.replace(/["{}]/g, '').trim() };
+      }
+      const subValue = parsed.recipeName || parsed.substitutions?.[ingredient] || "Try another swap";
+      setSubstitutes(prev => ({ ...prev, [ingredient]: subValue }));
     } catch (err) { console.error(err); }
     setLoadingSub(null);
   };

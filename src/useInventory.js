@@ -45,6 +45,43 @@ export const useInventory = (user, household) => {
     localStorage.setItem('hungry_shopping_v1', JSON.stringify(shoppingList));
   }, [shoppingList]);
 
+  const performMutation = useCallback(async (table, action, data, id_value = null) => {
+    if (navigator.onLine) {
+      try {
+        let error;
+        if (action === 'INSERT') ({ error } = await supabase.from(table).insert([data]));
+        else if (action === 'DELETE') ({ error } = await supabase.from(table).delete().eq('id', id_value));
+        else if (action === 'UPDATE') ({ error } = await supabase.from(table).update(data).eq('id', id_value));
+        
+        if (!error) return true;
+      } catch (e) {
+        console.error("Supabase mutation failed, queuing...", e);
+      }
+    }
+
+    await put(OBJECT_STORES.SYNC_QUEUE, { table, action, data, id_value, timestamp: Date.now() });
+    return false;
+  }, []);
+
+  const resolveSanitizedTokenOnline = useCallback(async (rawInputString) => {
+    const localToken = cleanIngredientLocally(rawInputString);
+    if (!rawInputString || !rawInputString.trim()) return localToken;
+    try {
+      const response = await fetch('/.netlify/functions/scan-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolveItemToken: rawInputString, storeContext: storeName })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return cleanIngredientLocally(data.sanitized || '') || localToken;
+      }
+    } catch (e) {
+      console.error('Resolve error:', e);
+    }
+    return localToken;
+  }, [storeName]);
+
   const syncOfflineChanges = useCallback(async () => {
     if (!navigator.onLine || !user) return;
 
@@ -107,24 +144,6 @@ export const useInventory = (user, household) => {
     return () => window.removeEventListener('online', syncOfflineChanges);
   }, [syncOfflineChanges]);
 
-  const performMutation = async (table, action, data, id_value = null) => {
-    if (navigator.onLine) {
-      try {
-        let error;
-        if (action === 'INSERT') ({ error } = await supabase.from(table).insert([data]));
-        else if (action === 'DELETE') ({ error } = await supabase.from(table).delete().eq('id', id_value));
-        else if (action === 'UPDATE') ({ error } = await supabase.from(table).update(data).eq('id', id_value));
-        
-        if (!error) return true;
-      } catch (e) {
-        console.error("Supabase mutation failed, queuing...", e);
-      }
-    }
-
-    await put(OBJECT_STORES.SYNC_QUEUE, { table, action, data, id_value, timestamp: Date.now() });
-    return false;
-  };
-
   const fetchAppData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -137,7 +156,8 @@ export const useInventory = (user, household) => {
         id: row.id,
         raw_name: row.item_name,
         item_name: cleanIngredientLocally(row.item_name),
-        expiry_date: row.expiry_date
+        expiry_date: row.expiry_date,
+        price: row.price || 0
       })).filter(item => item.raw_name);
       setFridge(normalizedFridge);
       calculateMacroMetrics(normalizedFridge.map(f => f.item_name));
@@ -161,8 +181,9 @@ export const useInventory = (user, household) => {
     fetchAppData();
   }, [fetchAppData]);
 
-  const handleAddManualItem = async (itemName) => {
-    const sanitized = cleanIngredientLocally(itemName);
+  const handleAddManualItem = useCallback(async (itemName) => {
+    setLoading(true);
+    const sanitized = await resolveSanitizedTokenOnline(itemName);
     if (!sanitized) return;
 
     const newItem = { 
@@ -172,20 +193,21 @@ export const useInventory = (user, household) => {
     };
 
     // Optimistic local update
-    setFridge(prev => [...prev, { ...newItem, id: `temp-${Date.now()}` }]);
+    setFridge(prev => [...prev, { ...newItem, id: `temp-${Date.now()}`, raw_name: itemName }]);
     triggerHaptic(50);
 
     const success = await performMutation('fridge_inventory', 'INSERT', newItem);
     if (success) fetchAppData();
-  };
+    setLoading(false);
+  }, [user, household, resolveSanitizedTokenOnline, performMutation, fetchAppData]);
 
-  const handleRemoveItem = async (id) => {
+  const handleRemoveItem = useCallback(async (id) => {
     setFridge(prev => prev.filter(item => item.id !== id));
     const success = await performMutation('fridge_inventory', 'DELETE', null, id);
     if (success) fetchAppData();
-  };
+  }, [performMutation, fetchAppData]);
 
-  const handleAddShoppingItem = async (itemName, price = 0) => {
+  const handleAddShoppingItem = useCallback(async (itemName, price = 0) => {
     const sanitized = cleanIngredientLocally(itemName);
     if (!sanitized) return;
 
@@ -205,19 +227,19 @@ export const useInventory = (user, household) => {
 
     const success = await performMutation('shopping_list', 'INSERT', newItem);
     if (success) fetchAppData();
-  };
+  }, [user, household, performMutation, fetchAppData, shoppingList]);
 
-  const handleToggleShoppingCompleted = async (id, status) => {
+  const handleToggleShoppingCompleted = useCallback(async (id, status) => {
     setShoppingList(prev => prev.map(item => item.id === id ? { ...item, is_completed: !status } : item));
     const success = await performMutation('shopping_list', 'UPDATE', { is_completed: !status }, id);
     if (success) fetchAppData();
-  };
+  }, [performMutation, fetchAppData]);
 
-  const handleClearShoppingItem = async (id) => {
+  const handleClearShoppingItem = useCallback(async (id) => {
     setShoppingList(prev => prev.filter(item => item.id !== id));
     const success = await performMutation('shopping_list', 'DELETE', null, id);
     if (success) fetchAppData();
-  };
+  }, [performMutation, fetchAppData]);
 
   const handleBarcodeLookup = useCallback(async (barcode) => {
     setBarcodeLoading(true);
@@ -233,6 +255,11 @@ export const useInventory = (user, household) => {
           if (sanitizedName) {
             await handleAddManualItem(sanitizedName);
             setBarcodeResult(`Added "${name}" to your pantry.`);
+            try {
+              await new Audio('/sounds/success.mp3').play();
+            } catch (_soundError) {
+              // Audio optional
+            }
             triggerHaptic(100);
             setBarcodeInput(''); // Clear input after successful lookup
             setIsScanningBarcode(false); // Close scanner if open
@@ -253,7 +280,7 @@ export const useInventory = (user, household) => {
     } finally {
       setBarcodeLoading(false);
     }
-  }, [handleAddManualItem]);
+  }, [handleAddManualItem, setIsScanningBarcode, setBarcodeInput]);
 
   const handleFileUpload = useCallback(async (file) => {
     if (!file) return;
@@ -301,16 +328,16 @@ export const useInventory = (user, household) => {
       setError("Failed to load image for scanning.");
       setReceiptLoading(false);
     };
-  }, [user, household, handleAddManualItem]);
+  }, [user, household, handleAddManualItem, setStoreName]);
 
-  const handleUpdateInlineItem = async (id, newName) => {
+  const handleUpdateInlineItem = useCallback(async (id, newName) => {
     const sanitized = cleanIngredientLocally(newName);
     // Optimistic Local Update
     setFridge(prev => prev.map(item => item.id === id ? { ...item, raw_name: newName, item_name: sanitized } : item));
     
     const success = await performMutation('fridge_inventory', 'UPDATE', { item_name: sanitized }, id);
     if (success) fetchAppData();
-  };
+  }, [performMutation, fetchAppData]);
 
   return {
     fridge,

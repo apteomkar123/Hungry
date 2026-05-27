@@ -145,8 +145,7 @@ export const useInventory = (user, household) => {
     }
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
+  const handleFileUpload = async (file) => {
     if (!file) return;
     setReceiptLoading(true);
     

@@ -1,5 +1,0 @@
-Do the eat me first logic exactly how you said
-Do the voice activated cooking mode exactly how you said
-Do the price comparison and store insights feature exactly how you said
-Add the intelligent substitution feature exactly how you said.
-The barcode lookup should also have a barcode scanner

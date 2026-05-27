@@ -61,7 +61,30 @@ Update the logic in App.jsx to read the recipe and household ID from the URL par
 Add a sound effect that plays specifically when the barcode scanner successfully identifies a product
 Implement the missing Share Recipe button logic to generate a unique link for the current household. 
 Customize the html5-qrcode scanner UI to match the Apple Liquid Glass design better, like adding a scanning line animation?
-
+Do the eat me first logic exactly how you said
+Do the voice activated cooking mode exactly how you said
+Do the price comparison and store insights feature exactly how you said
+Add the intelligent substitution feature exactly how you said.
+The barcode lookup should also have a barcode scanner
+The cooking mode window's x button doesn't work to close out 100% of the time.
+The mic button in cooking mode has to be pressed at every step. If the mic has been turned on at the first step, keep it on through each step.
+I closed a recipe, and then the whole screen just went blank.
+Ai Recipe generator not working, nothing happens when the button is pressed.
+In the shopping suggestions, I see the recipes, but when I open the recipe the recipe card does not open. I should be able to add ingredients to my shopping list from this section of the app.
+At the top in the header, where it says Good Afternoon, it should say the saved personal name instead of the usernam
+If something like "Tyson Chicken" is manually added to the pantry, the app should be smart enough to know that's chicken. Follow the same process for it as the app does when a receipt is scanned (the feature where the app understands what the item is even if it's not listed in the exact name)
+Create Household feature not working, fix that
+Page has to be reloaded after pantry items added in order to view suggested recipes.
+The add button next to ingredients in a recipe is not adding the ingredient to the shopping list.
+The substitute ingredient feature is not working on the recipe cards.
+The star recipe feature is not working, not do I see anywhere where the starred recipes would be accessible.
+The barscode scanner is not working. There is no sound that plays, and when the scanner finds a barcode, the camera view blinks very fast and glitches, and doesn't go away on its on. When closed, the button with [] lookin symbol blinks and glitches, and I see a message that says Lookup failed.
+When I try to manually add to the shopping list, the page just refreshes and nothing happens, nothing gets added.
+Refactor the ShoppingListManager to allow users to set a 'Budget Limit' and display a progress bar in the AnalyticsDashboard as they approach it.
+Add a search bar and filter options to the 'saved' recipes tab in App.jsx so users can easily manage their starred collection. 
+Fix the Create Household feature in UserContext.jsx by ensuring the profile record is updated correctly and the UI state refreshes immediately after creation.
+Enhance the AnalyticsDashboard to visualize nutrition metrics using a simple CSS-based bar chart or a small charting library like Recharts
+Can you add a detailed spending breakdown to the AnalyticsDashboard that shows estimated savings based on missing versus purchased items?
 
 TESTED
 ------

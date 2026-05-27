@@ -25,7 +25,7 @@ export default function CookingMode({ steps, onClose }) {
         } else if (transcript.includes('read step') || transcript.includes('repeat')) {
           readCurrentStep();
         } else if (transcript.includes('stop cooking') || transcript.includes('exit')) {
-          onClose();
+          handleTerminate();
         }
         setIsListening(false);
       };
@@ -36,7 +36,9 @@ export default function CookingMode({ steps, onClose }) {
       };
 
       recognition.onend = () => {
-        setIsListening(false);
+        if (isListening) {
+          recognition.start();
+        }
       };
 
       setSpeechRecognition(recognition);
@@ -53,6 +55,13 @@ export default function CookingMode({ steps, onClose }) {
       if (utteranceRef.current) speechSynthesis.cancel();
     };
   }, []);
+
+  const handleTerminate = () => {
+    if (speechRecognition) speechRecognition.stop();
+    if (utteranceRef.current) window.speechSynthesis.cancel();
+    setIsListening(false);
+    onClose();
+  };
 
   const toggleListening = () => {
     if (speechRecognition) {
