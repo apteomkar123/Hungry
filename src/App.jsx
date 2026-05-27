@@ -138,6 +138,10 @@ export default function App()
   const [shoppingInput, setShoppingInput] = useState('');
   const [storeName, setStoreName] = useState('General Grocery');
   const [userName, setUserName] = useState('');
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
+  const [barcodeResult, setBarcodeResult] = useState('');
   
   // Advanced Matrix Tracking States
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -705,6 +709,7 @@ export default function App()
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setReceiptLoading(true);
     setLoading(true);
     const img = new Image();
     img.src = URL.createObjectURL(file);
@@ -715,6 +720,54 @@ export default function App()
       ctx.drawImage(img, 0, 0, 600, 800);
       sendImageToBackend(canvas.toDataURL('image/jpeg', 0.75));
     };
+  };
+
+  const lookupBarcodeProduct = async (barcode) => {
+    if (!barcode || !barcode.trim()) return null;
+    try {
+      const code = barcode.trim();
+      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`);
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (data?.status === 1 && data.product) {
+        return String(data.product.product_name || data.product.generic_name || data.product.brands || '').trim() || null;
+      }
+    } catch (err) {
+      console.error('Barcode lookup failed', err);
+    }
+    return null;
+  };
+
+  const handleBarcodeLookup = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!barcodeInput.trim()) return;
+    setBarcodeLoading(true);
+    setBarcodeResult('');
+    try {
+      const productName = await lookupBarcodeProduct(barcodeInput);
+      if (!productName) {
+        setBarcodeResult('No product found for that barcode.');
+      } else {
+        const sanitizedName = cleanIngredientLocally(productName);
+        if (!sanitizedName) {
+          setBarcodeResult(`Found product "${productName}", but could not sanitize it for pantry entry.`);
+        } else {
+          await supabase.from('fridge_inventory').insert([{ 
+            item_name: sanitizedName,
+            user_id: user.id,
+            household_id: household?.id || null
+          }]);
+          setBarcodeResult(`Added "${productName}" to your pantry.`);
+          setBarcodeInput('');
+          await fetchAppData();
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      setBarcodeResult('Barcode lookup failed. Please try again.');
+    } finally {
+      setBarcodeLoading(false);
+    }
   };
 
   const sendImageToBackend = async (base64Data) => {
@@ -733,13 +786,17 @@ export default function App()
           const sanitizedToken = await resolveSanitizedTokenOnline(rawItem.trim());
           const backgroundParsedToken = sanitizedToken || cleanIngredientLocally(rawItem.trim());
           if (backgroundParsedToken) {
-            await supabase.from('fridge_inventory').insert([{ item_name: backgroundParsedToken, user_id: user.id }]);
+            await supabase.from('fridge_inventory').insert([{ item_name: backgroundParsedToken, user_id: user.id, household_id: household?.id || null }]);
           }
         }
         await fetchAppData();
       }
-    } catch (err) { console.error(err); }
-    setLoading(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setReceiptLoading(false);
+      setLoading(false);
+    }
   };
 
   const handleAddManualItem = async (e) => {
@@ -911,7 +968,7 @@ export default function App()
 
       <main className="w-full flex justify-center px-4 sm:px-6 py-8">
         <div className="w-full max-w-5xl">
-          {activeTab === 'pantry' && <PantryManager fridge={fridge} handleAddManualItem={handleAddManualItem} manualItem={manualItem} setManualItem={setManualItem} handleUpdateInlineItem={handleUpdateInlineItem} handleRemoveItem={handleRemoveItem} loading={loading} />}
+          {activeTab === 'pantry' && <PantryManager fridge={fridge} handleAddManualItem={handleAddManualItem} manualItem={manualItem} setManualItem={setManualItem} handleUpdateInlineItem={handleUpdateInlineItem} handleRemoveItem={handleRemoveItem} loading={loading} handleFileUpload={handleFileUpload} receiptLoading={receiptLoading} barcodeInput={barcodeInput} setBarcodeInput={setBarcodeInput} handleBarcodeLookup={handleBarcodeLookup} barcodeLoading={barcodeLoading} barcodeResult={barcodeResult} />}
           {activeTab === 'recipes' && <RecipeExplorer recipes={processedRecipes} recipeSearch={recipeSearch} setRecipeSearch={setRecipeSearch} activeFilter={activeRecipeFilter} setFilter={setActiveRecipeFilter} onOpenRecipe={setActiveModalRecipe} onSaveRecipe={handleSaveRecipeToProfile} />}
           {activeTab === 'shopping' && <ShoppingListManager list={shoppingList} onAdd={handleAddShoppingItem} shoppingInput={shoppingInput} setShoppingInput={setShoppingInput} onToggle={handleToggleShoppingCompleted} onClear={handleClearShoppingItem} />}
           {activeTab === 'analytics' && <AnalyticsDashboard metrics={nutritionMetrics} fridge={fridge} shoppingList={shoppingList} />}
