@@ -1,7 +1,7 @@
 import React from 'react';
 import { Camera, Plus, AlertCircle, Trash2, Eye, Loader2 } from 'lucide-react';
 
-export default function PantryManager({ fridge, handleFileUpload, handleAddManualItem, handleUpdateInlineItem, handleRemoveItem, loading }) {
+export default function PantryManager({ fridge, handleAddManualItem, manualItem, setManualItem, handleUpdateInlineItem, handleRemoveItem, loading }) {
   const isExpiringSoon = (date) => {
     if (!date) return false;
     const today = new Date();
@@ -12,32 +12,12 @@ export default function PantryManager({ fridge, handleFileUpload, handleAddManua
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Scanner Section */}
+      {/* Manual Entry Section */}
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
-        <h2 className="text-[14px] font-bold text-slate-400 mb-4 px-2">AI Vision Intake</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="relative border-2 border-dashed border-blue-100 hover:border-[#6BAEE0] p-8 text-center bg-blue-50/30 rounded-[2rem] cursor-pointer transition-all group active:scale-95">
-            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'receipt')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-            <div className="flex flex-col items-center gap-2">
-              <div className="p-3 bg-white rounded-2xl shadow-sm text-[#6BAEE0] group-hover:scale-110 transition-transform">
-                {loading ? <Loader2 className="animate-spin" size={24} /> : <Camera size={24} />}
-              </div>
-              <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest">Receipt Scan</p>
-            </div>
-          </div>
-          <div className="relative border-2 border-dashed border-blue-100 hover:border-[#6BAEE0] p-8 text-center bg-blue-50/30 rounded-[2rem] cursor-pointer transition-all group active:scale-95">
-            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'fridge')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-            <div className="flex flex-col items-center gap-2">
-              <div className="p-3 bg-white rounded-2xl shadow-sm text-[#6BAEE0] group-hover:scale-110 transition-transform">
-                {loading ? <Loader2 className="animate-spin" size={24} /> : <Eye size={24} />}
-              </div>
-              <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest">Fridge Scan</p>
-            </div>
-          </div>
-        </div>
-        
-        <form onSubmit={handleAddManualItem} className="flex gap-2 mt-6">
-          <input type="text" placeholder="Add manually..." className="flex-1 bg-white border border-blue-100 px-5 py-4 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none transition-all shadow-sm" />
+        <h2 className="text-[14px] font-bold text-slate-400 mb-4 px-2">Pantry Input</h2>
+        <p className="text-[12px] text-slate-500 mb-4">Receipt and fridge scanning are temporarily disabled. Add pantry items manually for now.</p>
+        <form onSubmit={handleAddManualItem} className="flex gap-2">
+          <input type="text" value={manualItem} onChange={(e) => setManualItem(e.target.value)} placeholder="Add manually..." className="flex-1 bg-white border border-blue-100 px-5 py-4 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none transition-all shadow-sm" />
           <button type="submit" className="bg-[#6BAEE0] text-white p-4 rounded-2xl shadow-lg shadow-blue-100 active:scale-90 transition-all">
             <Plus size={20} />
           </button>

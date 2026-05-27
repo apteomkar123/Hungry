@@ -1,12 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Copy, Plus, Home } from 'lucide-react';
 
-export default function HouseholdSettings({ household, user, onCreate, onJoin }) {
+export default function HouseholdSettings({ household, user, profileName, onUpdateName, onCreate, onJoin }) {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [displayName, setDisplayName] = useState(profileName || '');
+
+  useEffect(() => {
+    setDisplayName(profileName || '');
+  }, [profileName]);
 
   return (
     <div className="max-w-md mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <section className="bg-white/80 backdrop-blur-lg p-8 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
+        <h2 className="text-[14px] font-bold text-slate-400 mb-4">Personal Name</h2>
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            placeholder="Your name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className="flex-1 bg-white border border-blue-100 px-5 py-4 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none"
+          />
+          <button onClick={() => onUpdateName(displayName)} className="bg-[#6BAEE0] text-white p-4 rounded-2xl shadow-lg shadow-blue-100">Save</button>
+        </div>
+        <p className="text-[12px] text-slate-500">Add your preferred name and it will appear throughout the app.</p>
+      </section>
       {household ? (
         <section className="bg-white/80 backdrop-blur-lg p-10 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5 text-center">
           <div className="w-16 h-16 bg-blue-50 text-[#6BAEE0] rounded-3xl flex items-center justify-center mx-auto mb-6">

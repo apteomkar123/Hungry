@@ -30,7 +30,11 @@ export default function RecipeExplorer({ recipes, recipeSearch, setRecipeSearch,
 
       {/* Recipe Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {recipes.slice(0, 24).map((recipe) => (
+        {recipes.length === 0 ? (
+          <div className="col-span-full bg-white/80 border border-blue-100 p-8 rounded-[2rem] text-center text-slate-500">
+            No recipe matches yet. Add pantry items to see suggestions based on what you have.
+          </div>
+        ) : recipes.slice(0, 24).map((recipe) => (
           <div key={recipe.id} className="bg-white/80 backdrop-blur-md border border-white/40 p-5 rounded-[2rem] shadow-lg shadow-blue-900/5 group hover:scale-[1.02] transition-all cursor-pointer" onClick={() => onOpenRecipe(recipe)}>
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1">

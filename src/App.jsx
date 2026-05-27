@@ -188,11 +188,14 @@ export default function App()
   }, []);
 
   const fetchHousehold = async (userId) => {
-    const { data: profile } = await supabase.from('profiles').select('household_id').eq('id', userId).single();
-    if (profile?.household_id) {
-      const { data: hh } = await supabase.from('households').select('*').eq('id', profile.household_id).single();
-      setHousehold(hh);
-      fetchAppData(profile.household_id); // Re-fetch data for the household
+    const { data: profile } = await supabase.from('profiles').select('household_id, name, full_name').eq('id', userId).single();
+    if (profile) {
+      setUserName(profile.name || profile.full_name || '');
+      if (profile.household_id) {
+        const { data: hh } = await supabase.from('households').select('*').eq('id', profile.household_id).single();
+        setHousehold(hh);
+        fetchAppData(profile.household_id);
+      }
     }
   };
 
@@ -389,7 +392,7 @@ export default function App()
       calculateMacroMetrics(plainTokensArray);
 
       const shopQuery = supabase.from('shopping_list').select('*').order('created_at', { ascending: true });
-      if (householdId || household?.id) shopQuery.eq('household_id', householdId || household.id);
+      if (household?.id) shopQuery.eq('household_id', household.id);
       else shopQuery.eq('user_id', user.id);
       
       let { data: shopItems } = await shopQuery;
@@ -558,6 +561,21 @@ export default function App()
       meal_type: recipe.meal_type || 'General'
     }]).select();
     if (!error && data) setSavedRecipes(prev => [...(prev || []), data[0]]);
+  };
+
+  const handleUpdateProfileName = async (newName) => {
+    if (!user || !newName.trim()) return;
+    const trimmed = newName.trim();
+    const { data, error } = await supabase.from('profiles').update({ name: trimmed }).eq('id', user.id).select().single();
+    if (error || !data) {
+      const { data: inserted, error: insertError } = await supabase.from('profiles').insert({ id: user.id, name: trimmed }).select().single();
+      if (!insertError && inserted) {
+        setUserName(inserted.name || trimmed);
+        return;
+      }
+    } else {
+      setUserName(data.name || trimmed);
+    }
   };
 
   const handleRemoveSavedRecipe = async (id) => {
@@ -851,9 +869,9 @@ export default function App()
   if (!user) {
     return (
       <div className="min-h-screen bg-blue-50 text-slate-900 font-sans font-black tracking-tight antialiased flex items-center justify-center p-6 select-none">
-        <div className="bg-white/70 backdrop-blur-xl border border-white/40 p-10 rounded-[2.5rem] w-full max-w-md shadow-2xl relative overflow-hidden">
+        <div className="bg-white border border-blue-100 p-10 rounded-[3rem] w-full max-w-md shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-2 bg-[#6BAEE0]"></div>
-          <h2 className="logo-text text-5xl mb-6 bg-[#6BAEE0] bg-clip-text text-transparent text-center">Hungry</h2>
+          <h2 className="logo-text text-5xl mb-6 text-[#1F6FB8] text-center">Hungry</h2>
           
           {isForgotPasswordView ? (
             <form onSubmit={async (e) => { e.preventDefault(); try { await supabase.auth.resetPasswordForEmail(authEmail); alert('Password reset link sent to your email!'); setIsForgotPasswordView(false); setAuthEmail(''); } catch (err) { alert(err.message); } }} className="space-y-4 mt-6 font-sans">
@@ -888,15 +906,15 @@ export default function App()
 
   return (
     <div className="min-h-screen bg-blue-50/50 text-slate-800 font-sans antialiased pb-24 selection:bg-[#6BAEE0] selection:text-white">
-      <Header user={user} storeName={storeName} handleGenerateAiRecipe={handleGenerateAiRecipe} triggerStoreTripPlanner={triggerStoreTripPlanner} handleSignOut={handleSignOut} />
+      <Header user={user} userName={userName} storeName={storeName} handleGenerateAiRecipe={handleGenerateAiRecipe} triggerStoreTripPlanner={triggerStoreTripPlanner} handleSignOut={handleSignOut} />
 
       <main className="w-full flex justify-center px-4 sm:px-6 py-8">
         <div className="w-full max-w-5xl">
-          {activeTab === 'pantry' && <PantryManager fridge={fridge} handleFileUpload={handleFileUpload} handleAddManualItem={handleAddManualItem} handleUpdateInlineItem={handleUpdateInlineItem} handleRemoveItem={handleRemoveItem} loading={loading} />}
+          {activeTab === 'pantry' && <PantryManager fridge={fridge} handleAddManualItem={handleAddManualItem} manualItem={manualItem} setManualItem={setManualItem} handleUpdateInlineItem={handleUpdateInlineItem} handleRemoveItem={handleRemoveItem} loading={loading} />}
           {activeTab === 'recipes' && <RecipeExplorer recipes={processedRecipes} recipeSearch={recipeSearch} setRecipeSearch={setRecipeSearch} activeFilter={activeRecipeFilter} setFilter={setActiveRecipeFilter} onOpenRecipe={setActiveModalRecipe} onSaveRecipe={handleSaveRecipeToProfile} />}
-          {activeTab === 'shopping' && <ShoppingListManager list={shoppingList} onAdd={handleAddShoppingItem} onToggle={handleToggleShoppingCompleted} onClear={handleClearShoppingItem} />}
+          {activeTab === 'shopping' && <ShoppingListManager list={shoppingList} onAdd={handleAddShoppingItem} shoppingInput={shoppingInput} setShoppingInput={setShoppingInput} onToggle={handleToggleShoppingCompleted} onClear={handleClearShoppingItem} />}
           {activeTab === 'analytics' && <AnalyticsDashboard metrics={nutritionMetrics} fridge={fridge} shoppingList={shoppingList} />}
-          {activeTab === 'household' && <HouseholdSettings household={household} user={user} onCreate={handleCreateHousehold} onJoin={handleJoinHousehold} />}
+          {activeTab === 'household' && <HouseholdSettings household={household} user={user} profileName={userName} onUpdateName={handleUpdateProfileName} onCreate={handleCreateHousehold} onJoin={handleJoinHousehold} />}
           {activeTab === 'saved' && <div className="space-y-6">
              {savedRecipes.map(recipe => (
                 <div key={recipe.id} className="bg-white/80 p-6 rounded-3xl border border-blue-100 flex justify-between items-center shadow-sm">
@@ -938,7 +956,40 @@ export default function App()
 
       {isStoreAlertOpen && (
         <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-50">
-           {/* Existing Helper UI logic moved to separate store-helper file later */}
+          <div className="w-full max-w-3xl bg-white rounded-[2.5rem] border border-blue-100 shadow-2xl p-6 overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-xl font-black text-slate-800">Shopping Suggestions</h3>
+                <p className="text-sm text-slate-500">Recipes that almost match your pantry ingredients and missing items you can add to your list.</p>
+              </div>
+              <button onClick={() => setIsStoreAlertOpen(false)} className="text-slate-400 hover:text-slate-700 font-black text-2xl">×</button>
+            </div>
+            {shoppingAlerts.length === 0 ? (
+              <div className="rounded-3xl bg-blue-50 p-6 text-center text-slate-600">
+                No shopping suggestions found yet. Add pantry items and try again.
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {shoppingAlerts.map((alert, idx) => (
+                  <div key={idx} className="bg-slate-50 border border-blue-50 rounded-3xl p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[11px] uppercase tracking-widest font-black text-slate-400 bg-blue-50 px-3 py-1 rounded-full">{alert.mealType}</span>
+                      <span className="text-xs font-bold text-slate-500">Missing {alert.missingItems.length}</span>
+                    </div>
+                    <h4 className="font-bold text-slate-800 mb-3">{alert.recipe.name}</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {alert.missingItems.map((item, i) => (
+                        <span key={i} className="text-[11px] text-slate-600 bg-white border border-blue-100 rounded-full px-3 py-1">{item}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-6 text-right">
+              <button onClick={() => { setIsStoreAlertOpen(false); setActiveTab('shopping'); }} className="bg-[#6BAEE0] text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-100">Go to Shopping List</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

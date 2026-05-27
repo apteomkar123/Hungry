@@ -24,6 +24,19 @@ Take out the number of recipes loaded from the top of the page
 Add animations to make the app look more dynamic
 Make the recipe card look better, it looks to industrial right now
 Use a modern design language, use more round and take inspiration from Apple's Liquid Glass UI 
-
+1. Add a personalized greeting for the user when they sign in or when they open the app
+2. Implement a Share Recipe button that generates a link for others to see
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Implement the following exactly how you suggested
+3. Add smart expiration tracking
+4. Add the AI interior fridge scan
+5. Add the collaborative "home" pantries
+6. Add the hands free "cooking mode:
+7. AI Ingredient substitutions
+8. Price Tracking and Analytics
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+9. Apply all of them, and give me directions on how to set them all up
+10. Add icons for them, make the app fun and interactive. Build in with this in mind that I plan on putting this out as a iOS and Android app, so it should operate like on
+11. Split the App.jsx file into the multiple files to improve speed and efficiency.
 TESTED
 ------

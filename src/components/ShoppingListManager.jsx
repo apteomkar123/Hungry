@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, Check, Trash2, ShoppingCart } from 'lucide-react';
 
-export default function ShoppingListManager({ list, onAdd, onToggle, onClear }) {
+export default function ShoppingListManager({ list, onAdd, shoppingInput, setShoppingInput, onToggle, onClear }) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
@@ -13,7 +13,7 @@ export default function ShoppingListManager({ list, onAdd, onToggle, onClear }) 
         </div>
 
         <form onSubmit={onAdd} className="flex gap-2 mb-8">
-          <input type="text" placeholder="Add items to buy..." className="flex-1 bg-white border border-blue-100 px-5 py-4 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none transition-all shadow-sm" />
+          <input type="text" value={shoppingInput} onChange={(e) => setShoppingInput(e.target.value)} placeholder="Add items to buy..." className="flex-1 bg-white border border-blue-100 px-5 py-4 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none transition-all shadow-sm" />
           <button type="submit" className="bg-[#6BAEE0] text-white p-4 rounded-2xl shadow-lg shadow-blue-100 active:scale-90 transition-all">
             <Plus size={20} />
           </button>
