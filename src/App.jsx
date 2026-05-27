@@ -1,6 +1,25 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from './supabaseClient';
 import domtoimage from 'dom-to-image-more';
+import { 
+  ChefHat, 
+  Refrigerator, 
+  ShoppingCart, 
+  User, 
+  History, 
+  BarChart3, 
+  Users 
+} from 'lucide-react';
+
+// Components (To be created)
+import Header from './components/Header';
+import PantryManager from './components/PantryManager';
+import RecipeExplorer from './components/RecipeExplorer';
+import ShoppingListManager from './components/ShoppingListManager';
+import RecipeModal from './components/RecipeModal';
+import CookingMode from './components/CookingMode';
+import HouseholdSettings from './components/HouseholdSettings';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 
 // --- Utilities moved outside component to prevent re-creation and improve clarity ---
 
@@ -19,6 +38,7 @@ const cleanIngredientLocally = (rawName) => {
   let name = String(rawName).toLowerCase().trim();
   name = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   name = name.replace(/[\u2013\u2014•]/g, ' ');
+  name = name.replace(/\d+/g, ' ');
   name = name.replace(/\b(?:organic|fresh|large|small|medium|extra|reduced fat|low fat|low-sodium|low sodium|unsalted|sliced|diced|chopped|shredded|minced|ground|boneless|skinless|prepared|peeled|packaged|package|pack|can|canned|jar|bottle|tube|stick|slice|pieces|piece|cup|cups|tablespoon|tablespoons|tbsp|teaspoon|teaspoons|tsp|grams|gram|g|kg|pounds|pound|lb|lbs|oz|ounces|fluid|fl oz|ml|ltr|liter|litre|pkg|ct|count)\b/g, ' ');
   name = name.replace(/[^a-z0-9\s]/g, ' ');
   name = name.replace(/\s+/g, ' ').trim();
@@ -124,6 +144,13 @@ export default function App()
   const [activeModalRecipe, setActiveModalRecipe] = useState(null);
   const [activeTab, setActiveTab] = useState('pantry');
 
+  // New Feature States
+  const [isCookingMode, setIsCookingMode] = useState(false);
+  const [household, setHousehold] = useState(null);
+
+  // Added items tracking for modal
+  const [addedItems, setAddedItems] = useState(new Set());
+
   // Dynamic Servings Multiplier State
   const [servingMultiplier, setServingMultiplier] = useState(1);
 
@@ -131,11 +158,20 @@ export default function App()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        setUser(session.user);
+        fetchHousehold(session.user.id);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
+      if (session?.user) {
+        setUser(session.user);
+        fetchHousehold(session.user.id);
+      } else {
+        setUser(null);
+        setHousehold(null);
+      }
       if (event === 'PASSWORD_RECOVERY') {
         setIsResettingPasswordMode(true);
       }
@@ -143,6 +179,15 @@ export default function App()
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchHousehold = async (userId) => {
+    const { data: profile } = await supabase.from('profiles').select('household_id').eq('id', userId).single();
+    if (profile?.household_id) {
+      const { data: hh } = await supabase.from('households').select('*').eq('id', profile.household_id).single();
+      setHousehold(hh);
+      fetchAppData(profile.household_id); // Re-fetch data for the household
+    }
+  };
 
   const recipeCategoryMatches = (recipe, patterns) => {
     const text = `${recipe.meal_type || ''} ${recipe.name || ''} ${(recipe.cleanedIngredients || []).join(' ')}`.toLowerCase();
@@ -336,10 +381,16 @@ export default function App()
       const plainTokensArray = normalizedFridge.map(f => f.item_name).filter(Boolean);
       calculateMacroMetrics(plainTokensArray);
 
-      let { data: shopItems } = await supabase.from('shopping_list').select('*').eq('user_id', user.id).order('created_at', { ascending: true });
+      const shopQuery = supabase.from('shopping_list').select('*').order('created_at', { ascending: true });
+      if (householdId || household?.id) shopQuery.eq('household_id', householdId || household.id);
+      else shopQuery.eq('user_id', user.id);
+      
+      let { data: shopItems } = await shopQuery;
       setShoppingList(shopItems || []);
 
-      let { data: likedRecipes } = await supabase.from('saved_recipes').select('*').eq('user_id', user.id);
+      const likedQuery = supabase.from('saved_recipes').select('*');
+      likedQuery.eq('user_id', user.id); // Liked recipes usually stay personal
+      let { data: likedRecipes } = await likedQuery;
       setSavedRecipes(likedRecipes || []);
 
       let onlineRecipes = [];
@@ -452,7 +503,7 @@ export default function App()
     await supabase.from('fridge_inventory').update({ item_name: updatedRawValue }).eq('id', id); // Ensure DB column name matches
   };
 
-  const handleAddShoppingItem = async (e, textOverride = '') => {
+  const handleAddShoppingItem = async (e, textOverride = '', price = 0) => {
     if (e) e.preventDefault();
     const targetText = textOverride || shoppingInput;
     if (!targetText || !targetText.trim()) return;
@@ -460,7 +511,6 @@ export default function App()
     const resolvedTokenName = cleanIngredientLocally(targetText);
     if (!resolvedTokenName) return;
 
-    // Prevent duplicates (case-insensitive) in local state first
     const alreadyLocal = (shoppingList || []).some(i => String(i.item_name || '').toLowerCase() === resolvedTokenName.toLowerCase());
     if (alreadyLocal) {
       alert('Item already in list');
@@ -468,11 +518,12 @@ export default function App()
       return;
     }
 
-    // Insert into Supabase
     const { data, error } = await supabase.from('shopping_list').insert([{
       user_id: user.id,
+      household_id: household?.id || null,
       item_name: resolvedTokenName,
-      is_completed: false
+      is_completed: false,
+      price: price
     }]).select();
 
     if (!error && data) setShoppingList(prev => [...(prev || []), data[0]]);
@@ -505,6 +556,12 @@ export default function App()
   const handleRemoveSavedRecipe = async (id) => {
     setSavedRecipes(prev => (prev || []).filter(r => r.id !== id));
     await supabase.from('saved_recipes').delete().eq('id', id);
+  };
+
+  const handleAddToShoppingFromRecipe = (ing) => {
+    const cleaned = cleanIngredientLocally(ing);
+    handleAddShoppingItem(null, cleaned);
+    setAddedItems(prev => new Set(prev).add(ing));
   };
 
   const handleDownloadRecipeImage = async () => {
@@ -662,12 +719,29 @@ export default function App()
   const handleAddManualItem = async (e) => {
     e.preventDefault();
     if (!manualItem.trim()) return;
-    const input = manualItem.trim();
+    const backgroundParsedToken = cleanIngredientLocally(manualItem);
+    await supabase.from('fridge_inventory').insert([{ 
+      item_name: backgroundParsedToken, 
+      user_id: user.id,
+      household_id: household?.id || null 
+    }]);
     setManualItem('');
-    const backgroundParsedToken = cleanIngredientLocally(input);
-    if (backgroundParsedToken) {
-      await supabase.from('fridge_inventory').insert([{ item_name: backgroundParsedToken, user_id: user.id }]);
-      await fetchAppData();
+    await fetchAppData();
+  };
+
+  const handleJoinHousehold = async (code) => {
+    const { data: hh, error } = await supabase.from('households').select('*').eq('invite_code', code).single();
+    if (error || !hh) return alert("Invalid invite code");
+    await supabase.from('profiles').update({ household_id: hh.id }).eq('id', user.id);
+    setHousehold(hh);
+    fetchAppData(hh.id);
+  };
+
+  const handleCreateHousehold = async (name) => {
+    const { data: hh } = await supabase.from('households').insert([{ name }]).select().single();
+    if (hh) {
+      await supabase.from('profiles').update({ household_id: hh.id }).eq('id', user.id);
+      setHousehold(hh);
     }
   };
 
@@ -769,16 +843,16 @@ export default function App()
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-blue-50 text-slate-900 font-sans font-black tracking-tight antialiased flex items-center justify-center p-6 select-none uppercase">
+      <div className="min-h-screen bg-blue-50 text-slate-900 font-sans font-black tracking-tight antialiased flex items-center justify-center p-6 select-none">
         <div className="bg-white/70 backdrop-blur-xl border border-white/40 p-10 rounded-[2.5rem] w-full max-w-md shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-sky-400 to-indigo-600"></div>
-          <h2 className="text-4xl font-black uppercase tracking-tighter bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent font-sans">SmartFridge AI</h2>
+          <div className="absolute top-0 left-0 w-full h-2 bg-[#6BAEE0]"></div>
+          <h2 className="logo-text text-5xl mb-6 bg-[#6BAEE0] bg-clip-text text-transparent text-center">Hungry</h2>
           
           {isForgotPasswordView ? (
             <form onSubmit={async (e) => { e.preventDefault(); try { await supabase.auth.resetPasswordForEmail(authEmail); alert('Password reset link sent to your email!'); setIsForgotPasswordView(false); setAuthEmail(''); } catch (err) { alert(err.message); } }} className="space-y-4 mt-6 font-sans">
               <p className="text-xs text-slate-400 mb-4">Enter your email to receive a password reset link.</p>
               <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-white border border-blue-100 px-4 py-3 rounded-xl text-sm font-bold text-slate-800 focus:border-sky-400 focus:outline-none" placeholder="Email Address" />
-              <button type="submit" className="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-sky-100">{authLoading ? "Sending..." : "Send Reset Link"}</button>
+              <button type="submit" className="w-full bg-[#6BAEE0] hover:bg-[#5da0cf] text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-blue-100">{authLoading ? "Sending..." : "Send Reset Link"}</button>
               <button type="button" onClick={() => { setIsForgotPasswordView(false); setAuthEmail(''); }} className="w-full bg-white border border-blue-100 font-black py-3 rounded-xl text-xs uppercase tracking-widest text-slate-400 hover:text-sky-500 shadow-sm transition-all">Back to Sign In</button>
             </form>
           ) : isSignUp ? (
@@ -786,14 +860,14 @@ export default function App()
               <p className="text-xs text-slate-400 mb-2">Create a new account</p>
               <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-white border border-blue-100 px-4 py-3 rounded-xl text-sm font-bold text-slate-800 focus:border-sky-400 focus:outline-none" placeholder="Email Address" />
               <input type="password" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-white border border-blue-100 px-4 py-3 rounded-xl text-sm font-bold text-slate-800 focus:border-sky-400 focus:outline-none" placeholder="Password" />
-              <button type="submit" className="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-sky-100">{authLoading ? "Creating..." : "Create Account"}</button>
+              <button type="submit" className="w-full bg-[#6BAEE0] hover:bg-[#5da0cf] text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-blue-100">{authLoading ? "Creating..." : "Create Account"}</button>
               <button type="button" onClick={() => { setIsSignUp(false); setAuthEmail(''); setAuthPassword(''); }} className="w-full bg-white border border-blue-100 font-black py-3 rounded-xl text-xs uppercase tracking-widest text-slate-400 hover:text-sky-500 shadow-sm transition-all">Back to Sign In</button>
             </form>
           ) : (
             <form onSubmit={handleAuthSubmit} className="space-y-4 mt-6 font-sans">
               <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full bg-white border border-blue-100 px-4 py-3 rounded-xl text-sm font-bold text-slate-800 focus:border-sky-400 focus:outline-none" placeholder="Email Address" />
               <input type="password" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full bg-white border border-blue-100 px-4 py-3 rounded-xl text-sm font-bold text-slate-800 focus:border-sky-400 focus:outline-none" placeholder="Password" />
-              <button type="submit" className="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-sky-100">{authLoading ? "Verifying..." : "Sign In"}</button>
+              <button type="submit" className="w-full bg-[#6BAEE0] hover:bg-[#5da0cf] text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-blue-100">{authLoading ? "Verifying..." : "Sign In"}</button>
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => { setIsSignUp(true); setAuthEmail(''); setAuthPassword(''); }} className="flex-1 bg-white border border-blue-100 font-black py-3 rounded-xl text-xs uppercase tracking-widest text-slate-400 hover:text-sky-500 shadow-sm transition-all">Create Account</button>
                 <button type="button" onClick={() => { setIsForgotPasswordView(true); setAuthPassword(''); }} className="flex-1 bg-white border border-blue-100 font-black py-3 rounded-xl text-xs uppercase tracking-widest text-slate-400 hover:text-sky-500 shadow-sm transition-all">Forgot Password</button>
@@ -806,251 +880,58 @@ export default function App()
   }
 
   return (
-    <div className="min-h-screen bg-blue-50/50 text-slate-800 font-sans font-semibold tracking-tight antialiased pb-12 selection:bg-sky-500 selection:text-white w-full overflow-x-hidden uppercase">
-      <header className="bg-white/80 backdrop-blur-md border-b border-blue-100 sticky top-0 z-40 px-4 sm:px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 w-full shadow-sm">
-        <div>
-          <h1 className="text-3xl font-semibold uppercase tracking-tighter bg-gradient-to-r from-sky-500 to-indigo-600 bg-clip-text text-transparent">SmartFridge AI</h1>
-          <p className="text-slate-500 text-[12px] normal-case mt-0.5">Signed in as <span className="text-sky-600 font-bold">{user.email}</span></p>
-        </div>
-        <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 w-full md:w-auto">
-          {storeName && storeName !== 'General Grocery' && (
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2 border border-blue-100 bg-white/50 rounded-full">Scanned store: {storeName}</div>
-          )}
-          <button onClick={handleGenerateAiRecipe} className="bg-sky-500 hover:bg-sky-600 text-white font-semibold text-[11px] px-5 py-2.5 uppercase tracking-widest rounded-md">Cook Something</button>
-          <button onClick={triggerStoreTripPlanner} className="bg-white hover:bg-blue-50 text-slate-600 font-semibold text-[11px] px-5 py-2.5 uppercase tracking-widest border border-blue-100 rounded-md transition-colors">Shopping Helper</button>
-          <button onClick={handleSignOut} className="bg-transparent hover:bg-red-50 text-red-500 font-semibold text-[11px] px-4 py-2.5 uppercase tracking-widest rounded-md transition-colors">Sign Out</button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-blue-50/50 text-slate-800 font-sans antialiased pb-24 selection:bg-[#6BAEE0] selection:text-white">
+      <Header user={user} storeName={storeName} handleGenerateAiRecipe={handleGenerateAiRecipe} triggerStoreTripPlanner={triggerStoreTripPlanner} handleSignOut={handleSignOut} />
 
       <main className="w-full flex justify-center px-4 sm:px-6 py-8">
-        <div className="w-full max-w-4xl">
-        {/* Debug preview removed */}
-
-        <div className="flex flex-wrap gap-2 justify-center mb-8">
-          {['recipes','pantry','saved'].map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`text-[10px] uppercase tracking-widest px-6 py-2.5 border rounded-full font-black transition-all ${activeTab === tab ? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-200' : 'bg-white border-blue-100 text-slate-400 hover:border-sky-300 hover:text-sky-500'}`}>
-              {tab === 'recipes' ? 'Recipes' : tab === 'pantry' ? 'Pantry' : 'Saved Recipes'}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mx-auto">
-          <div className={`${activeTab === 'pantry' ? 'space-y-6 lg:col-span-1' : 'hidden'}`}>
-            <div className="bg-white/80 backdrop-blur-lg p-6 border border-white/20 rounded-[2rem] shadow-xl shadow-blue-900/5">
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">📸 Receipt Intake Scanner</h2>
-            <div className="relative border-2 border-dashed border-blue-100 hover:border-sky-400 p-8 text-center bg-blue-50/30 rounded-3xl cursor-pointer transition-colors group">
-              <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-sky-600">Upload Grocery Receipt</p>
-            </div>
-            <form onSubmit={handleAddManualItem} className="flex gap-2 pt-5 mt-5 border-t border-blue-50">
-              <input type="text" value={manualItem} onChange={(e) => setManualItem(e.target.value)} placeholder="Add an item to your pantry..." className="flex-1 bg-white border border-blue-100 px-4 py-3 rounded-xl text-xs font-semibold text-slate-800 uppercase focus:border-sky-400 focus:outline-none transition-all" />
-              <button type="submit" className="bg-sky-500 text-white text-xs font-black px-6 uppercase tracking-wider rounded-xl shadow-lg shadow-sky-100">Add</button>
-            </form>
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-lg p-6 border border-white/20 rounded-[2rem] shadow-xl shadow-blue-900/5">
-            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex justify-between items-center mb-4"><span>🏡 Storage Pantry Stock</span><span className="bg-blue-50 text-sky-600 border border-blue-100 px-3 py-1 rounded-full text-[10px] font-black font-mono">{fridge ? fridge.length : 0}</span></h2>
-            <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
-              {!fridge || fridge.length === 0 ? <p className="text-xs text-slate-500 font-black uppercase tracking-wider italic py-4">Your fridge looks empty — add some items to get recipe matches.</p> : fridge.map((item) => (
-                <div key={item.id} className="bg-white border border-blue-50 p-3 rounded-2xl flex items-center justify-between gap-3 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex-1 min-w-0">
-                    <input type="text" value={item.raw_name || ''} onChange={(e) => handleUpdateInlineItem(item.id, e.target.value)} className="w-full bg-transparent text-xs font-bold text-slate-800 uppercase border-b border-transparent hover:border-blue-100 focus:border-sky-400 focus:outline-none pb-0.5" />
-                    <div className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest mt-0.5 normal-case">Sanitized: <span className="text-sky-500 font-bold">{item.item_name || 'Empty'}</span></div>
-                  </div>
-                  <button onClick={() => handleRemoveItem(item.id)} className="text-slate-300 hover:text-red-400 font-mono text-base font-black px-2 transition-colors">×</button>
+        <div className="w-full max-w-5xl">
+          {activeTab === 'pantry' && <PantryManager fridge={fridge} handleFileUpload={handleFileUpload} handleAddManualItem={handleAddManualItem} handleUpdateInlineItem={handleUpdateInlineItem} handleRemoveItem={handleRemoveItem} loading={loading} />}
+          {activeTab === 'recipes' && <RecipeExplorer recipes={processedRecipes} recipeSearch={recipeSearch} setRecipeSearch={setRecipeSearch} activeFilter={activeRecipeFilter} setFilter={setActiveRecipeFilter} onOpenRecipe={setActiveModalRecipe} onSaveRecipe={handleSaveRecipeToProfile} />}
+          {activeTab === 'shopping' && <ShoppingListManager list={shoppingList} onAdd={handleAddShoppingItem} onToggle={handleToggleShoppingCompleted} onClear={handleClearShoppingItem} />}
+          {activeTab === 'analytics' && <AnalyticsDashboard metrics={nutritionMetrics} fridge={fridge} shoppingList={shoppingList} />}
+          {activeTab === 'household' && <HouseholdSettings household={household} user={user} onCreate={handleCreateHousehold} onJoin={handleJoinHousehold} />}
+          {activeTab === 'saved' && <div className="space-y-6">
+             {savedRecipes.map(recipe => (
+                <div key={recipe.id} className="bg-white/80 p-6 rounded-3xl border border-blue-100 flex justify-between items-center shadow-sm">
+                   <h3 onClick={() => setActiveModalRecipe(recipe)} className="font-bold cursor-pointer text-slate-700 hover:text-[#6BAEE0]">{recipe.recipe_name}</h3>
+                   <button onClick={() => handleRemoveSavedRecipe(recipe.id)} className="text-red-400 font-black">×</button>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white/80 backdrop-blur-lg p-6 border border-white/20 rounded-[2rem] shadow-xl shadow-blue-900/5">
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">📝 Profile Shopping List</h2>
-            <form onSubmit={(e) => handleAddShoppingItem(e, '')} className="flex gap-2 mb-4">
-              <input type="text" value={shoppingInput} onChange={(e) => setShoppingInput(e.target.value)} placeholder="Type target shopping items..." className="flex-1 bg-white border border-blue-100 px-4 py-3 rounded-xl text-xs font-semibold text-slate-800 uppercase focus:border-sky-400 focus:outline-none" />
-              <button type="submit" className="bg-sky-500 text-white text-xs font-semibold px-5 rounded-xl shadow-lg shadow-sky-100">+</button>
-            </form>
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {!shoppingList || shoppingList.length === 0 ? <p className="text-xs text-slate-500 font-black uppercase tracking-wider italic py-2">No shopping items yet. Add things you need next time.</p> : shoppingList.map((item) => (
-                <div key={item.id} className="bg-white border border-blue-50 p-3 rounded-2xl flex justify-between items-center shadow-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <input type="checkbox" checked={item.is_completed || false} onChange={() => handleToggleShoppingCompleted(item.id, item.is_completed)} className="accent-sky-500 h-4 w-4 rounded-md cursor-pointer" />
-                    <span className={`text-xs font-bold uppercase tracking-tight truncate text-slate-700 ${item.is_completed ? 'line-through text-slate-300' : ''}`}>{item.item_name}</span>
-                  </div>
-                  <button onClick={() => handleClearShoppingItem(item.id)} className="text-slate-300 hover:text-red-400 font-mono text-xs font-bold px-1 transition-colors">×</button>
-                </div>
-              ))}
-            </div>
-          </div>
+             ))}
+          </div>}
         </div>
-
-        <div className={`${activeTab === 'recipes' ? 'lg:col-span-2 space-y-6' : 'hidden'}`}>
-          <div className="bg-white/80 backdrop-blur-lg p-6 border border-white/20 rounded-[2rem] shadow-xl shadow-blue-900/5">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div>
-                <h2 className="text-[10px] font-black tracking-widest text-slate-400 uppercase">⚡ Best recipe matches</h2>
-                <p className="text-[11px] text-slate-400 font-black uppercase tracking-wider mt-0.5">Top recipes based on your ingredients</p>
-              </div>
-              <div className="w-full sm:w-auto flex flex-col gap-3">
-                <input type="text" placeholder="Search recipes..." value={recipeSearch} onChange={(e) => setRecipeSearch(e.target.value)} className="w-full bg-white border border-blue-100 px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-800 uppercase tracking-wide focus:border-sky-400 focus:outline-none transition-all" />
-                <div className="flex flex-wrap gap-2">
-                  {['all','vegetarian','vegan','breakfast','lunch','dinner','snack','dessert','meat','fish','egg'].map((filter) => (
-                    <button key={filter} onClick={() => setActiveRecipeFilter(filter)} className={`text-[9px] uppercase tracking-widest px-3 py-1.5 border rounded-full font-black transition-all ${activeRecipeFilter === filter ? 'bg-sky-500 border-sky-500 text-white shadow-md' : 'bg-white border-blue-50 text-slate-400 hover:border-sky-200 hover:text-sky-500'}`}>
-                      {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[580px] overflow-y-auto pr-2">
-              {processedRecipes.slice(0, 20).map((recipe) => (
-                <div key={recipe.id || recipe.name} className="bg-white/70 backdrop-blur-md border border-white/40 p-5 rounded-3xl fade-in-up cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-sky-900/10 flex flex-col justify-between shadow-lg shadow-blue-900/5 group">
-                  <div onClick={() => { setServingMultiplier(1); setActiveModalRecipe(recipe); }}>
-                    <div className="flex justify-between items-start gap-2">
-                      <h3 className="font-bold uppercase tracking-tight text-slate-700 group-hover:text-sky-600 text-xs line-clamp-2 leading-tight transition-colors">{recipe.name}</h3>
-                      <span className="text-[10px] font-mono font-black shrink-0 px-2.5 py-1 bg-sky-50 border border-sky-100 text-sky-600 rounded-full">{recipe.matchPercentage}% MATCH</span>
-                    </div>
-                    <span className="text-[8px] font-mono text-slate-400 bg-blue-50/50 border border-blue-100 px-2 py-1 mt-3 inline-block uppercase font-black tracking-widest rounded-md">{recipe.meal_type || 'General'}</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-5 pt-3 border-t border-blue-50">
-                      <div className="w-2/3 bg-blue-50 h-1.5 rounded-full overflow-hidden">
-                      <div className="h-full bg-sky-400 rounded-full transition-all duration-500" style={{ width: `${recipe.matchPercentage}%` }}></div>
-                    </div>
-                    <button onClick={(e) => { e.stopPropagation(); handleSaveRecipeToProfile(recipe); }} className="text-[10px] uppercase font-black text-sky-500 hover:text-sky-400 tracking-widest transition-colors">⭐ Like</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className={`${activeTab === 'saved' ? 'lg:col-span-2 space-y-6' : 'hidden'}`}>
-          {savedRecipes && savedRecipes.length > 0 ? (
-            <div className="bg-white/80 backdrop-blur-lg p-6 border border-white/20 rounded-[2rem] shadow-xl shadow-blue-900/5">
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">⭐ Saved Liked Recipes ({savedRecipes.length})</h2>
-              <div className="flex flex-wrap gap-2">
-                {savedRecipes.map((recipe) => (
-                  <div key={recipe.id} className="bg-white border border-blue-100 px-5 py-3 rounded-2xl flex items-center gap-4 shadow-sm hover:border-sky-400 transition-colors">
-                    <span onClick={() => { setServingMultiplier(1); setActiveModalRecipe(recipe); }} className="text-xs font-bold uppercase text-slate-700 cursor-pointer hover:text-sky-600 tracking-tight transition-colors">{recipe.recipe_name || recipe.name}</span>
-                    <button onClick={() => handleRemoveSavedRecipe(recipe.id)} className="text-slate-300 hover:text-red-400 font-mono text-sm font-black transition-colors">×</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white/80 backdrop-blur-lg p-6 border border-white/20 rounded-[2rem] shadow-xl shadow-blue-900/5">
-              <p className="text-xs text-slate-400 font-black uppercase tracking-widest py-4">You haven't saved any recipes yet.</p>
-            </div>
-          )}
-        </div>
-      </div>
-      </div>
       </main>
 
+      {/* Bottom Mobile Navigation */}
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-white/80 backdrop-blur-2xl border border-white/50 rounded-full h-16 shadow-2xl flex items-center justify-around px-6 z-40 transition-all hover:scale-[1.02]">
+        <button onClick={() => setActiveTab('pantry')} className={`p-2 rounded-full transition-all ${activeTab === 'pantry' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Refrigerator size={24} /></button>
+        <button onClick={() => setActiveTab('recipes')} className={`p-2 rounded-full transition-all ${activeTab === 'recipes' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><ChefHat size={24} /></button>
+        <button onClick={() => setActiveTab('shopping')} className={`p-2 rounded-full transition-all ${activeTab === 'shopping' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><ShoppingCart size={24} /></button>
+        <button onClick={() => setActiveTab('analytics')} className={`p-2 rounded-full transition-all ${activeTab === 'analytics' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><BarChart3 size={24} /></button>
+        <button onClick={() => setActiveTab('household')} className={`p-2 rounded-full transition-all ${activeTab === 'household' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Users size={24} /></button>
+      </nav>
+
       {activeModalRecipe && (
-        <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="w-full max-w-2xl">
-            <div className="bg-white/90 backdrop-blur-2xl p-8 rounded-[3rem] shadow-2xl border border-white/50 relative max-h-[90vh] overflow-y-auto">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-blue-50 pb-5 mb-6">
-              <div>
-                <span className="bg-sky-50 text-sky-600 font-mono text-[9px] px-3 py-1 rounded-full uppercase font-black tracking-widest border border-sky-100">{activeModalRecipe.meal_type}</span>
-                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mt-2">{activeModalRecipe.name || activeModalRecipe.recipeName}</h3>
-              </div>
-              <div className="flex gap-2 w-full sm:w-auto justify-end">
-                <button onClick={handleDownloadRecipeImage} className="bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold px-4 py-2.5 uppercase tracking-widest rounded-md shadow-md">📸 Save Card</button>
-                <button onClick={() => { setActiveModalRecipe(null); setServingMultiplier(1); }} className="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold px-5 py-2.5 uppercase rounded-xl transition-colors">Close</button>
-              </div>
-            </div>
-            
-            <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl mb-8 flex items-center justify-between">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">👥 Adjust Servings Yield Index:</span>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4].map(num => (
-                  <button key={num} onClick={() => setServingMultiplier(num)} className={`w-10 h-10 font-mono text-xs font-black rounded-xl transition-all ${servingMultiplier === num ? 'bg-sky-500 text-white shadow-lg shadow-sky-100' : 'bg-white border border-blue-100 text-slate-400 hover:bg-sky-50'}`}>{num}x</button>
-                ))}
-              </div>
-            </div>
+        <RecipeModal 
+          recipe={activeModalRecipe} 
+          multiplier={servingMultiplier} 
+          setMultiplier={setServingMultiplier}
+          onClose={() => setActiveModalRecipe(null)}
+          onStartCooking={() => setIsCookingMode(true)}
+          addedItems={addedItems}
+          onAddIngredient={handleAddToShoppingFromRecipe}
+        />
+      )}
 
-            <div className="p-2 bg-transparent">
-              <div ref={snapshotCardRef} className="bg-white p-8 space-y-8 text-slate-900 rounded-3xl shadow-sm border border-blue-50">
-                <div className="text-center">
-                  <h2 className="text-xl font-semibold text-slate-900 uppercase tracking-tight">{activeModalRecipe.name || activeModalRecipe.recipeName}</h2>
-                  <p className="text-[12px] text-slate-500 mt-1">Serving Index {servingMultiplier}x • {activeModalRecipe.meal_type || 'General'}</p>
-                </div>
-
-                {/* Optional image */}
-                {(activeModalRecipe.image || activeModalRecipe.thumbnail || activeModalRecipe.strMealThumb) && (
-                  <div className="w-full h-48 rounded-lg overflow-hidden">
-                    <img src={activeModalRecipe.image || activeModalRecipe.thumbnail || activeModalRecipe.strMealThumb} alt={activeModalRecipe.name} className="w-full h-full object-cover" />
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-blue-50/30 border border-blue-50 p-5 rounded-2xl">
-                    <h4 className="text-[9px] font-black uppercase text-slate-400 font-mono border-b border-blue-100 pb-2 mb-4">📋 Component Specifications</h4>
-                    <ul className="space-y-3">
-                      {(activeModalRecipe.ingredients || []).map((ing, idx) => {
-                        const cleanIng = cleanIngredientLocally(ing);
-                        const isOwned = (fridge || []).map(f => f.item_name).filter(Boolean).some(token => cleanIng.includes(token) || token.includes(cleanIng));
-                        return (
-                          <li key={idx} className="text-xs font-bold text-slate-800 capitalize flex flex-col border-b border-blue-50 pb-2 last:border-0">
-                            <span className="text-[10px] font-mono text-sky-600 font-black tracking-wide uppercase">
-                              {parseRecipeIngredientMeasurements(ing, servingMultiplier)}
-                            </span>
-                            <div className="flex justify-between items-center gap-1 mt-1">
-                              <span className={isOwned ? 'text-slate-900' : 'text-slate-400 font-semibold'}>{ing}</span>
-                              {!isOwned && (
-                                <button data-html2canvas-ignore="true" onClick={() => handleAddShoppingItem(null, cleanIngredientLocally(ing))} className="text-[8px] bg-sky-50 hover:bg-sky-100 text-sky-700 px-2 py-0.5 font-black uppercase rounded transition-colors shrink-0">
-                                  + Buy
-                                </button>
-                              )}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-
-                  <div className="md:col-span-2 space-y-3">
-                    <h4 className="text-[9px] font-black uppercase text-slate-400 font-mono border-b border-blue-50 pb-2 mb-4">🔥 Preparation Progression Matrix</h4>
-                    <ol className="space-y-4">
-                      {getStaticRecipeSteps(activeModalRecipe).map((step, idx) => (
-                        <li key={idx} className="bg-blue-50/20 border border-blue-50 p-4 rounded-2xl text-sm text-slate-700 flex gap-4 leading-relaxed items-start hover:bg-blue-50 transition-colors">
-                          <span className="font-mono font-black text-white bg-sky-500 w-7 h-7 flex items-center justify-center rounded-lg shadow-lg shadow-sky-100 shrink-0">{idx + 1}</span>
-                          <p className="pt-0.5">{step}</p>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
+      {isCookingMode && activeModalRecipe && (
+        <CookingMode 
+          steps={getStaticRecipeSteps(activeModalRecipe)} 
+          onClose={() => setIsCookingMode(false)} 
+        />
       )}
 
       {isStoreAlertOpen && (
         <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-50">
-          <div className="bg-white/90 backdrop-blur-2xl border border-white/50 w-full max-w-xl rounded-[3rem] p-8 shadow-2xl max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-start border-b border-blue-50 pb-5 mb-6">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">🔮 Market Procurement Matrix</h3>
-              <button onClick={() => setIsStoreAlertOpen(false)} className="bg-slate-100 hover:bg-slate-200 text-slate-500 text-[10px] font-black px-4 py-2 uppercase tracking-widest rounded-full transition-colors">Dismiss</button>
-            </div>
-            <div className="space-y-2.5">
-              {shoppingAlerts.length === 0 ? (
-                <p className="text-xs text-slate-500 font-black uppercase tracking-wider italic py-6 text-center">No missing grocery gaps detected right now.</p>
-              ) : (
-                shoppingAlerts.slice(0, 15).map((alert, i) => (
-                  <div key={i} onClick={() => { setIsStoreAlertOpen(false); setServingMultiplier(1); setActiveModalRecipe(alert.recipe); }} className="p-5 bg-white border border-blue-50 hover:border-sky-400 rounded-3xl cursor-pointer transition-all shadow-sm hover:shadow-md group">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-bold text-slate-700 text-xs group-hover:text-sky-600 uppercase tracking-tight transition-colors">{alert.recipe.name}</h4>
-                      <span className="text-[8px] font-mono text-sky-500 bg-sky-50 border border-sky-100 px-2 py-1 rounded-full uppercase font-black tracking-widest">{alert.mealType}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide mt-3">Missing items: <span className="text-sky-500 font-mono text-[10px] capitalize font-black ml-1">{alert.missingItems.join(', ')}</span></p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+           {/* Existing Helper UI logic moved to separate store-helper file later */}
         </div>
       )}
     </div>
