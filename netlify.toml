@@ -1,13 +1,13 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
-  functions = "netlify/functions"
+command = "npm run build"
+publish = "dist"
+functions = "netlify/functions"
 
 [dev]
-  command = "npm run dev"
-  port = 8888
-  targetPort = 5193
-  publish = "dist"
+command = "npm run dev"
+port = 8888
+targetPort = 5193
+publish = "dist"
 
 [functions]
-  timeout = 26
+timeout = 26
