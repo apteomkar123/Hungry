@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check } from 'lucide-react';
+import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
-import { parseRecipeIngredientMeasurements, cleanIngredientLocally, estimateNutrition } from './recipeUtils';
+import { useUser } from './UserContext';
+import { parseRecipeIngredientMeasurements, cleanIngredientLocally, estimateNutrition, isRecipeMeat, isRecipeFish, isRecipeVegan, matchesRecipeFilter } from './recipeUtils';
 
 export default function RecipeModal({ onStartCooking, addedItems, onAddIngredient, onAddToPantry }) {
   const {
@@ -12,10 +13,37 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     savedRecipes,
     onSaveRecipe,
     onRemoveSavedRecipe,
+    adaptRecipe,
     fridge,
   } = useRecipes();
 
+  const { userSettings } = useUser();
   const [pantryAdded, setPantryAdded] = useState(new Set());
+  const [adaptedRecipe, setAdaptedRecipe] = useState(null);
+  const [adapting, setAdapting] = useState(false);
+
+  const displayRecipe = adaptedRecipe || recipe;
+
+  const hasMeat = useMemo(() => isRecipeMeat(recipe), [recipe]);
+  const hasFish = useMemo(() => isRecipeFish(recipe), [recipe]);
+  const isVeg = useMemo(() => !hasMeat && !hasFish, [hasMeat, hasFish]);
+
+  const violatedRestrictions = useMemo(() => {
+    const restrictions = userSettings?.dietary_restrictions || [];
+    return restrictions.filter(r => !matchesRecipeFilter(recipe, r.toLowerCase()));
+  }, [recipe, userSettings]);
+
+  const handleAdapt = async (targetDiet) => {
+    setAdapting(true);
+    try {
+      const adapted = await adaptRecipe(recipe, targetDiet);
+      setAdaptedRecipe(adapted);
+    } catch (e) {
+      alert('Could not adapt recipe. Please try again.');
+    } finally {
+      setAdapting(false);
+    }
+  };
 
   const pantryItemsSet = useMemo(
     () => new Set((fridge || []).map(f => cleanIngredientLocally(f.raw_name || f.item_name || ''))),
@@ -135,12 +163,41 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   };
 
   return (
-    <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-[60] overflow-y-auto">
       <div className="bg-white/90 backdrop-blur-2xl p-8 rounded-[3rem] shadow-2xl border border-white/50 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
+        {/* Dietary restriction warning */}
+        {violatedRestrictions.length > 0 && !adaptedRecipe && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+            <p className="text-[11px] font-bold text-amber-700">
+              This recipe contains ingredients that conflict with your {violatedRestrictions.join(', ')} preference.
+            </p>
+            <button
+              onClick={() => handleAdapt(violatedRestrictions[0].toLowerCase())}
+              disabled={adapting}
+              className="shrink-0 text-[10px] font-black bg-amber-500 text-white px-3 py-1.5 rounded-xl hover:bg-amber-600 transition-colors flex items-center gap-1"
+            >
+              {adapting ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+              Adapt
+            </button>
+          </div>
+        )}
+
+        {/* Adapted recipe banner */}
+        {adaptedRecipe && (
+          <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+            <p className="text-[11px] font-bold text-emerald-700">
+              Showing {displayRecipe._adaptedFor} version
+            </p>
+            <button onClick={() => setAdaptedRecipe(null)} className="shrink-0 text-[10px] font-black text-emerald-600 flex items-center gap-1 hover:underline">
+              <RotateCcw size={11} /> Revert
+            </button>
+          </div>
+        )}
+
         <div className="flex justify-between items-start border-b border-blue-50 pb-5 mb-6">
           <div>
-            <span className="bg-sky-50 text-[#6BAEE0] font-mono text-[9px] px-3 py-1 rounded-full uppercase font-black tracking-widest border border-sky-100">{recipe.meal_type}</span>
-            <h3 className="text-2xl font-black text-slate-800 tracking-tighter mt-2">{recipe.name}</h3>
+            <span className="bg-sky-50 text-[#6BAEE0] font-mono text-[9px] px-3 py-1 rounded-full uppercase font-black tracking-widest border border-sky-100">{displayRecipe.meal_type}</span>
+            <h3 className="text-2xl font-black text-slate-800 tracking-tighter mt-2">{displayRecipe.name}</h3>
           </div>
           <div className="flex gap-2">
             <button
@@ -158,7 +215,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           <section className="space-y-4">
             <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Ingredients</h4>
             <div className="space-y-3">
-              {(recipe.ingredients || []).map((ing, idx) => (
+              {(displayRecipe.ingredients || []).map((ing, idx) => (
                 <div key={idx} className="flex flex-col border-b border-blue-50 pb-2">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-slate-700">{substitutes[ing] || parseRecipeIngredientMeasurements(ing, multiplier)}</span>
@@ -191,7 +248,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           <section className="space-y-4">
             <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Procedure</h4>
             <div className="space-y-4">
-              {(recipe.steps || []).map((step, idx) => (
+              {(displayRecipe.steps || []).map((step, idx) => (
                 <div key={idx} className="flex gap-3">
                   <span className="w-6 h-6 bg-blue-50 text-[#6BAEE0] rounded-lg flex items-center justify-center text-[10px] font-black shrink-0">{idx + 1}</span>
                   <p className="text-xs text-slate-600 leading-relaxed">{step}</p>
@@ -216,13 +273,47 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           </div>
         )}
 
-        <div className="mt-8 pt-6 border-t border-blue-50 flex justify-between items-center">
+        {/* Convert buttons */}
+        <div className="mt-6 flex flex-wrap gap-2">
+          {(hasMeat || hasFish) && (
+            <button
+              onClick={() => handleAdapt('vegetarian')}
+              disabled={adapting}
+              className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+            >
+              {adapting ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+              Make Vegetarian
+            </button>
+          )}
+          {(hasMeat || hasFish) && !isRecipeVegan(recipe) && (
+            <button
+              onClick={() => handleAdapt('vegan')}
+              disabled={adapting}
+              className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 rounded-xl bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 transition-colors disabled:opacity-50"
+            >
+              {adapting ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+              Make Vegan
+            </button>
+          )}
+          {isVeg && (
+            <button
+              onClick={() => handleAdapt('meat')}
+              disabled={adapting}
+              className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 rounded-xl bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100 transition-colors disabled:opacity-50"
+            >
+              {adapting ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+              Add Meat
+            </button>
+          )}
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-blue-50 flex justify-between items-center">
           <div className="flex gap-1 bg-blue-50/50 p-1 rounded-2xl border border-blue-100">
             {[1, 2, 4].map(n => (
               <button key={n} onClick={() => setMultiplier(n)} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${multiplier === n ? 'bg-white text-[#6BAEE0] shadow-sm' : 'text-slate-400'}`}>{n}x</button>
             ))}
           </div>
-          <button 
+          <button
             onClick={onStartCooking}
             className="bg-[#6BAEE0] text-white px-8 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-all"
           >

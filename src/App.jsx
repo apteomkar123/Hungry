@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings } from 'lucide-react';
-import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic } from './components/recipeUtils';
+import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic, matchesRecipeFilter } from './components/recipeUtils';
 import Header from './components/Header';
 import PantryManager from './components/PantryManager';
 import RecipeExplorer from './components/RecipeExplorer';
@@ -68,6 +68,9 @@ function AppContent({ inventory }) {
   const [activeTab, setActiveTab] = useState('pantry');
   const [isCookingMode, setIsCookingMode] = useState(false);
   const mainRef = useRef(null);
+  const [shopCategoryFilter, setShopCategoryFilter] = useState('all');
+  const [shopDietFilter, setShopDietFilter] = useState('all');
+  const [shopCuisineFilter, setShopCuisineFilter] = useState('all');
   const scrollToTop = useCallback(() => mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), []);
 
   const addedItems = new Set(shoppingList.map(i => cleanIngredientLocally(i.item_name)));
@@ -266,40 +269,71 @@ function AppContent({ inventory }) {
       {isStoreAlertOpen && (
         <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-50">
           <div className="w-full max-w-3xl bg-white rounded-[2.5rem] border border-blue-100 shadow-2xl p-6 overflow-y-auto max-h-[90vh]">
-            <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="flex items-center justify-between gap-4 mb-4">
               <div>
                 <h3 className="text-xl font-black text-slate-800">Shopping Suggestions</h3>
-                <p className="text-sm text-slate-500">Recipes that almost match your pantry ingredients and missing items you can add to your list.</p>
+                <p className="text-sm text-slate-500">Recipes almost matching your pantry. Pick up the missing items.</p>
               </div>
               <button onClick={() => setIsStoreAlertOpen(false)} className="text-slate-400 hover:text-slate-700 font-black text-2xl">×</button>
             </div>
-            {shoppingAlerts.length === 0 ? (
-              <div className="rounded-3xl bg-blue-50 p-6 text-center text-slate-600">
-                No shopping suggestions found yet. Add pantry items and try again.
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {shoppingAlerts.map((alert, idx) => (
-                  <div key={idx} className="bg-slate-50 border border-blue-50 rounded-3xl p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-[11px] uppercase tracking-widest font-black text-slate-400 bg-blue-50 px-3 py-1 rounded-full">{alert.mealType}</span>
-                      <span className="text-xs font-bold text-slate-500">Missing {alert.missingItems.length}</span>
-                    </div>
-                    <h4 className="font-bold text-slate-800 mb-3">{alert.recipe.name}</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {alert.missingItems.map((item, i) => (
-                        <span key={i} className="text-[11px] text-slate-600 bg-white border border-blue-100 rounded-full px-3 py-1">{item}</span>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => { setActiveModalRecipe(alert.recipe); setIsStoreAlertOpen(false); }}
-                      className="mt-3 text-xs font-bold text-[#6BAEE0] hover:underline"
-                    >
-                      View Recipe & Add Missing Items →
-                    </button>
-                  </div>
+
+            {/* Filters */}
+            <div className="mb-4 space-y-2">
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {['all', 'breakfast', 'lunch', 'dinner', 'snack', 'dessert'].map(f => (
+                  <button key={f} onClick={() => setShopCategoryFilter(f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${shopCategoryFilter === f ? 'bg-[#6BAEE0] text-white shadow-md' : 'bg-blue-50 text-slate-400 hover:border-sky-200'}`}>{f}</button>
                 ))}
               </div>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {['vegetarian', 'vegan', 'meat', 'fish'].map(f => (
+                  <button key={f} onClick={() => setShopDietFilter(shopDietFilter === f ? 'all' : f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${shopDietFilter === f ? 'bg-emerald-500 text-white shadow-md' : 'bg-blue-50 text-slate-400 hover:border-emerald-200'}`}>{f}</button>
+                ))}
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                {['indian', 'chinese', 'mexican', 'japanese', 'korean', 'jamaican', 'latin', 'african', 'mediterranean'].map(f => (
+                  <button key={f} onClick={() => setShopCuisineFilter(shopCuisineFilter === f ? 'all' : f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${shopCuisineFilter === f ? 'bg-slate-700 text-white shadow-md' : 'bg-blue-50 text-slate-400 hover:border-slate-300'}`}>{f}</button>
+                ))}
+              </div>
+            </div>
+
+            {(() => {
+              const filtered = shoppingAlerts.filter(a => {
+                const r = a.recipe;
+                if (!matchesRecipeFilter(r, shopCategoryFilter)) return false;
+                if (shopDietFilter !== 'all' && !matchesRecipeFilter(r, shopDietFilter)) return false;
+                if (shopCuisineFilter !== 'all' && !matchesRecipeFilter(r, shopCuisineFilter)) return false;
+                return true;
+              });
+              if (filtered.length === 0) return (
+                <div className="rounded-3xl bg-blue-50 p-6 text-center text-slate-600">
+                  {shoppingAlerts.length === 0 ? 'No shopping suggestions found yet. Add pantry items and try again.' : 'No suggestions match these filters.'}
+                </div>
+              );
+              return (
+                <div className="grid gap-4">
+                  {filtered.map((alert, idx) => (
+                    <div key={idx} className="bg-slate-50 border border-blue-50 rounded-3xl p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] uppercase tracking-widest font-black text-slate-400 bg-blue-50 px-3 py-1 rounded-full">{alert.mealType}</span>
+                        <span className="text-xs font-bold text-slate-500">Missing {alert.missingItems.length}</span>
+                      </div>
+                      <h4 className="font-bold text-slate-800 mb-3">{alert.recipe.name}</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {alert.missingItems.map((item, i) => (
+                          <span key={i} className="text-[11px] text-slate-600 bg-white border border-blue-100 rounded-full px-3 py-1">{item}</span>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => { setActiveModalRecipe(alert.recipe); setIsStoreAlertOpen(false); }}
+                        className="mt-3 text-xs font-bold text-[#6BAEE0] hover:underline"
+                      >
+                        View Recipe & Add Missing Items →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
             )}
             <div className="mt-6 text-right">
               <button

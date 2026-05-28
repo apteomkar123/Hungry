@@ -2764,5 +2764,1298 @@ export const STATIC_RECIPES = [
       'Fold and pinch corners together to make small dumplings. Boil in salted water 8 minutes.',
       'Serve topped with garlicky yogurt, then drizzle hot chili butter over everything.'
     ]
+  },
+
+  // ─── INDIAN REGIONAL (South Indian, Bengali, Gujarati, Rajasthani, etc.) ─
+  {
+    id: 'static-in3-001',
+    name: 'Rasam',
+    meal_type: 'Lunch',
+    cuisine: 'Indian',
+    ingredients: [
+      '1/4 cup toor dal, cooked', '2 tomatoes, crushed', '1 tsp tamarind paste',
+      '1 tsp rasam powder', '1/2 tsp cumin', '1/2 tsp black pepper (coarsely ground)',
+      '3 cloves garlic', '8 curry leaves', '1 tsp mustard seeds', '1 dried red chili',
+      '2 tbsp oil', '3 cups water', 'Cilantro', 'Salt'
+    ],
+    steps: [
+      'Simmer tamarind, tomatoes, rasam powder, and cooked dal in water 10 minutes.',
+      'Make tempering: fry mustard seeds, curry leaves, garlic, red chili, and pepper in oil.',
+      'Pour tempering over rasam. Simmer 3 minutes. Serve with rice.'
+    ]
+  },
+  {
+    id: 'static-in3-002',
+    name: 'Sambar',
+    meal_type: 'Breakfast',
+    cuisine: 'Indian',
+    ingredients: [
+      '1 cup toor dal', '1 cup mixed vegetables (drumstick, eggplant, pearl onions, tomato)',
+      '1 tbsp tamarind paste', '2 tbsp sambar powder', '1 tsp mustard seeds',
+      '8 curry leaves', '2 dried red chilies', '1/4 tsp asafoetida', '2 tbsp oil', 'Salt'
+    ],
+    steps: [
+      'Cook dal until soft. Add vegetables, tamarind, sambar powder, and salt. Simmer 15 minutes.',
+      'Make tempering: fry mustard seeds, curry leaves, red chilies, and asafoetida in oil.',
+      'Pour tempering into sambar. Simmer 2 minutes. Serve with idli, dosa, or rice.'
+    ]
+  },
+  {
+    id: 'static-in3-003',
+    name: 'Chettinad Chicken Curry',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      '500g chicken, bone-in', '2 onions', '3 tomatoes', '4 cloves garlic', '1 tsp ginger',
+      '1 tsp fennel seeds', '1 tsp kalpasi (stone flower)', '2 tsp chettinad masala',
+      '1 tsp turmeric', '1/2 tsp chili powder', '3 tbsp oil', '8 curry leaves', 'Salt'
+    ],
+    steps: [
+      'Dry roast and grind fennel seeds and kalpasi. Blend with garlic and ginger to paste.',
+      'Fry onions, curry leaves, and spice paste until golden. Add tomatoes, turmeric, and chili powder.',
+      'Add chicken and chettinad masala. Cook until chicken is tender and gravy is thick.'
+    ]
+  },
+  {
+    id: 'static-in3-004',
+    name: 'Macher Jhol',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      '500g rohu or catfish, cut into pieces', '1 potato, cubed', '1 tomato, diced',
+      '1 onion, diced', '1 tsp turmeric', '1 tsp cumin', '1 tsp ginger paste',
+      '1/2 tsp chili powder', '1/4 tsp panch phoron (Bengali 5-spice)', '3 tbsp mustard oil', 'Salt'
+    ],
+    steps: [
+      'Marinate fish with turmeric and salt. Fry fish lightly in mustard oil. Remove.',
+      'Fry panch phoron in same oil. Add onion, potato, and ginger. Cook until potato is half done.',
+      'Add tomato, remaining spices, and 1.5 cups water. Simmer 10 minutes, add fish. Cook 5 more minutes.'
+    ]
+  },
+  {
+    id: 'static-in3-005',
+    name: 'Dhokla',
+    meal_type: 'Snack',
+    cuisine: 'Indian',
+    ingredients: [
+      '1.5 cups besan (chickpea flour)', '1/2 cup yogurt', '1 tsp ginger paste',
+      '1 tsp green chili paste', '1 tsp eno fruit salt', '1 tsp sugar',
+      '1/2 tsp turmeric', 'Salt', '2 tbsp oil',
+      'Tempering: mustard seeds, curry leaves, green chilies, sesame seeds, 2 tbsp sugar + water'
+    ],
+    steps: [
+      'Mix batter with besan, yogurt, ginger-chili paste, turmeric, sugar, and salt. Whisk smooth.',
+      'Add eno just before steaming. Pour into greased tin, steam 15 minutes until firm.',
+      'Make sweet tempering and pour over hot dhokla. Cut into squares. Serve with green chutney.'
+    ]
+  },
+  {
+    id: 'static-in3-006',
+    name: 'Dal Baati Churma',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      'Baati: 2 cups wheat flour, 2 tbsp ghee, 1/2 cup milk, salt',
+      'Dal: 1/2 cup each toor dal, chana dal, moong dal, 2 tbsp ghee, spices',
+      'Churma: leftover baati, 2 tbsp ghee, jaggery powder, cardamom'
+    ],
+    steps: [
+      'Make stiff baati dough, shape into balls, bake at 200°C for 30 minutes until golden, or cook in tandoor.',
+      'Cook mixed dal with ghee tempering (cumin, coriander, chili, ginger, garlic, tomato).',
+      'Crack baati, pour ghee over. Serve with dal. Crush remaining baati with ghee and jaggery for churma.'
+    ]
+  },
+  {
+    id: 'static-in3-007',
+    name: 'Laal Maas',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      '600g mutton, bone-in', '10 dried Mathania or Kashmiri red chilies', '1 cup yogurt',
+      '2 onions, sliced', '4 cloves garlic', '1 tsp ginger', '4 tbsp ghee',
+      '1 tsp cumin', '5 cloves', '2 bay leaves', 'Salt'
+    ],
+    steps: [
+      'Soak dried chilies in hot water 20 minutes. Blend with garlic to a paste.',
+      'Fry onions in ghee until golden. Add ginger, chili-garlic paste, and whole spices.',
+      'Add mutton and sear. Whisk in yogurt. Add water, simmer covered 1.5 hours until tender.'
+    ]
+  },
+  {
+    id: 'static-in3-008',
+    name: 'Gatte Ki Sabzi',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      '1 cup besan', '1/2 tsp ajwain', '1/2 tsp chili powder', '2 tbsp oil', 'Salt',
+      'Gravy: 1 cup yogurt, 1 tsp coriander powder, 1/2 tsp cumin, 1/2 tsp turmeric',
+      '2 tbsp oil', 'Mustard seeds, ginger, cumin'
+    ],
+    steps: [
+      'Mix besan with ajwain, chili, oil, and salt into stiff dough. Roll into logs, boil 10 minutes. Slice.',
+      'Whisk yogurt with spices. Fry mustard seeds, cumin, and ginger in oil.',
+      'Add yogurt mixture. Stir constantly until it simmers. Add gatte slices, cook 5 minutes.'
+    ]
+  },
+  {
+    id: 'static-in3-009',
+    name: 'Thepla',
+    meal_type: 'Breakfast',
+    cuisine: 'Indian',
+    ingredients: [
+      '1.5 cups whole wheat flour', '1/2 cup methi (fenugreek) leaves, chopped',
+      '2 tbsp yogurt', '1 tsp turmeric', '1 tsp chili powder', '1 tsp cumin',
+      '1/2 tsp sesame seeds', '2 tbsp oil', 'Salt', 'Water as needed'
+    ],
+    steps: [
+      'Mix flour with methi, yogurt, spices, oil, and salt. Knead with water into soft dough.',
+      'Roll into thin flatbreads. Cook on hot griddle 2–3 minutes per side with a little oil.',
+      'Serve with yogurt, pickle, or tea. Keeps well for 3–4 days.'
+    ]
+  },
+  {
+    id: 'static-in3-010',
+    name: 'Undhiyu',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      '1 sweet potato', '1 yam', '1 eggplant', '1 cup fresh methi leaves', '1/2 cup raw peanuts',
+      '1/2 cup green pigeon peas (tuvar)', '4 tbsp oil', '1 tsp cumin seeds', '1 tsp turmeric',
+      '1 tsp coriander powder', '2 tsp undhiyu masala', '1 tsp sugar', 'Salt', 'Coconut'
+    ],
+    steps: [
+      'Cut all vegetables into large chunks. Make methi muthia (small fried besan-methi balls).',
+      'Fry cumin in oil, add all vegetables, peas, and peanuts. Add undhiyu masala and spices.',
+      'Add muthia and 1/4 cup water. Cover and cook on low heat 25 minutes. Finish with coconut.'
+    ]
+  },
+  {
+    id: 'static-in3-011',
+    name: 'Rasgulla',
+    meal_type: 'Dessert',
+    cuisine: 'Indian',
+    ingredients: [
+      '1 litre full-fat milk', '2 tbsp lemon juice', '1.5 cups sugar', '5 cups water',
+      '1/2 tsp cardamom', 'Rose water'
+    ],
+    steps: [
+      'Boil milk, add lemon juice to curdle. Strain through muslin, wash, and squeeze dry. Knead chenna smooth.',
+      'Make sugar syrup in a wide pan. Roll chenna into small smooth balls.',
+      'Drop balls into boiling syrup, cover and cook 15 minutes until they double in size. Chill before serving.'
+    ]
+  },
+  {
+    id: 'static-in3-012',
+    name: 'Kosha Mangsho',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      '600g mutton, bone-in', '2 onions, sliced', '3 cloves garlic', '1 tsp ginger',
+      '1 cup yogurt', '1 tsp cumin', '1 tsp coriander', '1/2 tsp turmeric',
+      '1 tsp garam masala', '3 tbsp mustard oil', '2 potatoes, halved', 'Salt'
+    ],
+    steps: [
+      'Marinate mutton in yogurt, ginger-garlic, and spices 2 hours.',
+      'Fry onions in mustard oil until very deep brown. Add mutton and cook on high heat 10 minutes.',
+      'Add potatoes and 1/2 cup water. Cook covered on low heat 1.5 hours, stirring occasionally until oil surfaces.'
+    ]
+  },
+  {
+    id: 'static-in3-013',
+    name: 'Vada Pav',
+    meal_type: 'Snack',
+    cuisine: 'Indian',
+    ingredients: [
+      '4 potatoes, boiled and mashed', '2 green chilies, minced', '1 tsp mustard seeds',
+      '8 curry leaves', '1/2 tsp turmeric', '2 tbsp oil', 'Salt',
+      'Batter: 1 cup besan, 1/2 tsp turmeric, salt, water', 'Oil for frying',
+      '4 pav buns', 'Dry garlic chutney', 'Green and tamarind chutney'
+    ],
+    steps: [
+      'Temper mustard seeds and curry leaves. Mix with mashed potato, green chilies, turmeric, and salt. Form into patties.',
+      'Dip in batter and deep-fry until golden. Drain.',
+      'Split pav buns, spread dry garlic chutney inside. Place vada in centre. Serve with extra chutneys.'
+    ]
+  },
+  {
+    id: 'static-in3-014',
+    name: 'Pathiri',
+    meal_type: 'Breakfast',
+    cuisine: 'Indian',
+    ingredients: [
+      '2 cups rice flour', '1 cup hot water (approx.)', '1 tsp salt',
+      '1/4 cup coconut milk (optional)', 'Chicken curry or egg curry to serve'
+    ],
+    steps: [
+      'Mix rice flour with salt. Add hot water gradually, mix into a soft, pliable dough. Rest 5 minutes.',
+      'Divide into balls and roll very thin (like a roti).',
+      'Cook on a dry griddle 1–2 minutes per side until lightly spotted. Serve warm with chicken curry.'
+    ]
+  },
+  {
+    id: 'static-in3-015',
+    name: 'Prawn Balchao',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      '400g prawns, peeled', '6 dried Kashmiri chilies', '1 tsp cumin', '6 peppercorns',
+      '4 cloves garlic', '1 tsp ginger', '2 tbsp white wine vinegar', '1 tsp sugar',
+      '1 onion, sliced', '3 tbsp oil', 'Salt'
+    ],
+    steps: [
+      'Blend soaked dried chilies with cumin, pepper, garlic, ginger, and vinegar to a spice paste.',
+      'Fry onions in oil until golden. Add spice paste and cook 5 minutes until oil separates.',
+      'Add prawns and sugar. Cook 8–10 minutes on medium heat until sauce is thick and tangy.'
+    ]
+  },
+  {
+    id: 'static-in3-016',
+    name: 'Avial',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      '2 cups mixed vegetables (drumstick, raw banana, yam, beans, carrot)',
+      '1 cup fresh coconut, grated', '4 green chilies', '1 tsp cumin', '1/2 cup yogurt',
+      '8 curry leaves', '1 tbsp coconut oil', '1/2 tsp turmeric', 'Salt'
+    ],
+    steps: [
+      'Cook vegetables with turmeric and salt until just tender, about 12 minutes.',
+      'Blend coconut, green chilies, and cumin coarsely. Add to vegetables.',
+      'Stir in yogurt off heat (do not boil). Finish with coconut oil and curry leaves.'
+    ]
+  },
+  {
+    id: 'static-in3-017',
+    name: 'Bhelpuri',
+    meal_type: 'Snack',
+    cuisine: 'Indian',
+    ingredients: [
+      '2 cups puffed rice', '1/2 cup sev (crispy noodles)', '2 tbsp peanuts',
+      '1 potato, boiled and cubed', '1/2 onion, diced', '1 tomato, diced',
+      '2 tbsp tamarind chutney', '2 tbsp green chutney', '1 tsp chaat masala', 'Salt'
+    ],
+    steps: [
+      'Combine puffed rice, sev, and peanuts in a large bowl.',
+      'Add potato, onion, and tomato.',
+      'Add both chutneys and chaat masala. Toss quickly and serve immediately before puffed rice goes soggy.'
+    ]
+  },
+  {
+    id: 'static-in3-018',
+    name: 'Murgh Musallam',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      '1 whole chicken (1.2kg)', '1 cup yogurt', '3 tbsp mughlai masala', '2 onions, fried golden',
+      '3 tbsp ground cashews', '1/2 cup cream', '2 tbsp ghee', '1 tsp saffron in warm milk',
+      'Whole spices: cardamom, cloves, cinnamon, mace', 'Salt'
+    ],
+    steps: [
+      'Score chicken all over. Marinate in yogurt, mughlai masala, and salt for 4 hours.',
+      'Blend fried onions and cashews to paste. Cook in ghee with whole spices, add cream and saffron.',
+      'Roast marinated chicken in oven at 200°C for 30 minutes. Transfer to onion gravy, cover and cook 20 more minutes.'
+    ]
+  },
+  {
+    id: 'static-in3-019',
+    name: 'Pesarattu',
+    meal_type: 'Breakfast',
+    cuisine: 'Indian',
+    ingredients: [
+      '1 cup green moong dal (soaked overnight)', '2 green chilies', '1 tsp ginger',
+      '2 tbsp rice', 'Salt', 'Oil for cooking',
+      'Filling: 1/2 cup upma or ginger-onion mixture',
+      'Coconut and ginger chutney to serve'
+    ],
+    steps: [
+      'Blend soaked moong dal with rice, green chilies, and ginger to a smooth batter.',
+      'Pour ladle onto hot griddle, spread thin. Add onion and ginger filling if desired.',
+      'Cook until edges lift, fold in half. Serve with coconut chutney.'
+    ]
+  },
+  {
+    id: 'static-in3-020',
+    name: 'Chicken Chettinad Pepper Fry',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      '500g chicken, cubed', '2 onions, sliced', '2 tsp black pepper (coarsely ground)',
+      '1 tsp fennel seeds', '8 curry leaves', '3 dried red chilies',
+      '1 tsp ginger-garlic paste', '2 tsp coriander powder', '3 tbsp oil', 'Salt'
+    ],
+    steps: [
+      'Fry fennel, red chilies, and curry leaves in oil. Add onions until golden.',
+      'Add ginger-garlic paste, coriander powder, and half the pepper. Cook 2 minutes.',
+      'Add chicken, seal on high heat. Reduce to medium, cook covered 20 minutes. Finish with remaining pepper.'
+    ]
+  },
+  {
+    id: 'static-in3-021',
+    name: 'Sarson Ka Saag',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      '500g mustard greens, roughly chopped', '200g spinach', '100g bathua (or more spinach)',
+      '1 onion, diced', '3 cloves garlic', '1 tsp ginger', '2 green chilies',
+      '3 tbsp makki flour (cornmeal) or cornstarch', '2 tbsp ghee', 'Salt'
+    ],
+    steps: [
+      'Pressure cook all greens with salt until very soft. Blend coarsely.',
+      'Fry onion, garlic, ginger, and chilies in ghee until golden. Add greens, simmer 10 minutes.',
+      'Stir in makki flour to thicken. Cook 5 more minutes. Serve with makki di roti and butter.'
+    ]
+  },
+  {
+    id: 'static-in3-022',
+    name: 'Bihari Litti Chokha',
+    meal_type: 'Main',
+    cuisine: 'Indian',
+    ingredients: [
+      'Litti: 2 cups whole wheat flour, 2 tbsp ghee, salt',
+      'Sattu filling: 1 cup roasted gram flour, 1 tbsp mustard oil, green chili, ajwain, nigella seeds, lemon',
+      'Chokha: 2 roasted brinjals + 2 roasted tomatoes, garlic, chili, mustard oil'
+    ],
+    steps: [
+      'Mix sattu with spices and mustard oil. Make wheat dough, form balls, hollow and fill.',
+      'Bake litti at 200°C or over coals for 25 minutes until cooked through.',
+      'Peel and mash roasted brinjal and tomato with garlic, chili, and mustard oil for chokha. Serve together.'
+    ]
+  },
+  {
+    id: 'static-in3-023',
+    name: 'Curd Rice',
+    meal_type: 'Lunch',
+    cuisine: 'Indian',
+    ingredients: [
+      '2 cups cooked rice (cooled)', '1 cup yogurt', '1/4 cup milk', '1 tsp salt',
+      '1 tsp mustard seeds', '8 curry leaves', '2 dried red chilies', '2 tbsp oil',
+      '2 tbsp pomegranate seeds', '1 tbsp cilantro', 'Grated carrot (optional)'
+    ],
+    steps: [
+      'Mash cooled rice lightly. Mix with yogurt and milk until creamy. Season with salt.',
+      'Fry mustard seeds, curry leaves, and red chilies in oil until they splutter.',
+      'Pour tempering over curd rice. Mix gently. Garnish with pomegranate and cilantro. Serve cold.'
+    ]
+  },
+  {
+    id: 'static-in3-024',
+    name: 'Poha',
+    meal_type: 'Breakfast',
+    cuisine: 'Indian',
+    ingredients: [
+      '2 cups thick poha (flattened rice)', '1 onion, diced', '2 green chilies, sliced',
+      '8 curry leaves', '1/2 tsp mustard seeds', '1/2 tsp turmeric',
+      '2 tbsp oil', 'Lemon juice', 'Cilantro', 'Salt', 'Sev and peanuts to garnish'
+    ],
+    steps: [
+      'Rinse poha in water for 1 minute, drain and rest 5 minutes until soft.',
+      'Fry mustard seeds, curry leaves, and green chilies in oil. Add onion until golden. Add turmeric.',
+      'Add poha, toss gently. Season. Finish with lemon juice and cilantro. Top with sev and fried peanuts.'
+    ]
+  },
+  {
+    id: 'static-in3-025',
+    name: 'Appe (Paniyaram)',
+    meal_type: 'Breakfast',
+    cuisine: 'Indian',
+    ingredients: [
+      '2 cups leftover dosa or idli batter', '1/2 onion, finely diced', '1 green chili',
+      '1 tbsp cilantro', '1/2 tsp mustard seeds', '4 curry leaves', '1 tsp oil + oil for appe pan'
+    ],
+    steps: [
+      'Temper mustard seeds and curry leaves in oil. Cool and mix into batter with onion, chili, and cilantro.',
+      'Heat appe (paniyaram) pan, add a few drops oil in each cup.',
+      'Pour batter into cups, cover and cook 3 minutes. Flip and cook other side. Serve with sambar and chutney.'
+    ]
+  },
+
+  // ─── ITALIAN REGIONAL ────────────────────────────────────────────────────
+  {
+    id: 'static-it2-001',
+    name: 'Carbonara',
+    meal_type: 'Main',
+    cuisine: 'Italian',
+    ingredients: [
+      '400g spaghetti or rigatoni', '150g guanciale or pancetta', '3 whole eggs + 2 yolks',
+      '100g pecorino romano', '50g parmesan', 'Freshly cracked black pepper', 'Salt'
+    ],
+    steps: [
+      'Fry guanciale in a dry pan until fat renders and it is crispy. Reserve pan drippings.',
+      'Beat eggs, yolks, and grated cheeses together. Season generously with black pepper.',
+      'Cook pasta al dente. Off heat, toss pasta with guanciale and fat. Add egg mixture and pasta water, tossing vigorously until creamy. Never use cream.'
+    ]
+  },
+  {
+    id: 'static-it2-002',
+    name: 'Amatriciana',
+    meal_type: 'Main',
+    cuisine: 'Italian',
+    ingredients: [
+      '400g bucatini or spaghetti', '200g guanciale (or pancetta)', '1 can crushed San Marzano tomatoes',
+      '50g pecorino romano', '1/2 tsp chili flakes', '1/4 cup dry white wine', '1 tbsp olive oil', 'Salt'
+    ],
+    steps: [
+      'Fry guanciale until crispy. Add wine and reduce. Add tomatoes and chili flakes. Simmer 15 minutes.',
+      'Cook bucatini al dente. Reserve pasta water.',
+      'Toss pasta in sauce with a splash of pasta water. Finish with generous pecorino.'
+    ]
+  },
+  {
+    id: 'static-it2-003',
+    name: 'Cacio e Pepe',
+    meal_type: 'Main',
+    cuisine: 'Italian',
+    ingredients: [
+      '400g spaghetti or tonnarelli', '100g pecorino romano, finely grated',
+      '50g parmesan, finely grated', '2 tsp coarsely ground black pepper', 'Salt'
+    ],
+    steps: [
+      'Cook pasta in salted water. Toast pepper in a dry pan. Reserve 1 cup pasta water.',
+      'Make paste: mix cheeses with just enough pasta water to form a thick cream.',
+      'Remove pasta from heat, add cheese paste and splash of pasta water. Toss rapidly until glossy and saucy. Serve immediately.'
+    ]
+  },
+  {
+    id: 'static-it2-004',
+    name: 'Risotto alla Milanese',
+    meal_type: 'Main',
+    cuisine: 'Italian',
+    ingredients: [
+      '300g arborio or carnaroli rice', '1 litre warm beef or chicken broth',
+      '1 small onion, very finely diced', '1/2 cup dry white wine', '1/2 tsp saffron',
+      '50g parmesan', '40g butter', '2 tbsp olive oil', 'Salt'
+    ],
+    steps: [
+      'Steep saffron in warm broth. Fry onion in oil and half the butter until soft.',
+      'Toast rice 2 minutes. Add wine, stir until absorbed. Add broth ladle by ladle, stirring constantly, 18 minutes.',
+      'Remove from heat. Stir in remaining cold butter and parmesan (mantecatura). Rest 1 minute. Serve immediately.'
+    ]
+  },
+  {
+    id: 'static-it2-005',
+    name: 'Osso Buco',
+    meal_type: 'Main',
+    cuisine: 'Italian',
+    ingredients: [
+      '4 veal shanks, cross-cut', '1 onion', '1 carrot', '1 celery stalk',
+      '1/2 cup dry white wine', '1 can crushed tomatoes', '1 cup broth',
+      '2 tbsp flour', '3 tbsp olive oil', 'Gremolata: lemon zest, garlic, parsley', 'Salt'
+    ],
+    steps: [
+      'Dust veal with flour and brown in olive oil. Remove. Fry onion, carrot, celery.',
+      'Deglaze with wine. Add tomatoes, broth, and return veal. Braise covered at 160°C for 1.5 hours.',
+      'Make gremolata. Serve osso buco on saffron risotto, topped with gremolata.'
+    ]
+  },
+  {
+    id: 'static-it2-006',
+    name: 'Puttanesca',
+    meal_type: 'Main',
+    cuisine: 'Italian',
+    ingredients: [
+      '400g spaghetti', '1 can crushed tomatoes', '4 cloves garlic', '8 anchovies',
+      '1/2 cup kalamata olives, chopped', '3 tbsp capers', '1/2 tsp chili flakes',
+      '3 tbsp olive oil', 'Parsley', 'Salt'
+    ],
+    steps: [
+      'Fry garlic and anchovies in olive oil until anchovies dissolve. Add chili flakes.',
+      'Add tomatoes, olives, and capers. Simmer 15 minutes.',
+      'Cook spaghetti al dente, toss with sauce. Finish with parsley.'
+    ]
+  },
+  {
+    id: 'static-it2-007',
+    name: 'Tiramisu',
+    meal_type: 'Dessert',
+    cuisine: 'Italian',
+    ingredients: [
+      '300g ladyfinger biscuits', '500g mascarpone', '4 eggs (separated)', '100g sugar',
+      '300ml strong espresso, cooled', '3 tbsp Marsala or rum', 'Cocoa powder'
+    ],
+    steps: [
+      'Beat egg yolks and sugar until pale and thick. Fold in mascarpone.',
+      'Whip egg whites to stiff peaks. Fold into mascarpone mixture.',
+      'Dip ladyfingers in coffee+Marsala, layer in dish, spread cream. Repeat. Dust with cocoa. Chill 4+ hours.'
+    ]
+  },
+  {
+    id: 'static-it2-008',
+    name: 'Arancini',
+    meal_type: 'Snack',
+    cuisine: 'Italian',
+    ingredients: [
+      '3 cups leftover saffron risotto', '100g mozzarella, cubed', '1/2 cup meat ragù (optional)',
+      '1/2 cup flour', '2 eggs, beaten', '1.5 cups breadcrumbs', 'Oil for deep frying', 'Salt'
+    ],
+    steps: [
+      'Chill risotto. Take a handful, flatten in palm, add mozzarella and ragù in centre. Seal into a ball.',
+      'Coat in flour, then egg, then breadcrumbs. Chill 30 minutes.',
+      'Deep-fry at 175°C for 4–5 minutes until golden. Drain and serve hot.'
+    ]
+  },
+  {
+    id: 'static-it2-009',
+    name: 'Saltimbocca alla Romana',
+    meal_type: 'Main',
+    cuisine: 'Italian',
+    ingredients: [
+      '4 veal escalopes (or chicken), thinly pounded', '4 slices prosciutto',
+      '8 fresh sage leaves', '2 tbsp butter', '2 tbsp olive oil',
+      '1/3 cup dry white wine', 'Salt and pepper'
+    ],
+    steps: [
+      'Lay prosciutto and 2 sage leaves on each escalope, secure with a toothpick.',
+      'Pan-fry in butter and oil, prosciutto side down first, 2 minutes per side.',
+      'Remove meat. Deglaze pan with wine, reduce. Pour pan sauce over meat.'
+    ]
+  },
+  {
+    id: 'static-it2-010',
+    name: 'Ribollita',
+    meal_type: 'Lunch',
+    cuisine: 'Italian',
+    ingredients: [
+      '2 cans cannellini beans', '200g cavolo nero or kale', '2 potatoes, cubed',
+      '2 carrots', '2 celery stalks', '1 onion', '3 cloves garlic', '1 can crushed tomatoes',
+      '4 thick slices stale Tuscan bread', '4 tbsp olive oil', 'Rosemary', 'Salt'
+    ],
+    steps: [
+      'Fry onion, carrot, and celery in olive oil. Add garlic, tomatoes, potatoes, and beans.',
+      'Add kale, rosemary, and 6 cups water. Simmer 30 minutes.',
+      'Add bread, stir in and simmer 10 more minutes until thick. Drizzle olive oil and serve.'
+    ]
+  },
+  {
+    id: 'static-it2-011',
+    name: 'Panzanella',
+    meal_type: 'Lunch',
+    cuisine: 'Italian',
+    ingredients: [
+      '4 thick slices stale ciabatta', '4 ripe tomatoes, chunked', '1/2 red onion, thin slices',
+      '1 cucumber, chunked', '1/2 cup basil leaves',
+      '3 tbsp red wine vinegar', '5 tbsp olive oil', 'Salt and pepper'
+    ],
+    steps: [
+      'Soak bread in cold water 1 minute, squeeze out excess water, tear into chunks.',
+      'Combine tomatoes, cucumber, onion, and basil.',
+      'Dress with vinegar, olive oil, salt, and pepper. Mix in bread. Rest 20 minutes before serving.'
+    ]
+  },
+  {
+    id: 'static-it2-012',
+    name: 'Polenta e Funghi',
+    meal_type: 'Main',
+    cuisine: 'Italian',
+    ingredients: [
+      '1 cup coarse polenta', '4 cups water or broth', '50g parmesan', '2 tbsp butter',
+      '300g mixed wild mushrooms', '2 cloves garlic', '1/2 cup white wine',
+      '3 tbsp olive oil', 'Thyme', 'Parsley', 'Salt'
+    ],
+    steps: [
+      'Cook polenta in broth, stirring frequently, 40 minutes until thick. Stir in butter and parmesan.',
+      'Fry garlic in oil, add mushrooms, cook on high heat until golden. Add wine and thyme, reduce.',
+      'Serve creamy polenta topped with mushrooms and fresh parsley.'
+    ]
+  },
+  {
+    id: 'static-it2-013',
+    name: 'Bruschetta al Pomodoro',
+    meal_type: 'Snack',
+    cuisine: 'Italian',
+    ingredients: [
+      '4 thick slices ciabatta or sourdough', '3 ripe tomatoes, diced',
+      '4 basil leaves, torn', '2 cloves garlic (for rubbing)', '3 tbsp extra-virgin olive oil',
+      'Flaky sea salt', 'Black pepper'
+    ],
+    steps: [
+      'Grill or toast bread until charred at edges.',
+      'Rub each slice with raw garlic, drizzle with olive oil.',
+      'Top with tomatoes, basil, salt, pepper, and another drizzle of olive oil.'
+    ]
+  },
+  {
+    id: 'static-it2-014',
+    name: 'Bistecca alla Fiorentina',
+    meal_type: 'Main',
+    cuisine: 'Italian',
+    ingredients: [
+      '1 T-bone or Porterhouse steak (600g–1kg, 5cm thick)', '3 tbsp olive oil',
+      'Flaky sea salt', 'Coarsely ground black pepper', 'Rosemary sprigs',
+      'Lemon wedges to serve'
+    ],
+    steps: [
+      'Bring steak to room temperature 1 hour before. Season generously with salt and pepper.',
+      'Grill over hot coals or cast iron, 4 minutes per side for rare, brushing with olive oil and rosemary.',
+      'Rest 5 minutes. Serve whole with lemon — no sauce needed.'
+    ]
+  },
+  {
+    id: 'static-it2-015',
+    name: 'Pasta e Fagioli',
+    meal_type: 'Lunch',
+    cuisine: 'Italian',
+    ingredients: [
+      '2 cans borlotti beans', '150g ditalini or small tubular pasta', '2 cloves garlic',
+      '1 onion', '1 carrot', '1 celery stalk', '2 tbsp tomato paste', '4 cups broth',
+      '3 tbsp olive oil', 'Rosemary', 'Parmesan rind', 'Salt and pepper'
+    ],
+    steps: [
+      'Fry onion, carrot, and celery in oil. Add garlic, rosemary, and tomato paste.',
+      'Add beans, broth, and parmesan rind. Simmer 20 minutes. Blend half the soup.',
+      'Add pasta to soup, cook until al dente. Season. Drizzle with olive oil and parmesan.'
+    ]
+  },
+
+  // ─── JAPANESE (izakaya, street food, traditional) ─────────────────────────
+  {
+    id: 'static-jp2-001',
+    name: 'Yakitori',
+    meal_type: 'Snack',
+    cuisine: 'Japanese',
+    ingredients: [
+      '400g chicken thighs, cubed', '4 spring onions, cut into 3cm pieces',
+      'Tare: 4 tbsp soy sauce, 2 tbsp mirin, 2 tbsp sake, 1 tbsp sugar',
+      'Skewers'
+    ],
+    steps: [
+      'Simmer tare ingredients until slightly reduced. Cool.',
+      'Thread chicken and spring onion alternately onto skewers.',
+      'Grill over high heat 8–10 minutes, basting with tare every 2 minutes, until charred and cooked.'
+    ]
+  },
+  {
+    id: 'static-jp2-002',
+    name: 'Karaage',
+    meal_type: 'Snack',
+    cuisine: 'Japanese',
+    ingredients: [
+      '500g chicken thighs, boneless, bite-sized', '3 tbsp soy sauce', '2 tbsp sake',
+      '1 tsp ginger, grated', '1 tsp garlic, grated', '3 tbsp potato starch',
+      '2 tbsp flour', 'Oil for deep frying', 'Lemon wedges', 'Kewpie mayo'
+    ],
+    steps: [
+      'Marinate chicken in soy, sake, ginger, and garlic for 30 minutes.',
+      'Coat in potato starch and flour mix.',
+      'Deep-fry at 170°C for 4 minutes. Rest 3 minutes, fry again at 180°C for 2 minutes for extra crunch. Serve with lemon and mayo.'
+    ]
+  },
+  {
+    id: 'static-jp2-003',
+    name: 'Takoyaki',
+    meal_type: 'Snack',
+    cuisine: 'Japanese',
+    ingredients: [
+      '200g octopus, cooked and diced small', '1 cup flour', '1 egg', '2 cups dashi broth',
+      '2 tbsp tenkasu (tempura bits)', '2 spring onions, sliced', 'Pickled ginger',
+      'Takoyaki sauce', 'Kewpie mayo', 'Bonito flakes', 'Dried seaweed flakes'
+    ],
+    steps: [
+      'Mix flour, egg, and dashi into thin batter.',
+      'Heat takoyaki pan, oil well. Fill cups with batter, add octopus, spring onion, and tenkasu.',
+      'When bottom sets, use picks to rotate 90° repeatedly until perfectly round and cooked. Top with sauce, mayo, bonito.'
+    ]
+  },
+  {
+    id: 'static-jp2-004',
+    name: 'Yakisoba',
+    meal_type: 'Main',
+    cuisine: 'Japanese',
+    ingredients: [
+      '300g fresh yakisoba noodles', '150g pork belly, sliced thin', '1 cup cabbage, shredded',
+      '1 carrot, julienned', '1/2 onion, sliced', '3 tbsp yakisoba sauce (or Worcestershire+soy+ketchup)',
+      '2 tbsp oil', 'Aonori, pickled ginger, sesame to serve'
+    ],
+    steps: [
+      'Stir-fry pork in hot oil. Add vegetables, cook until slightly wilted.',
+      'Add noodles, break up. Add sauce and toss over high heat until everything is coated and slightly caramelised.',
+      'Plate and top with aonori, pickled ginger, and sesame.'
+    ]
+  },
+  {
+    id: 'static-jp2-005',
+    name: 'Okonomiyaki',
+    meal_type: 'Main',
+    cuisine: 'Japanese',
+    ingredients: [
+      '1 cup flour', '3/4 cup dashi or water', '2 eggs', '2 cups cabbage, finely shredded',
+      '100g pork belly or shrimp', '4 spring onions', 'Tenkasu',
+      'Okonomiyaki sauce', 'Kewpie mayo', 'Bonito flakes', 'Aonori', '2 tbsp oil'
+    ],
+    steps: [
+      'Mix flour and dashi into batter. Add eggs, cabbage, spring onions, and tenkasu.',
+      'Fry protein in oiled pan, pour batter over. Cook 5 minutes per side on medium heat.',
+      'Top with okonomiyaki sauce, mayo, bonito, and aonori.'
+    ]
+  },
+  {
+    id: 'static-jp2-006',
+    name: 'Gyudon',
+    meal_type: 'Main',
+    cuisine: 'Japanese',
+    ingredients: [
+      '300g beef rib-eye or sirloin, thinly sliced', '1 onion, thin half-moons',
+      '3 tbsp soy sauce', '2 tbsp mirin', '2 tbsp sake', '1 tsp sugar', '1/2 cup water',
+      'Steamed rice', 'Pickled ginger', 'Soft-boiled egg (optional)'
+    ],
+    steps: [
+      'Simmer soy, mirin, sake, sugar, and water. Add onions until soft.',
+      'Add beef slices, cook 2–3 minutes until done.',
+      'Serve over rice. Top with pickled ginger and egg.'
+    ]
+  },
+  {
+    id: 'static-jp2-007',
+    name: 'Oyakodon',
+    meal_type: 'Main',
+    cuisine: 'Japanese',
+    ingredients: [
+      '300g chicken thigh, sliced', '1/2 onion, sliced', '3 eggs, lightly beaten',
+      '3 tbsp soy sauce', '2 tbsp mirin', '1 tbsp sugar', '1/2 cup dashi',
+      'Steamed rice', 'Mitsuba or spring onion', 'Shichimi pepper'
+    ],
+    steps: [
+      'Simmer dashi, soy, mirin, and sugar in a small fry pan. Add onion until soft.',
+      'Add chicken, cook 4 minutes. Pour beaten eggs over, cover 1 minute until just set.',
+      'Slide over rice bowl, garnish with spring onion and shichimi.'
+    ]
+  },
+  {
+    id: 'static-jp2-008',
+    name: 'Miso Ramen',
+    meal_type: 'Main',
+    cuisine: 'Japanese',
+    ingredients: [
+      '200g ramen noodles', '3 tbsp white or red miso paste', '2 cups chicken broth',
+      '1 cup pork or chicken stock', '1 tbsp soy sauce', '1 tbsp sesame oil',
+      '2 tbsp ground pork', 'Corn kernels', 'Bean sprouts', 'Soft-boiled egg',
+      'Nori', 'Butter (optional)'
+    ],
+    steps: [
+      'Fry ground pork. Add miso paste and cook 1 minute. Add broths, soy, and sesame oil. Bring to simmer.',
+      'Cook noodles, divide into bowls.',
+      'Ladle hot miso broth over. Add corn, bean sprouts, egg, nori, and pat of butter.'
+    ]
+  },
+  {
+    id: 'static-jp2-009',
+    name: 'Shabu-Shabu',
+    meal_type: 'Main',
+    cuisine: 'Japanese',
+    ingredients: [
+      '400g very thinly sliced beef (wagyu or rib-eye)', '1 block tofu, cubed',
+      '200g shiitake and enoki mushrooms', '1 napa cabbage, leaves separated',
+      'Kombu dashi broth', 'Ponzu sauce', 'Sesame dipping sauce',
+      'Udon noodles or rice to finish'
+    ],
+    steps: [
+      'Bring kombu dashi to simmer in table hot pot.',
+      'Each diner swishes meat slices in hot broth for 10–15 seconds until just cooked. Dip in ponzu or sesame sauce.',
+      'Add vegetables and tofu to cook. Finish by cooking noodles in the flavourful broth.'
+    ]
+  },
+  {
+    id: 'static-jp2-010',
+    name: 'Nasu Dengaku',
+    meal_type: 'Snack',
+    cuisine: 'Japanese',
+    ingredients: [
+      '2 large eggplants, halved lengthways', '3 tbsp white miso', '1 tbsp mirin',
+      '1 tbsp sake', '1 tbsp sugar', '1 tbsp sesame oil', 'Sesame seeds', 'Spring onion'
+    ],
+    steps: [
+      'Score cut surface of eggplant, brush with sesame oil. Broil cut-side up 10 minutes until soft.',
+      'Mix miso, mirin, sake, and sugar into a paste. Spread over eggplant.',
+      'Broil 3–5 more minutes until glaze is bubbling and caramelised. Top with sesame seeds.'
+    ]
+  },
+  {
+    id: 'static-jp2-011',
+    name: 'Gyoza',
+    meal_type: 'Snack',
+    cuisine: 'Japanese',
+    ingredients: [
+      '24 gyoza wrappers', '200g pork mince', '1/2 cup cabbage, finely chopped and salted',
+      '2 spring onions', '1 tsp garlic', '1 tsp ginger', '1 tbsp soy sauce',
+      '1 tsp sesame oil', '2 tbsp oil',
+      'Dipping: soy sauce + rice vinegar + chili oil'
+    ],
+    steps: [
+      'Squeeze water from cabbage. Mix with pork, spring onion, garlic, ginger, soy, and sesame oil.',
+      'Place filling in wrappers, fold and pleat one side to seal.',
+      'Fry flat-side down in oil 2 minutes until golden. Add 1/4 cup water, cover, steam 5 minutes. Serve with dipping sauce.'
+    ]
+  },
+  {
+    id: 'static-jp2-012',
+    name: 'Agedashi Tofu',
+    meal_type: 'Snack',
+    cuisine: 'Japanese',
+    ingredients: [
+      '1 block firm tofu, drained and pressed', '4 tbsp potato starch',
+      'Oil for deep frying', 'Tentsuyu broth: 1 cup dashi, 3 tbsp soy sauce, 3 tbsp mirin',
+      'Grated daikon', 'Grated ginger', 'Spring onion', 'Bonito flakes'
+    ],
+    steps: [
+      'Cut tofu into cubes. Coat in potato starch.',
+      'Deep-fry at 175°C until lightly golden, about 3 minutes. Drain.',
+      'Heat tentsuyu in a small pan. Place tofu in bowls, pour broth over. Top with daikon, ginger, spring onion, bonito.'
+    ]
+  },
+
+  // ─── MEXICAN REGIONAL ────────────────────────────────────────────────────
+  {
+    id: 'static-mx2-001',
+    name: 'Birria',
+    meal_type: 'Main',
+    cuisine: 'Mexican',
+    ingredients: [
+      '1kg beef chuck or goat', '4 dried ancho chilies', '3 guajillo chilies', '2 chipotle peppers',
+      '1 onion', '4 cloves garlic', '1 tsp cumin', '1 tsp oregano', '1/2 tsp cinnamon',
+      '4 cups broth', 'Corn tortillas', 'Diced onion', 'Cilantro', 'Lime'
+    ],
+    steps: [
+      'Toast and rehydrate dried chilies. Blend with garlic, onion, and spices.',
+      'Coat meat in chili paste. Brown in a pot, add broth. Braise at 160°C for 3 hours until very tender.',
+      'Shred meat. Dip tortillas in the rich braising juices (consommé), fry until crispy, fill with meat. Serve with consommé for dipping.'
+    ]
+  },
+  {
+    id: 'static-mx2-002',
+    name: 'Chiles en Nogada',
+    meal_type: 'Main',
+    cuisine: 'Mexican',
+    ingredients: [
+      '4 large poblano chilies', '300g pork or chicken mince', '1/2 apple, diced', '1/4 cup raisins',
+      '1/4 cup almonds, chopped', '2 tomatoes', '1/2 onion', '2 cloves garlic',
+      'Nogada: 1 cup walnuts, 100g cream cheese, 1/4 cup cream, salt',
+      'Pomegranate seeds', 'Parsley', 'Salt'
+    ],
+    steps: [
+      'Char and peel poblanos, cut slit to remove seeds. Cook picadillo filling (mince with tomato, onion, fruit, nuts).',
+      'Stuff chilies with filling. Blend nogada sauce until smooth and creamy.',
+      'Pour walnut sauce over stuffed chilies. Garnish with pomegranate and parsley.'
+    ]
+  },
+  {
+    id: 'static-mx2-003',
+    name: 'Tamales',
+    meal_type: 'Main',
+    cuisine: 'Mexican',
+    ingredients: [
+      '2 cups masa harina', '1.5 cups broth', '1/2 cup lard or shortening', '1 tsp baking powder',
+      '12 dried corn husks (soaked)', 'Filling: shredded chicken or pork + red or green salsa'
+    ],
+    steps: [
+      'Beat lard until fluffy. Add masa harina, baking powder, and broth until spreadable paste.',
+      'Spread masa on soaked corn husk, add filling. Fold husk to enclose, fold bottom up.',
+      'Steam upright in a steamer basket for 1 hour until masa pulls cleanly from husk.'
+    ]
+  },
+  {
+    id: 'static-mx2-004',
+    name: 'Sopa de Lima',
+    meal_type: 'Lunch',
+    cuisine: 'Mexican',
+    ingredients: [
+      '2 chicken breasts', '1 onion, halved', '2 tomatoes, diced', '1 green pepper, diced',
+      '1 habanero or jalapeño', '2 limes, juiced + 1 tsp lime zest', '6 cups chicken broth',
+      '2 cloves garlic', '1 tbsp oil', 'Fried tortilla strips', 'Cilantro', 'Avocado'
+    ],
+    steps: [
+      'Poach chicken in broth with onion and garlic. Remove, shred. Reserve broth.',
+      'Fry tomatoes, pepper, and habanero in oil. Add shredded chicken, broth, and lime juice.',
+      'Simmer 10 minutes. Serve topped with tortilla strips, cilantro, and avocado.'
+    ]
+  },
+  {
+    id: 'static-mx2-005',
+    name: 'Cochinita Pibil',
+    meal_type: 'Main',
+    cuisine: 'Mexican',
+    ingredients: [
+      '1.5kg pork shoulder', '3 tbsp achiote paste', '1/2 cup sour orange juice (or OJ + lime)',
+      '3 cloves garlic', '1 tsp cumin', '1/2 tsp black pepper', 'Banana leaves',
+      'Corn tortillas', 'Pickled red onions', 'Habanero salsa'
+    ],
+    steps: [
+      'Blend achiote with citrus, garlic, cumin, and pepper. Score and marinate pork overnight.',
+      'Wrap in banana leaves, place in dutch oven. Cover and bake at 150°C for 4 hours.',
+      'Shred pork, mix with cooking juices. Serve in warm tortillas with pickled onions.'
+    ]
+  },
+
+  // ─── CHINESE REGIONAL (extra) ─────────────────────────────────────────────
+  {
+    id: 'static-ch3-001',
+    name: 'Xiaolongbao (Soup Dumplings)',
+    meal_type: 'Snack',
+    cuisine: 'Chinese',
+    ingredients: [
+      '30 thin dumpling wrappers (or homemade)', '200g pork mince', '2 tbsp soy sauce',
+      '1 tsp sesame oil', '1 tsp ginger', '3 spring onions',
+      'Soup gelatin: 200ml pork broth, 1 tsp gelatin powder'
+    ],
+    steps: [
+      'Dissolve gelatin in warm broth, refrigerate until set. Dice into small cubes.',
+      'Mix pork with soy, sesame oil, ginger, spring onion, and broth cubes.',
+      'Fill wrappers with a teaspoon of filling. Pleat and twist to seal. Steam 8 minutes. Eat carefully — the broth is hot inside!'
+    ]
+  },
+  {
+    id: 'static-ch3-002',
+    name: 'Twice-Cooked Pork',
+    meal_type: 'Main',
+    cuisine: 'Chinese',
+    ingredients: [
+      '400g pork belly', '1 green pepper, sliced', '1 leek, sliced', '2 tbsp doubanjiang',
+      '1 tbsp black bean sauce', '1 tbsp soy sauce', '1 tsp sugar', '2 tbsp oil',
+      '3 cloves garlic', '1 tsp ginger'
+    ],
+    steps: [
+      'Boil pork belly whole with ginger 30 minutes. Cool, slice thin.',
+      'Stir-fry pork slices in dry wok until fat renders and edges curl.',
+      'Add doubanjiang, black bean sauce, garlic, and ginger. Add vegetables and sauce. Toss on high heat.'
+    ]
+  },
+  {
+    id: 'static-ch3-003',
+    name: 'Steamed Fish with Ginger and Scallion',
+    meal_type: 'Main',
+    cuisine: 'Chinese',
+    ingredients: [
+      '1 whole sea bass or tilapia (600g), scored', '3 tbsp soy sauce', '1 tbsp rice wine',
+      '1 tsp sugar', '3 tbsp hot oil', '4 spring onions, julienned',
+      '4 slices fresh ginger, julienned', 'Cilantro'
+    ],
+    steps: [
+      'Place fish on a heatproof plate, stuff cavity with half the ginger.',
+      'Steam over boiling water 8–10 minutes until cooked.',
+      'Pour soy + rice wine + sugar over fish. Top with spring onion and remaining ginger. Pour sizzling hot oil over — it will spit dramatically. Garnish with cilantro.'
+    ]
+  },
+  {
+    id: 'static-ch3-004',
+    name: 'Beef and Broccoli',
+    meal_type: 'Main',
+    cuisine: 'Chinese',
+    ingredients: [
+      '300g beef sirloin, thin strips', '2 cups broccoli florets', '3 cloves garlic',
+      '2 tbsp soy sauce', '1 tbsp oyster sauce', '1 tbsp cornstarch', '1 tsp sesame oil',
+      '1 tsp sugar', '2 tbsp oil', '1 tsp ginger'
+    ],
+    steps: [
+      'Marinate beef with soy, cornstarch, and sesame oil. Blanch broccoli 2 minutes.',
+      'Stir-fry beef in hot wok until browned. Remove.',
+      'Fry garlic and ginger, add broccoli. Return beef. Add oyster sauce, soy, and sugar. Toss to coat.'
+    ]
+  },
+  {
+    id: 'static-ch3-005',
+    name: 'Zha Jiang Mian',
+    meal_type: 'Main',
+    cuisine: 'Chinese',
+    ingredients: [
+      '300g noodles (thick wheat)', '200g pork mince', '3 tbsp yellow soybean paste (zha jiang)',
+      '1 tbsp hoisin sauce', '1 tbsp soy sauce', '1 tbsp sugar', '2 cloves garlic',
+      '1 tsp ginger', '2 tbsp oil', 'Julienned cucumber', 'Bean sprouts', 'Edamame'
+    ],
+    steps: [
+      'Fry pork in oil until cooked. Add garlic, ginger, zha jiang paste, hoisin, soy, and sugar.',
+      'Cook 5 minutes until paste darkens and fragrant. Add 1/4 cup water.',
+      'Cook noodles. Serve topped with meat sauce and raw vegetable garnishes. Mix before eating.'
+    ]
+  },
+
+  // ─── MORE MIDDLE EASTERN ─────────────────────────────────────────────────
+  {
+    id: 'static-me2-001',
+    name: 'Mansaf',
+    meal_type: 'Main',
+    cuisine: 'Jordanian',
+    ingredients: [
+      '1kg lamb shoulder pieces', '500ml jameed broth (or use yogurt + stock)', '1/2 cup rice',
+      '1/2 cup blanched almonds', '2 tbsp ghee', '1 flat pita bread or rice base',
+      'Cardamom, cinnamon, bay leaf', 'Cilantro', 'Salt'
+    ],
+    steps: [
+      'Simmer lamb with spices until very tender, about 1.5 hours. Reserve broth.',
+      'Cook rice in spiced broth. Heat jameed sauce, add lamb to warm through.',
+      'Layer rice on large platter, arrange lamb, pour sauce. Top with almonds and cilantro.'
+    ]
+  },
+  {
+    id: 'static-me2-002',
+    name: 'Musakhan',
+    meal_type: 'Main',
+    cuisine: 'Palestinian',
+    ingredients: [
+      '1 whole chicken, quartered', '6 onions, thinly sliced', '4 tbsp sumac',
+      '1/2 cup olive oil', '4 pita or taboon breads', '1/4 cup toasted pine nuts',
+      '1 tsp allspice', '1/2 tsp cinnamon', 'Salt'
+    ],
+    steps: [
+      'Roast chicken with olive oil, salt, allspice until cooked. Fry onions in olive oil until soft.',
+      'Add sumac, cinnamon, and allspice to onions. Cook 5 more minutes.',
+      'Lay pita on baking sheet, top with onions then chicken. Bake 10 minutes until warm and crispy. Top with pine nuts.'
+    ]
+  },
+  {
+    id: 'static-me2-003',
+    name: 'Fatteh',
+    meal_type: 'Lunch',
+    cuisine: 'Lebanese',
+    ingredients: [
+      '2 pita breads, toasted and broken', '2 cans chickpeas', '1.5 cups yogurt',
+      '2 cloves garlic, minced', '2 tbsp tahini', '2 tbsp lemon juice',
+      '1/4 cup toasted pine nuts', '1 tbsp olive oil', 'Paprika', 'Parsley', 'Sumac'
+    ],
+    steps: [
+      'Warm chickpeas in water, drain. Whisk yogurt with garlic, tahini, and lemon juice.',
+      'Layer broken pita in a dish, top with chickpeas, then yogurt sauce.',
+      'Drizzle olive oil. Top with pine nuts, paprika, parsley, and sumac.'
+    ]
+  },
+  {
+    id: 'static-me2-004',
+    name: 'Maqluba',
+    meal_type: 'Main',
+    cuisine: 'Palestinian',
+    ingredients: [
+      '500g chicken pieces', '2 cups rice', '1 eggplant, sliced', '1 cauliflower, florets',
+      '2 tomatoes, sliced', '1 onion', '1 tsp allspice', '1/2 tsp cinnamon',
+      '4 cups broth', '3 tbsp oil', 'Toasted almonds', 'Yogurt to serve'
+    ],
+    steps: [
+      'Fry eggplant and cauliflower until golden. Brown chicken. Layer in pot: tomatoes, then vegetables, then chicken, then rice.',
+      'Pour spiced broth over to cover. Cook covered on medium-low for 35 minutes.',
+      'Remove from heat, rest 10 minutes, then flip upside-down onto platter. Garnish with almonds. Serve with yogurt.'
+    ]
+  },
+  {
+    id: 'static-me2-005',
+    name: 'Shakshuka with Merguez',
+    meal_type: 'Breakfast',
+    cuisine: 'North African',
+    ingredients: [
+      '4 eggs', '200g merguez sausage, sliced', '1 can crushed tomatoes', '1 onion', '2 peppers',
+      '3 cloves garlic', '1 tsp cumin', '1 tsp paprika', '1/2 tsp harissa', '2 tbsp olive oil',
+      'Feta', 'Parsley', 'Crusty bread'
+    ],
+    steps: [
+      'Brown merguez in oil. Remove. Fry onion, peppers, and garlic. Add tomatoes, spices, and harissa.',
+      'Simmer sauce 10 minutes. Return sausage. Make wells, crack eggs in.',
+      'Cover, cook 6–8 minutes. Scatter feta and parsley. Serve with bread.'
+    ]
+  },
+
+  // ─── EUROPEAN (extra) ────────────────────────────────────────────────────
+  {
+    id: 'static-eu-001',
+    name: 'Moussaka',
+    meal_type: 'Main',
+    cuisine: 'Greek',
+    ingredients: [
+      '2 large eggplants, sliced', '400g lamb or beef mince', '1 can crushed tomatoes',
+      '1 onion', '3 cloves garlic', '1/2 cup red wine', '1 tsp cinnamon', '1/2 tsp allspice',
+      'Béchamel: 2 tbsp butter, 2 tbsp flour, 2 cups milk, 1 egg yolk, nutmeg, parmesan',
+      '3 tbsp olive oil', 'Salt'
+    ],
+    steps: [
+      'Grill eggplant slices until soft. Make meat sauce: fry onion, garlic, mince; add wine, tomatoes, spices. Simmer 20 minutes.',
+      'Make béchamel: whisk butter-flour roux with milk until thick. Season with nutmeg, add egg yolk.',
+      'Layer: eggplant, meat sauce, eggplant. Top with béchamel. Bake at 180°C for 45 minutes until golden.'
+    ]
+  },
+  {
+    id: 'static-eu-002',
+    name: 'Coq au Vin',
+    meal_type: 'Main',
+    cuisine: 'French',
+    ingredients: [
+      '1 whole chicken, jointed', '1 bottle red wine', '200g lardons or bacon',
+      '200g mushrooms', '12 pearl onions', '3 cloves garlic', '2 tbsp tomato paste',
+      '2 tbsp flour', '3 tbsp oil', 'Thyme, bay leaf, parsley', 'Salt and pepper'
+    ],
+    steps: [
+      'Brown chicken in oil and butter. Remove. Fry lardons, pearl onions, and mushrooms.',
+      'Return chicken. Add flour, tomato paste, garlic, and wine. Add herbs.',
+      'Braise covered on low for 1.5 hours until chicken is tender and sauce is rich.'
+    ]
+  },
+  {
+    id: 'static-eu-003',
+    name: 'Wiener Schnitzel',
+    meal_type: 'Main',
+    cuisine: 'Austrian',
+    ingredients: [
+      '4 veal escalopes, pounded to 4mm', '1/2 cup flour', '2 eggs, beaten',
+      '1.5 cups fine breadcrumbs', 'Clarified butter or oil for frying',
+      'Salt', 'Lemon wedges', 'Lingonberry jam or potato salad to serve'
+    ],
+    steps: [
+      'Season veal. Coat in flour, then egg, then breadcrumbs. Do not press crumbs in.',
+      'Fry in shallow pool of hot clarified butter, tilting pan and spooning fat over, 2–3 minutes per side until golden.',
+      'Drain on paper. Serve immediately with lemon wedges.'
+    ]
+  },
+  {
+    id: 'static-eu-004',
+    name: 'Bouillabaisse',
+    meal_type: 'Main',
+    cuisine: 'French',
+    ingredients: [
+      '500g mixed fish (monkfish, snapper, cod)', '300g shellfish (mussels, shrimp)',
+      '2 tomatoes', '1 onion', '4 cloves garlic', '1/4 cup olive oil',
+      '1/2 cup dry white wine', '1 tsp saffron', '1 tsp fennel seeds',
+      'Orange zest', 'Bay leaf', 'Thyme', 'Rouille (garlic mayo) and baguette to serve'
+    ],
+    steps: [
+      'Make fish broth base: fry onion, garlic, tomatoes in oil. Add wine, saffron, fennel, orange zest, herbs, and 1.5L water. Simmer 20 minutes.',
+      'Add firmer fish first, then shellfish. Cook 8–10 minutes.',
+      'Strain broth into bowls first. Place seafood in separate dish. Serve with rouille-spread baguette croûtons.'
+    ]
+  },
+  {
+    id: 'static-eu-005',
+    name: 'Tzatziki',
+    meal_type: 'Snack',
+    cuisine: 'Greek',
+    ingredients: [
+      '500g thick Greek yogurt', '1 large cucumber, grated and squeezed dry',
+      '3 cloves garlic, minced', '2 tbsp olive oil', '1 tbsp red wine vinegar',
+      '2 tbsp fresh dill or mint', 'Salt', 'Pita bread and crudités to serve'
+    ],
+    steps: [
+      'Grate cucumber, squeeze out as much water as possible.',
+      'Mix yogurt, cucumber, garlic, olive oil, vinegar, and dill. Season with salt.',
+      'Chill 30 minutes. Serve with pita or as a sauce for grilled meats.'
+    ]
+  },
+  {
+    id: 'static-eu-006',
+    name: 'Boeuf Bourguignon',
+    meal_type: 'Main',
+    cuisine: 'French',
+    ingredients: [
+      '800g beef chuck, cubed', '1 bottle Burgundy red wine', '200g bacon lardons',
+      '200g mushrooms', '12 pearl onions', '2 carrots', '1 onion', '3 cloves garlic',
+      '2 tbsp tomato paste', '2 tbsp flour', '3 tbsp oil', 'Thyme, bay leaf', 'Salt'
+    ],
+    steps: [
+      'Brown beef and lardons. Fry vegetables. Add flour and tomato paste.',
+      'Add wine, garlic, and herbs. Braise covered at 160°C for 2.5–3 hours.',
+      'Add mushrooms and pearl onions in last 30 minutes. Serve with mashed potatoes or egg noodles.'
+    ]
+  },
+  {
+    id: 'static-eu-007',
+    name: 'Gazpacho',
+    meal_type: 'Lunch',
+    cuisine: 'Spanish',
+    ingredients: [
+      '1kg very ripe tomatoes', '1 cucumber, peeled', '1 red pepper', '1 small red onion',
+      '2 cloves garlic', '3 tbsp red wine vinegar', '4 tbsp olive oil',
+      '1 slice stale bread (soaked in water)', 'Salt', 'Ice cubes'
+    ],
+    steps: [
+      'Blend all ingredients until very smooth. Season with salt.',
+      'Pass through a sieve for super-smooth result.',
+      'Chill at least 2 hours or overnight. Serve cold with ice, garnished with diced cucumber and drizzle of oil.'
+    ]
+  },
+  {
+    id: 'static-eu-008',
+    name: 'Irish Beef Stew',
+    meal_type: 'Main',
+    cuisine: 'Irish',
+    ingredients: [
+      '700g beef chuck, cubed', '3 potatoes, chunked', '2 carrots, chunked', '2 parsnips',
+      '1 onion', '2 cloves garlic', '500ml Guinness or dark beer', '1 cup broth',
+      '1 tbsp tomato paste', '1 tbsp flour', '2 tbsp oil', 'Thyme', 'Parsley', 'Salt'
+    ],
+    steps: [
+      'Brown beef in batches. Fry onion and garlic. Add flour and tomato paste.',
+      'Deglaze with Guinness, add broth, vegetables, and thyme.',
+      'Simmer covered 1.5–2 hours until beef is tender. Serve in bowls with crusty bread.'
+    ]
+  },
+  {
+    id: 'static-eu-009',
+    name: 'Spanakopita Mini Triangles',
+    meal_type: 'Snack',
+    cuisine: 'Greek',
+    ingredients: [
+      '8 sheets phyllo pastry', '300g spinach, blanched and squeezed dry',
+      '200g feta, crumbled', '2 eggs', '1/4 cup dill', '1 onion, diced and sautéed',
+      '4 tbsp olive oil', 'Salt and pepper'
+    ],
+    steps: [
+      'Mix spinach, feta, eggs, dill, and sautéed onion. Season.',
+      'Cut phyllo into strips, brush with oil. Place filling at one end, fold into triangles flag-style.',
+      'Bake at 190°C for 20–25 minutes until golden and crisp.'
+    ]
+  },
+  {
+    id: 'static-eu-010',
+    name: 'Crème Brûlée',
+    meal_type: 'Dessert',
+    cuisine: 'French',
+    ingredients: [
+      '500ml heavy cream', '5 egg yolks', '100g sugar', '1 vanilla bean (or 1 tsp extract)',
+      '4 tbsp caster sugar (for caramel topping)'
+    ],
+    steps: [
+      'Heat cream with vanilla until simmering. Whisk yolks and sugar until pale, slowly add hot cream.',
+      'Strain into ramekins. Bake in water bath at 160°C for 30–35 minutes until just set with a wobble.',
+      'Chill at least 2 hours. Sprinkle caster sugar over each, torch or broil until caramel crust forms.'
+    ]
+  },
+  {
+    id: 'static-eu-011',
+    name: 'Beef Wellington',
+    meal_type: 'Main',
+    cuisine: 'British',
+    ingredients: [
+      '600g beef fillet, centre cut', '200g mushrooms, finely chopped (duxelles)',
+      '6 slices prosciutto', '1 sheet puff pastry', '2 tbsp Dijon mustard',
+      '2 tbsp butter', '1 egg yolk', 'Salt and pepper'
+    ],
+    steps: [
+      'Sear beef all over, brush with mustard, cool. Cook mushroom duxelles until completely dry.',
+      'Lay prosciutto on film, spread duxelles, wrap beef tightly. Chill 30 minutes.',
+      'Wrap in puff pastry, seal, egg wash. Bake at 210°C for 25 minutes for medium-rare. Rest 10 minutes.'
+    ]
+  },
+  {
+    id: 'static-eu-012',
+    name: 'Köfte',
+    meal_type: 'Main',
+    cuisine: 'Turkish',
+    ingredients: [
+      '500g lamb and beef mince mixed', '1 onion, grated', '1/4 cup parsley, chopped',
+      '1 tsp cumin', '1 tsp sumac', '1/2 tsp allspice', '1 tsp salt', '1/2 tsp black pepper',
+      'Pita, tomato, onion, and yogurt to serve'
+    ],
+    steps: [
+      'Mix all ingredients by hand until paste-like. Chill 30 minutes.',
+      'Shape into ovals or flat patties. Grill or pan-fry 3–4 minutes per side.',
+      'Serve in pita with sliced tomato, onion, and yogurt sauce.'
+    ]
+  },
+  {
+    id: 'static-eu-013',
+    name: 'Profiteroles',
+    meal_type: 'Dessert',
+    cuisine: 'French',
+    ingredients: [
+      'Choux: 125ml water, 55g butter, 70g flour, 2 eggs, pinch salt',
+      'Filling: 300ml double cream, whipped, 1 tbsp icing sugar',
+      'Chocolate sauce: 100g dark chocolate + 100ml cream'
+    ],
+    steps: [
+      'Boil water with butter, add flour all at once, stir until dough pulls from sides. Cool 5 minutes. Beat in eggs one at a time.',
+      'Pipe walnut-sized balls onto baking parchment. Bake at 200°C for 22 minutes. Cool. Slit and fill with cream.',
+      'Pour warm chocolate sauce over assembled profiteroles.'
+    ]
   }
 ];

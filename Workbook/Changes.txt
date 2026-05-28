@@ -1,1 +1,22 @@
+BUGS TO FIX. 
+-------------
+Note that any type of fish, nor any type of seafood is NOT Vegetarian.
+When in the weekly/smart meal prep menu, the recipe cards should open up on top of the translucent menu, not in the background
+Recipe share links are not working. When the link is opened, it just goes straight to the pantry page.
 
+
+
+
+-------------------------------------------
+
+FEATURES TO ADD:
+-------------------
+Add a feature to convert meat dishes into vegetarian, and vegetarian dishes into meat dishes.
+All recipes should be converted according to dietary needs. If the user has selected vegetarian in the settings, convert meat dishes into vegetarian dishes using things like tofu, paneer, or whatever is the best fit, do research. If the user selects kosher, or dairy free, or whatever else, tweak every recipe to fit to the users dietary restrictions.
+Add 100 recipes per cuisine, search the internet for it
+The shopping suggestions should have their own filters, the exact same ones from the saved recipes and the recipe suggestions pages, in the same format (3 separate sets of filters)
+
+
+AFTER YOU GET HERE, GO THROUGH THE WHOLE FILE AND MAKE SURE YOU'VE IMPLEMENTED EACH AND EVERY THING LISTED IN FILE PROPERLY.
+DO NOT CLEAR THIS FILE.
+PUSH TO GIT

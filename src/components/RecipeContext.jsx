@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
 import {
@@ -166,13 +166,20 @@ export const RecipeProvider = ({ children, fridge }) => {
 
   useEffect(() => { loadRecipes(); }, [loadRecipes]);
 
-  // Deep Linking logic: auto-open recipe from URL
+  // Deep Linking logic: capture recipe ID at mount (before auth can modify the URL)
+  const pendingDeepLinkId = useRef(
+    new URLSearchParams(window.location.search).get('recipe') ||
+    sessionStorage.getItem('_pendingRecipeId') ||
+    null
+  );
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const recipeId = params.get('recipe');
-    if (recipeId && masterRecipes.length > 0) {
-      const match = masterRecipes.find(r => String(r.id) === recipeId);
-      if (match) setActiveModalRecipe(match);
+    if (!pendingDeepLinkId.current || masterRecipes.length === 0) return;
+    const match = masterRecipes.find(r => String(r.id) === pendingDeepLinkId.current);
+    if (match) {
+      setActiveModalRecipe(match);
+      pendingDeepLinkId.current = null;
+      sessionStorage.removeItem('_pendingRecipeId');
     }
   }, [masterRecipes]);
 
@@ -308,6 +315,45 @@ export const RecipeProvider = ({ children, fridge }) => {
     }
   };
 
+  const adaptRecipe = async (recipe, targetDiet) => {
+    const substitutes = {
+      vegetarian: 'tofu, paneer, tempeh, chickpeas, lentils, mushrooms, jackfruit, cauliflower, or black beans',
+      vegan: 'tofu, tempeh, chickpeas, lentils, mushrooms, jackfruit, oat milk, coconut cream, or flaxseed eggs',
+      meat: 'chicken breast, beef mince, lamb, or pork',
+    };
+    const dietLabels = {
+      vegetarian: 'vegetarian (no meat or fish)',
+      vegan: 'fully vegan (no meat, fish, dairy, or eggs)',
+      meat: 'meat-based (add appropriate protein)',
+      'gluten-free': 'gluten-free (replace wheat/flour/pasta with rice flour, cornstarch, or gluten-free pasta)',
+      'dairy-free': 'dairy-free (replace dairy with oat milk, coconut cream, or vegan butter)',
+      halal: 'halal (remove pork and non-halal meat, use halal substitutes)',
+      kosher: 'kosher (no pork, no shellfish, no mixing of meat and dairy)',
+    };
+    const label = dietLabels[targetDiet] || targetDiet;
+    const sub = substitutes[targetDiet] || '';
+    const prompt = `Convert this recipe to be ${label}.${sub ? ` Use ${sub} where appropriate.` : ''} Keep the same flavor profile and cooking style as much as possible. Original recipe:\n\nName: ${recipe.name}\nIngredients: ${(recipe.ingredients || []).join(', ')}\nSteps: ${(recipe.steps || []).join(' ')}\n\nReturn ONLY valid JSON with exactly these keys: {"recipeName": string, "ingredients": string[], "steps": string[]}`;
+    const res = await fetch('/.netlify/functions/scan-receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customPrompt: prompt, directMode: true }),
+    });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const text = await res.text();
+    const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
+    const newIngredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : recipe.ingredients;
+    return {
+      ...recipe,
+      id: `adapted-${Date.now()}`,
+      name: parsed.recipeName || `${recipe.name} (${targetDiet})`,
+      ingredients: newIngredients,
+      cleanedIngredients: newIngredients.map(cleanIngredientLocally).filter(Boolean),
+      steps: Array.isArray(parsed.steps) ? parsed.steps : recipe.steps,
+      _adapted: true,
+      _adaptedFor: targetDiet,
+    };
+  };
+
   const generateMealPlan = async (ingredients) => {
     const ingredientList = (ingredients || (fridge || []).map(i => i.raw_name)).filter(Boolean).slice(0, 30);
     setActiveMealPlan(null);
@@ -424,6 +470,7 @@ export const RecipeProvider = ({ children, fridge }) => {
       handleGenerateAiRecipe,
       onSaveRecipe,
       onRemoveSavedRecipe,
+      adaptRecipe,
       activeModalRecipe,
       setActiveModalRecipe: (val) => setActiveModalRecipe(val || null),
       multiplier,

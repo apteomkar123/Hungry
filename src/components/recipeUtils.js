@@ -97,8 +97,8 @@ export const recipeCategoryMatches = (recipe, patterns) => {
 };
 
 // Word-boundary patterns prevent false positives: "graham" won't match "ham", "butternut" won't match "butter"
-const MEAT_PATTERN = /\b(chicken|beef|pork|lamb|turkey|bacon|sausage|ham|veal|duck|venison|mutton|meat|meatball|mincemeat|mince|pepperoni|salami|anchovies|anchovy|prawn|brisket|chorizo|lard|suet|gelatin)\b/;
-const FISH_PATTERN = /\b(fish|salmon|tuna|shrimp|crab|lobster|anchovies|anchovy|trout|cod|seafood|tilapia|halibut|sardine|prawn|mussel|clam|oyster|scallop|squid|calamari|eel)\b/;
+const MEAT_PATTERN = /\b(chicken|beef|pork|lamb|turkey|bacon|sausage|ham|veal|duck|venison|mutton|meat|meatball|mincemeat|mince|pepperoni|salami|brisket|chorizo|lard|suet|gelatin)\b/;
+const FISH_PATTERN = /\b(fish|salmon|tuna|shrimp|crab|lobster|anchovies|anchovy|trout|cod|seafood|tilapia|halibut|sardine|prawn|mussel|clam|oyster|scallop|squid|calamari|eel|mackerel|herring|catfish|swordfish|snapper|bass|grouper|haddock|mahi|pollock|carp|kingfish|pomfret|hilsa|bream|perch|plaice|flounder|sole|turbot|monkfish|sea bass|red snapper|barramundi|whitefish|cockle|whelk|abalone|octopus|langoustine|crawfish|crayfish)\b/;
 // Plant milks/creams are excluded from the non-vegan check
 const PLANT_BASE = /\b(oat|coconut|soy|almond|rice|cashew|hemp|macadamia|hazelnut)\b/;
 const NON_VEGAN_PATTERN = /\b(egg|eggs|milk|butter|cheese|cream|yogurt|honey|gelatin|paneer|whey|lard|suet|casein|lactose|rennet)\b/;
@@ -110,7 +110,13 @@ const PORK_PATTERN = /\b(pork|ham|bacon|sausage|salami|pepperoni|chorizo|lard|pr
 const SHELLFISH_PATTERN = /\b(shrimp|crab|lobster|prawn|mussel|clam|oyster|scallop|crayfish)\b/;
 
 export const isRecipeVegan = (recipe) => {
-  return !(recipe.cleanedIngredients || []).some((ing) => {
+  const ings = recipe.cleanedIngredients || [];
+  // Fish and seafood are not vegan
+  if (ings.some(ing => {
+    if (/\b(broth|stock|powder|extract|flavor|flavour)\b/.test(ing)) return false;
+    return FISH_PATTERN.test(ing);
+  })) return false;
+  return !ings.some((ing) => {
     if (!NON_VEGAN_PATTERN.test(ing)) return false;
     // Allow plant-based milk/cream (oat milk, coconut cream, etc.)
     if (PLANT_BASE.test(ing) && /\b(milk|cream)\b/.test(ing)) return false;

@@ -212,6 +212,14 @@ Potato chips are still showing up under vegetables. Do better
 Meal prep feature when I go through AI recipe generator pulls up the meal plan in a tiny window at the bottom. It should take up the whole screen as a card, and then each meal plan should open a new card on top, and then each recipe in the meal plan should pull up its own card. Both the meal plan and recipes should be addable to the recipe list. Build a separate meal plan section on the saved recipe list
 The "Hungry" in the header is bleeding into the greeting, create more space.
 The recipes in the meal plans from the smart meal prep feature should open up as a normal recipe card. The meal prep plans should also be saveable to the list.
+There should be 3 filter categories for both suggested recipes and saved recipes: One with (Breakfast, Lunch, Dinner, Snack, Dessert), one with (Vegetarian, Vegan, Meat, Fish), and then one with all cuisines
+When scrolled down on the page, tapping at the very top should scroll back all the way to the top 
+Recipes in the weekly meal plans aren't openable, nor does the star feature work for them.
+The recipes created by the AI nutrition coach are not openable, nor does the star feature work for them
+Still no Indian dishes, and not a lot of vegetarian dishes. I want to have a massive databases of recipes from all over the world
+User should be able to ingredients to their pantry from recipes. For example, if the user has chilli powder, but forgot to add it to the pantry, but then see it in a recipe, they should be able to add it to the pantry through there.
+Add an extra sauces category in the pantry, and a spices category.
+
 
 
 
