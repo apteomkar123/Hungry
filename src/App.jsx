@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings } from 'lucide-react';
 import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic } from './components/recipeUtils';
 import Header from './components/Header';
@@ -52,6 +52,8 @@ function AppContent({ inventory }) {
     setSavedSearch,
     savedCategoryFilter,
     setSavedCategoryFilter,
+    savedDietFilter,
+    setSavedDietFilter,
     savedCuisineFilter,
     setSavedCuisineFilter,
     shoppingAlerts,
@@ -65,15 +67,17 @@ function AppContent({ inventory }) {
 
   const [activeTab, setActiveTab] = useState('pantry');
   const [isCookingMode, setIsCookingMode] = useState(false);
+  const mainRef = useRef(null);
+  const scrollToTop = useCallback(() => mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), []);
 
   const addedItems = new Set(shoppingList.map(i => cleanIngredientLocally(i.item_name)));
 
   return (
     <div className="h-[100dvh] flex flex-col bg-blue-50/50 text-slate-800 font-sans antialiased selection:bg-[#6BAEE0] selection:text-white overflow-hidden">
       {/* Scrollable area — Header sticky inside here */}
-      <main className="flex-1 overflow-y-auto w-full">
+      <main ref={mainRef} className="flex-1 overflow-y-auto w-full">
         <div className="w-full flex justify-center">
-          <Header />
+          <Header scrollToTop={scrollToTop} />
         </div>
         <div className="w-full flex justify-center px-4 sm:px-6 py-8">
           <div className="w-full max-w-5xl pb-4">
@@ -164,11 +168,22 @@ function AppContent({ inventory }) {
                     />
                   </div>
                   <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {['all', 'breakfast', 'lunch', 'dinner', 'snack', 'dessert', 'vegetarian', 'vegan'].map((f) => (
+                    {['all', 'breakfast', 'lunch', 'dinner', 'snack', 'dessert'].map((f) => (
                       <button
                         key={f}
                         onClick={() => setSavedCategoryFilter(f)}
                         className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedCategoryFilter === f ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-2">
+                    {['vegetarian', 'vegan', 'meat', 'fish'].map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setSavedDietFilter(savedDietFilter === f ? 'all' : f)}
+                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedDietFilter === f ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-emerald-200'}`}
                       >
                         {f}
                       </button>

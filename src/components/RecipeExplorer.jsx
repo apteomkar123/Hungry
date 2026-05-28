@@ -9,6 +9,8 @@ export default function RecipeExplorer() {
     setRecipeSearch,
     categoryFilter,
     setCategoryFilter,
+    dietFilter,
+    setDietFilter,
     cuisineFilter,
     setCuisineFilter,
     setActiveModalRecipe: onOpenRecipe,
@@ -16,7 +18,8 @@ export default function RecipeExplorer() {
     onRemoveSavedRecipe,
     savedRecipes
   } = useRecipes();
-  const filters = ['all', 'breakfast', 'lunch', 'dinner', 'snack', 'dessert', 'vegetarian', 'vegan', 'meat', 'fish'];
+  const mealTypeFilters = ['all', 'breakfast', 'lunch', 'dinner', 'snack', 'dessert'];
+  const dietFilters = ['vegetarian', 'vegan', 'meat', 'fish'];
   const cuisineFilters = ['indian', 'chinese', 'mexican', 'japanese', 'korean', 'jamaican', 'latin', 'african', 'mediterranean'];
 
   // Map<recipe_id_string → saved_record_pk_id> built once when savedRecipes changes
@@ -41,8 +44,15 @@ export default function RecipeExplorer() {
         </div>
         
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {filters.map((f) => (
+          {mealTypeFilters.map((f) => (
             <button key={f} onClick={() => setCategoryFilter(f)} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === f ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}>
+              {f}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-2">
+          {dietFilters.map((f) => (
+            <button key={f} onClick={() => setDietFilter(dietFilter === f ? 'all' : f)} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${dietFilter === f ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-emerald-200'}`}>
               {f}
             </button>
           ))}

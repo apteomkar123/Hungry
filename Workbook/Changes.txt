@@ -1,15 +1,1 @@
-BUGS TO FIX. 
--------------
 
-
-
-
-
--------------------------------------------
-
-FEATURES TO ADD:
--------------------
-
-
-AFTER YOU GET HERE, GO THROUGH THE WHOLE FILE AND MAKE SURE YOU'VE IMPLEMENTED EACH AND EVERY THING LISTED IN FILE PROPERLY
-PUSH TO GIT

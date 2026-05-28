@@ -3,7 +3,7 @@ import { LogOut, Sparkles, ShoppingBag, Loader2 } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
 
-export default function Header() {
+export default function Header({ scrollToTop }) {
   const { user, userName, handleSignOut } = useUser();
   const { setIsAiPickerOpen, triggerStoreTripPlanner, aiGenerating } = useRecipes();
   const [greeting] = useState(() => {
@@ -14,10 +14,10 @@ export default function Header() {
 
   return (
     <header className="bg-white border border-blue-100 rounded-[2.5rem] sticky top-4 mx-4 z-40 px-6 py-5 flex justify-between items-center w-[calc(100%-2rem)] max-w-6xl shadow-lg shadow-slate-200 backdrop-blur-xl">
-      <div>
+      <button onClick={scrollToTop} className="text-left active:opacity-70 transition-opacity">
         <h1 className="logo-text">Hungry</h1>
         <p className="text-slate-500 text-[11px] font-bold mt-2">{greeting}, <span className="text-[#1F6FB8]">{displayName}</span>!</p>
-      </div>
+      </button>
       <div className="flex items-center gap-3">
         <button
           onClick={() => setIsAiPickerOpen(true)}

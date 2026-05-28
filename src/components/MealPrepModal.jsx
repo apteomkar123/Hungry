@@ -16,7 +16,7 @@ export default function MealPrepModal() {
     prepLoading,
     savedMealPlans,
     saveMealPlan,
-    processedRecipes,
+    findRecipeByName,
     savedRecipes,
     onSaveRecipe,
     onRemoveSavedRecipe,
@@ -41,9 +41,19 @@ export default function MealPrepModal() {
   };
 
   const handleOpenRecipe = (recipeName) => {
-    const match = processedRecipes?.find(r => r.name.toLowerCase() === recipeName.toLowerCase());
+    const match = findRecipeByName(recipeName);
     if (match) {
       setActiveModalRecipe(match);
+    } else {
+      setActiveModalRecipe({
+        id: `plan-${Date.now()}`,
+        name: recipeName,
+        meal_type: 'Meal Plan Recipe',
+        cuisine: '',
+        ingredients: [],
+        cleanedIngredients: [],
+        steps: ['This recipe was suggested in your meal plan. Search for it in the Recipes tab for full details.']
+      });
     }
   };
 
@@ -52,8 +62,16 @@ export default function MealPrepModal() {
     if (savedEntry) {
       onRemoveSavedRecipe(savedEntry.id);
     } else {
-      const match = processedRecipes?.find(r => r.name.toLowerCase() === recipeName.toLowerCase());
-      if (match) onSaveRecipe(match);
+      const match = findRecipeByName(recipeName);
+      onSaveRecipe(match || {
+        id: `plan-${recipeName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`,
+        name: recipeName,
+        meal_type: 'Meal Plan Recipe',
+        cuisine: '',
+        ingredients: [],
+        cleanedIngredients: [],
+        steps: []
+      });
     }
   };
 
@@ -149,14 +167,12 @@ export default function MealPrepModal() {
                             <div className="space-y-2">
                               {batch.recipes.map((r, j) => {
                                 const savedEntry = savedRecipes?.find(sr => sr.recipe_name?.toLowerCase() === r.toLowerCase());
-                                const canOpen = processedRecipes?.some(rr => rr.name.toLowerCase() === r.toLowerCase());
                                 return (
                                   <div key={j} className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${c.bg} ${c.border}`}>
                                     <span className={`text-[11px] font-black ${c.accent} shrink-0 w-5`}>{j + 1}.</span>
                                     <button
-                                      className={`flex-1 text-left text-xs font-bold ${canOpen ? `${c.accent} hover:underline` : 'text-slate-700'}`}
+                                      className={`flex-1 text-left text-xs font-bold ${c.accent} hover:underline`}
                                       onClick={() => handleOpenRecipe(r)}
-                                      disabled={!canOpen}
                                     >
                                       {r}
                                     </button>

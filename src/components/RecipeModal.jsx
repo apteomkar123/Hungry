@@ -1,15 +1,32 @@
 import React, { useState, useMemo } from 'react';
-import { X, Share2, Play, RefreshCw, Plus } from 'lucide-react';
+import { X, Share2, Play, RefreshCw, Plus, Star } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { parseRecipeIngredientMeasurements, cleanIngredientLocally, estimateNutrition } from './recipeUtils';
 
 export default function RecipeModal({ onStartCooking, addedItems, onAddIngredient }) {
   const {
-    activeModalRecipe: recipe, 
-    multiplier, 
-    setMultiplier, 
-    setActiveModalRecipe: setModal 
+    activeModalRecipe: recipe,
+    multiplier,
+    setMultiplier,
+    setActiveModalRecipe: setModal,
+    savedRecipes,
+    onSaveRecipe,
+    onRemoveSavedRecipe,
   } = useRecipes();
+
+  const savedEntry = useMemo(
+    () => (savedRecipes || []).find(sr => sr.recipe_id === String(recipe?.id)),
+    [savedRecipes, recipe?.id]
+  );
+
+  const handleToggleStar = (e) => {
+    e.stopPropagation();
+    if (savedEntry) {
+      onRemoveSavedRecipe(savedEntry.id);
+    } else {
+      onSaveRecipe(recipe);
+    }
+  };
 
   const [substitutes, setSubstitutes] = useState({});
   const [loadingSub, setLoadingSub] = useState(null);
@@ -112,6 +129,12 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
             <h3 className="text-2xl font-black text-slate-800 tracking-tighter mt-2">{recipe.name}</h3>
           </div>
           <div className="flex gap-2">
+            <button
+              onClick={handleToggleStar}
+              className={`p-3 border rounded-2xl transition-colors ${savedEntry ? 'bg-amber-50 border-amber-200 text-amber-400' : 'bg-white border-blue-100 text-slate-300 hover:text-amber-400 hover:border-amber-200'}`}
+            >
+              <Star size={20} fill={savedEntry ? 'currentColor' : 'none'} />
+            </button>
             <button onClick={handleShare} className="p-3 bg-white border border-blue-100 rounded-2xl text-[#6BAEE0] hover:bg-sky-50 transition-colors"><Share2 size={20} /></button>
             <button onClick={() => setModal(null)} className="p-3 bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button>
           </div>

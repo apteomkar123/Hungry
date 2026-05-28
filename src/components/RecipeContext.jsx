@@ -9,6 +9,7 @@ import {
   matchesRecipeFilter,
   toTitleCase
 } from './recipeUtils';
+import { STATIC_RECIPES } from './staticRecipes';
 
 const RecipeContext = createContext();
 
@@ -27,9 +28,11 @@ export const RecipeProvider = ({ children, fridge }) => {
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [recipeSearch, setRecipeSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [dietFilter, setDietFilter] = useState('all');
   const [cuisineFilter, setCuisineFilter] = useState('all');
   const [savedSearch, setSavedSearch] = useState('');
   const [savedCategoryFilter, setSavedCategoryFilter] = useState('all');
+  const [savedDietFilter, setSavedDietFilter] = useState('all');
   const [savedCuisineFilter, setSavedCuisineFilter] = useState('all');
 
   // Debounced search states to prevent heavy filtering on every keystroke
@@ -128,7 +131,17 @@ export const RecipeProvider = ({ children, fridge }) => {
 
       const mealDbIds = new Set(mealDb.map(r => String(r.id)));
       const uniqueSpoonacular = spoonacular.filter(r => !mealDbIds.has(String(r.id)));
-      const combined = [...mealDb, ...uniqueSpoonacular];
+      const apiIds = new Set([...mealDb, ...uniqueSpoonacular].map(r => String(r.id)));
+      const staticProcessed = STATIC_RECIPES
+        .filter(r => !apiIds.has(String(r.id)))
+        .map(r => ({
+          ...r,
+          name: toTitleCase(r.name || ''),
+          ingredients: (r.ingredients || []).map(i => toTitleCase(i)),
+          cleanedIngredients: (r.ingredients || []).map(cleanIngredientLocally).filter(Boolean),
+          steps: r.steps || []
+        }));
+      const combined = [...mealDb, ...uniqueSpoonacular, ...staticProcessed];
 
       const normalized = combined.map(r => ({
         ...r,
@@ -247,13 +260,14 @@ export const RecipeProvider = ({ children, fridge }) => {
           return !s || r.name.toLowerCase().includes(s) || r.cleanedIngredients.some(i => i.includes(s));
         })
         .filter(r => matchesRecipeFilter(r, categoryFilter))
+        .filter(r => dietFilter === 'all' || matchesRecipeFilter(r, dietFilter))
         .filter(r => cuisineFilter === 'all' || matchesRecipeFilter(r, cuisineFilter))
         .filter(r => {
           const restrictions = userSettings?.dietary_restrictions || [];
           return restrictions.every(d => matchesRecipeFilter(r, d.toLowerCase()));
         })
         .sort((a, b) => b.matchPercentage - a.matchPercentage);
-    }, [fridge, masterRecipes, debouncedRecipeSearch, categoryFilter, cuisineFilter, userSettings]);
+    }, [fridge, masterRecipes, debouncedRecipeSearch, categoryFilter, dietFilter, cuisineFilter, userSettings]);
 
   const triggerStoreTripPlanner = useCallback(() => {
     const pantryTokens = (fridge || []).map(f => f.item_name).filter(Boolean);
@@ -347,38 +361,61 @@ export const RecipeProvider = ({ children, fridge }) => {
         const normalized = {
           meal_type: r.meal_type,
           name: r.recipe_name,
-          cuisine: '',
+          cuisine: r.meal_type || '',
           cleanedIngredients: r.ingredients ? r.ingredients.map(cleanIngredientLocally) : []
         };
         return matchesRecipeFilter(normalized, savedCategoryFilter);
+      })
+      .filter(r => {
+        if (savedDietFilter === 'all') return true;
+        const normalized = {
+          meal_type: r.meal_type,
+          name: r.recipe_name,
+          cuisine: r.meal_type || '',
+          cleanedIngredients: r.ingredients ? r.ingredients.map(cleanIngredientLocally) : []
+        };
+        return matchesRecipeFilter(normalized, savedDietFilter);
       })
       .filter(r => {
         if (savedCuisineFilter === 'all') return true;
         const normalized = {
           meal_type: r.meal_type,
           name: r.recipe_name,
-          cuisine: '',
+          cuisine: r.meal_type || '',
           cleanedIngredients: r.ingredients ? r.ingredients.map(cleanIngredientLocally) : []
         };
         return matchesRecipeFilter(normalized, savedCuisineFilter);
       });
-  }, [savedRecipes, debouncedSavedSearch, savedCategoryFilter, savedCuisineFilter]);
+  }, [savedRecipes, debouncedSavedSearch, savedCategoryFilter, savedDietFilter, savedCuisineFilter]);
+
+  const findRecipeByName = useCallback((name) => {
+    const lower = name.toLowerCase();
+    return masterRecipes.find(r => r.name.toLowerCase() === lower)
+      || masterRecipes.find(r => r.name.toLowerCase().includes(lower))
+      || masterRecipes.find(r => lower.includes(r.name.toLowerCase()));
+  }, [masterRecipes]);
 
   return (
     <RecipeContext.Provider value={{
+      masterRecipes,
       processedRecipes,
+      findRecipeByName,
       savedRecipes,
       filteredSavedRecipes,
       recipeSearch,
       setRecipeSearch,
       categoryFilter,
       setCategoryFilter,
+      dietFilter,
+      setDietFilter,
       cuisineFilter,
       setCuisineFilter,
       savedSearch,
       setSavedSearch,
       savedCategoryFilter,
       setSavedCategoryFilter,
+      savedDietFilter,
+      setSavedDietFilter,
       savedCuisineFilter,
       setSavedCuisineFilter,
       aiGenerating,
