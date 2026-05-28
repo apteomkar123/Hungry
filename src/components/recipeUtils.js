@@ -341,13 +341,16 @@ export const CATEGORY_ICONS = {
   'Beverages': '☕',
   'Snacks': '🍿',
   'Frozen': '🧊',
+  'Sauces': '🫙',
+  'Spices': '🌶️',
   'General': '📦',
 };
 
-export const CATEGORY_ORDER = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Beverages', 'Snacks', 'Frozen', 'General'];
+export const CATEGORY_ORDER = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Beverages', 'Snacks', 'Frozen', 'Sauces', 'Spices', 'General'];
 
 // Frozen checked FIRST — "Frozen Chicken" must be Frozen, not Proteins
 // Snacks checked before Vegetables — "potato chips" must be Snacks not Vegetables
+// Spices/Sauces checked before Vegetables — "chili powder" must be Spices, not Vegetables
 // eggs? covers both "egg" and "eggs"
 const _categorizeItemImpl = (n) => {
   if (/\b(frozen|ice cream|gelato|popsicle|sorbet)\b/.test(n)) return 'Frozen';
@@ -356,6 +359,8 @@ const _categorizeItemImpl = (n) => {
   if (/\b(apple|banana|orange|mango|grape|strawberry|blueberry|raspberry|blackberry|lemon|lime|pear|peach|plum|cherry|watermelon|melon|pineapple|kiwi|avocado|fig|date|papaya|guava|coconut|pomegranate|passion fruit)\b/.test(n)) return 'Fruits';
   if (/\b(water|juice|soda|tea|coffee|beer|wine|spirit|whiskey|vodka|rum|gin|drink|beverage|smoothie|shake|cola|lemonade|kombucha|sparkling)\b/.test(n)) return 'Beverages';
   if (/\b(chip|crisp|cracker|cookie|biscuit|candy|chocolate|popcorn|pretzel|almond|cashew|walnut|peanut|pistachio|trail mix|granola|protein bar|rice cake|snack|nut)\b/.test(n)) return 'Snacks';
+  if (/\b(ketchup|mustard|mayo|mayonnaise|hot sauce|soy sauce|oyster sauce|fish sauce|teriyaki|worcestershire|hoisin|tahini|sriracha|pesto|harissa|miso|tomato paste|tamarind|vinegar|aioli|ranch|pasta sauce|marinara|alfredo|bbq sauce|barbecue sauce|coconut aminos|chili sauce|salsa|dressing|relish|chutney|olive oil|vegetable oil|sesame oil|coconut oil|canola oil)\b/.test(n)) return 'Sauces';
+  if (/\b(cumin|coriander powder|turmeric|paprika|cardamom|cinnamon|cloves?|oregano|thyme|rosemary|allspice|nutmeg|saffron|cayenne|fenugreek|sumac|caraway|star anise|bay leaves?|garam masala|mixed spice|five.?spice|ras el hanout|berbere|za.?atar|italian seasoning|curry powder|chili powder|chili flakes?|red pepper flakes?|black pepper|white pepper|mustard seed|fennel seed|coriander seed|cumin seed|onion powder|garlic powder|celery salt|smoked paprika|chaat masala|biryani masala|tandoori masala|peri.?peri|jerk seasoning|old bay|seasoning|spice mix)\b/.test(n)) return 'Spices';
   if (/\b(carrot|potato|tomato|onion|garlic|spinach|broccoli|cauliflower|lettuce|cabbage|cucumber|pepper|celery|kale|zucchini|eggplant|mushroom|corn|pea|bean|lentil|asparagus|beetroot|radish|leek|okra|squash|yam|ginger|turmeric|chili|capsicum|chard|arugula|herb|cilantro|parsley|basil|mint)\b/.test(n)) return 'Vegetables';
   return 'General';
 };

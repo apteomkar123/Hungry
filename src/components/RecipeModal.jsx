@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { X, Share2, Play, RefreshCw, Plus, Star } from 'lucide-react';
+import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { parseRecipeIngredientMeasurements, cleanIngredientLocally, estimateNutrition } from './recipeUtils';
 
-export default function RecipeModal({ onStartCooking, addedItems, onAddIngredient }) {
+export default function RecipeModal({ onStartCooking, addedItems, onAddIngredient, onAddToPantry }) {
   const {
     activeModalRecipe: recipe,
     multiplier,
@@ -12,7 +12,21 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     savedRecipes,
     onSaveRecipe,
     onRemoveSavedRecipe,
+    fridge,
   } = useRecipes();
+
+  const [pantryAdded, setPantryAdded] = useState(new Set());
+
+  const pantryItemsSet = useMemo(
+    () => new Set((fridge || []).map(f => cleanIngredientLocally(f.raw_name || f.item_name || ''))),
+    [fridge]
+  );
+
+  const handleAddToPantry = (ing) => {
+    const cleaned = cleanIngredientLocally(ing);
+    onAddToPantry(cleaned);
+    setPantryAdded(prev => { const s = new Set(prev); s.add(ing); return s; });
+  };
 
   const savedEntry = useMemo(
     () => (savedRecipes || []).find(sr => sr.recipe_id === String(recipe?.id)),
@@ -149,7 +163,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-slate-700">{substitutes[ing] || parseRecipeIngredientMeasurements(ing, multiplier)}</span>
                     <div className="flex items-center gap-2">
-                      <button 
+                      <button
                         onClick={() => getSubstitution(ing)}
                         className="text-[10px] text-sky-400 hover:text-[#6BAEE0]"
                         disabled={loadingSub === ing}
@@ -157,7 +171,14 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
                         <RefreshCw size={12} className={loadingSub === ing ? 'animate-spin' : ''} />
                       </button>
                       {!addedItems?.has(cleanIngredientLocally(ing)) && (
-                        <button onClick={() => onAddIngredient(cleanIngredientLocally(ing))} className="bg-sky-50 text-[#6BAEE0] p-1 rounded-md"><Plus size={12} /></button>
+                        <button onClick={() => onAddIngredient(cleanIngredientLocally(ing))} className="bg-sky-50 text-[#6BAEE0] p-1 rounded-md" title="Add to shopping list"><Plus size={12} /></button>
+                      )}
+                      {onAddToPantry && (
+                        pantryAdded.has(ing) || pantryItemsSet.has(cleanIngredientLocally(ing)) ? (
+                          <span className="bg-emerald-50 text-emerald-400 p-1 rounded-md"><Check size={12} /></span>
+                        ) : (
+                          <button onClick={() => handleAddToPantry(ing)} className="bg-emerald-50 text-emerald-500 p-1 rounded-md hover:bg-emerald-100 transition-colors" title="Add to pantry"><Refrigerator size={12} /></button>
+                        )
                       )}
                     </div>
                   </div>

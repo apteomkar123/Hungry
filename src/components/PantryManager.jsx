@@ -3,7 +3,7 @@ import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User, GripV
 import { Html5Qrcode } from 'html5-qrcode';
 import { estimateNutrition, categorizeItem, CATEGORY_ICONS } from './recipeUtils';
 
-const CATEGORIES = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Beverages', 'Snacks', 'Frozen', 'General'];
+const CATEGORIES = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Beverages', 'Snacks', 'Frozen', 'Sauces', 'Spices', 'General'];
 
 const CATEGORY_COLORS = {
   'Proteins': 'bg-rose-50 text-rose-500 border-rose-100',
@@ -13,6 +13,8 @@ const CATEGORY_COLORS = {
   'Beverages': 'bg-cyan-50 text-cyan-500 border-cyan-100',
   'Snacks': 'bg-orange-50 text-orange-500 border-orange-100',
   'Frozen': 'bg-sky-50 text-sky-500 border-sky-100',
+  'Sauces': 'bg-red-50 text-red-500 border-red-100',
+  'Spices': 'bg-violet-50 text-violet-500 border-violet-100',
   'General': 'bg-slate-50 text-slate-400 border-slate-100',
 };
 

@@ -252,6 +252,7 @@ function AppContent({ inventory }) {
           onStartCooking={() => setIsCookingMode(true)}
           addedItems={addedItems}
           onAddIngredient={handleAddShoppingItem}
+          onAddToPantry={handleAddManualItem}
         />
       )}
 
