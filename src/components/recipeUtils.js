@@ -105,7 +105,7 @@ export const isRecipeEgg = (recipe) => {
 
 const cuisineMatch = (recipe, ...areas) => {
   const c = (recipe.cuisine || '').toLowerCase();
-  return areas.includes(c);
+  return areas.some(a => c.includes(a));
 };
 
 export const matchesRecipeFilter = (recipe, filter) => {

@@ -50,8 +50,10 @@ export const handler = async (event) => {
       return {
         id: `spoon-${r.id}`,
         name: r.title || '',
-        meal_type: (r.dishTypes && r.dishTypes[0]) || 'General',
-        cuisine: (r.cuisines && r.cuisines[0]) || '',
+        // Join ALL dish types and diets so every filter can match
+        meal_type: [...(r.dishTypes || []), ...(r.diets || [])].join(' ') || 'General',
+        // Join ALL cuisines so multi-cuisine recipes match any of them
+        cuisine: (r.cuisines || []).join(' ').toLowerCase() || '',
         ingredients,
         steps: steps.length > 0 ? steps : ['Follow the ingredient list to prepare this dish.'],
         image: r.image || ''

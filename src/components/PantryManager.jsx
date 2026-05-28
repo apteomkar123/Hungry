@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User, ChevronDown } from 'lucide-react';
+import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User, ChevronDown, Ban } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
+import { useRecipes } from './RecipeContext';
 
 const CATEGORIES = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Beverages', 'Snacks', 'Frozen', 'General'];
 
@@ -34,6 +35,7 @@ export default function PantryManager({
   barcodeInput, setBarcodeInput, handleBarcodeLookup,
   barcodeLoading, barcodeResult, isScanningBarcode, setIsScanningBarcode
 }) {
+  const { aiExclusions, toggleAiExclusion } = useRecipes();
   const [manualItem, setManualItem] = useState('');
   const [selectedHouseholdId, setSelectedHouseholdId] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -211,7 +213,12 @@ export default function PantryManager({
       {/* Pantry Stock — organized by category */}
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
         <div className="flex justify-between items-center mb-6 px-2">
-          <h2 className="text-[14px] font-bold text-slate-400">Pantry Stock</h2>
+          <div>
+            <h2 className="text-[14px] font-bold text-slate-400">Pantry Stock</h2>
+            {aiExclusions.size > 0 && (
+              <p className="text-[10px] text-orange-400 font-bold mt-0.5">{aiExclusions.size} item{aiExclusions.size !== 1 ? 's' : ''} excluded from AI recipes</p>
+            )}
+          </div>
           <span className="bg-blue-50 text-[#6BAEE0] border border-blue-100 px-3 py-1 rounded-full text-[10px] font-black">{fridge.length} items</span>
         </div>
 
@@ -241,7 +248,7 @@ export default function PantryManager({
                   {isOpen && (
                     <div className="divide-y divide-blue-50/60">
                       {items.map((item) => (
-                        <div key={item.id} className="bg-white px-4 py-3 flex items-center justify-between gap-4 group hover:bg-blue-50/20 transition-colors">
+                        <div key={item.id} className={`px-4 py-3 flex items-center justify-between gap-4 group hover:bg-blue-50/20 transition-colors ${aiExclusions.has(item.item_name) ? 'bg-orange-50/40 opacity-60' : 'bg-white'}`}>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <input
@@ -278,6 +285,13 @@ export default function PantryManager({
                               )}
                             </div>
                           </div>
+                          <button
+                            onClick={() => toggleAiExclusion(item.item_name)}
+                            title={aiExclusions.has(item.item_name) ? 'Include in AI recipes' : 'Exclude from AI recipes'}
+                            className={`p-1 shrink-0 transition-colors ${aiExclusions.has(item.item_name) ? 'text-orange-400' : 'text-slate-200 hover:text-orange-300'}`}
+                          >
+                            <Ban size={14} />
+                          </button>
                           <button onClick={() => handleRemoveItem(item.id)} className="text-slate-200 hover:text-red-400 transition-colors p-1 shrink-0"><Trash2 size={15} /></button>
                         </div>
                       ))}

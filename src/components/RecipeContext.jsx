@@ -30,6 +30,7 @@ export const RecipeProvider = ({ children, fridge }) => {
   const [debouncedSavedSearch, setDebouncedSavedSearch] = useState('');
 
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiExclusions, setAiExclusions] = useState(new Set());
   const [activeModalRecipe, setActiveModalRecipe] = useState(null);
   const [multiplier, setMultiplier] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -129,8 +130,20 @@ export const RecipeProvider = ({ children, fridge }) => {
     }
   }, [masterRecipes]);
 
+  const toggleAiExclusion = useCallback((itemName) => {
+    setAiExclusions(prev => {
+      const next = new Set(prev);
+      if (next.has(itemName)) next.delete(itemName);
+      else next.add(itemName);
+      return next;
+    });
+  }, []);
+
   const handleGenerateAiRecipe = async () => {
-    const pantry = (fridge || []).map(f => cleanIngredientLocally(f.item_name)).filter(Boolean);
+    const pantry = (fridge || [])
+      .filter(f => !aiExclusions.has(f.item_name))
+      .map(f => cleanIngredientLocally(f.item_name))
+      .filter(Boolean);
     if (pantry.length === 0) return alert("Add items to your pantry first so AI knows what you have.");
 
     setAiGenerating(true);
@@ -285,6 +298,8 @@ export const RecipeProvider = ({ children, fridge }) => {
       savedFilter,
       setSavedFilter,
       aiGenerating,
+      aiExclusions,
+      toggleAiExclusion,
       handleGenerateAiRecipe,
       onSaveRecipe,
       onRemoveSavedRecipe,

@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { X, Share2, Play, RefreshCw, Plus } from 'lucide-react';
-import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
 import { parseRecipeIngredientMeasurements, cleanIngredientLocally } from './recipeUtils';
 
 export default function RecipeModal({ onStartCooking, addedItems, onAddIngredient }) {
-  const { household } = useUser();
-  const { 
+  const {
     activeModalRecipe: recipe, 
     multiplier, 
     setMultiplier, 
@@ -17,14 +15,11 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   const [loadingSub, setLoadingSub] = useState(null);
 
   const handleShare = async () => {
-    const householdParam = household?.id ? `&hh=${household.id}` : '';
-    const shareUrl = `${window.location.origin}?recipe=${recipe.id}${householdParam}`;
+    const shareUrl = `${window.location.origin}?recipe=${recipe.id}`;
 
     const shareData = {
       title: `Hungry: ${recipe.name}`,
-      text: household?.name 
-        ? `Check out this ${recipe.name} recipe from our ${household.name} kitchen!` 
-        : `I found this amazing ${recipe.name} recipe on Hungry!`,
+      text: `I found this amazing ${recipe.name} recipe on Hungry!`,
       url: shareUrl,
     };
     try {
