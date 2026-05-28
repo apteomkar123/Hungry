@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Search, Filter, Star } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 
@@ -18,6 +18,12 @@ export default function RecipeExplorer() {
   } = useRecipes();
   const filters = ['all', 'breakfast', 'lunch', 'dinner', 'snack', 'dessert', 'vegetarian', 'vegan', 'meat', 'fish'];
   const cuisineFilters = ['indian', 'chinese', 'mexican', 'japanese', 'korean', 'jamaican', 'latin', 'african', 'mediterranean'];
+
+  // Map<recipe_id_string → saved_record_pk_id> built once when savedRecipes changes
+  const savedRecipesMap = useMemo(
+    () => new Map((savedRecipes || []).map(sr => [sr.recipe_id, sr.id])),
+    [savedRecipes]
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -74,19 +80,16 @@ export default function RecipeExplorer() {
               <div className="h-1.5 flex-1 bg-blue-50 rounded-full overflow-hidden mr-4">
                 <div className="h-full bg-[#6BAEE0]/60 rounded-full transition-all duration-1000" style={{ width: `${recipe.matchPercentage}%` }} />
               </div>
-              <button 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  const savedRecord = savedRecipes?.find(sr => sr.recipe_id === String(recipe.id));
-                  if (savedRecord) {
-                    onRemoveSavedRecipe(savedRecord.id);
-                  } else {
-                    onSaveRecipe(recipe);
-                  }
-                }} 
-                className={`transition-colors ${savedRecipes?.some(sr => sr.recipe_id === String(recipe.id)) ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}`}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const pkId = savedRecipesMap.get(String(recipe.id));
+                  if (pkId) onRemoveSavedRecipe(pkId);
+                  else onSaveRecipe(recipe);
+                }}
+                className={`transition-colors ${savedRecipesMap.has(String(recipe.id)) ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}`}
               >
-                <Star size={18} fill={savedRecipes?.some(sr => sr.recipe_id === String(recipe.id)) ? "currentColor" : "none"} />
+                <Star size={18} fill={savedRecipesMap.has(String(recipe.id)) ? "currentColor" : "none"} />
               </button>
             </div>
           </div>

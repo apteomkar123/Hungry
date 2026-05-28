@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User, GripVertical, ChevronRight, Mic, MicOff, UtensilsCrossed, Check } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { estimateNutrition, categorizeItem, CATEGORY_ICONS } from './recipeUtils';
@@ -495,20 +495,22 @@ export default function PantryManager({
   };
 
   // Enrich fridge items with local-only fields
-  const enrichedFridge = fridge.map(item => ({
+  const enrichedFridge = useMemo(() => fridge.map(item => ({
     ...item,
     amount: amounts[item.id] || '',
     categoryOverride: categoryOverrides[item.id] || null,
-  }));
+  })), [fridge, amounts, categoryOverrides]);
 
-  const groupedFridge = CATEGORIES.reduce((acc, cat) => {
-    acc[cat] = enrichedFridge.filter(item => getEffectiveCategory(item) === cat);
+  const groupedFridge = useMemo(() => CATEGORIES.reduce((acc, cat) => {
+    acc[cat] = enrichedFridge.filter(item =>
+      (categoryOverrides[item.id] || categorizeItem(item.raw_name || item.item_name || '')) === cat
+    );
     return acc;
-  }, {});
+  }, {}), [enrichedFridge, categoryOverrides]);
 
   const sheetItems = activeSheet ? (groupedFridge[activeSheet] || []) : [];
 
-  const totalValue = fridge.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+  const totalValue = useMemo(() => fridge.reduce((sum, item) => sum + (Number(item.price) || 0), 0), [fridge]);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">

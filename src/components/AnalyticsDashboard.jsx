@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DollarSign, BarChart, ShoppingBag, TrendingDown, PieChart, Target, Sparkles, Loader2, RefreshCw, Star, Plus, Leaf, AlertTriangle, CalendarDays, Edit2 } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
@@ -34,33 +34,39 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
   const [starredRecipes, setStarredRecipes] = useState(new Set());
 
   // ── Spending calcs ───────────────────────────────────────────────────────
-  const pantryValue    = fridge.reduce((sum, item) => sum + (item.price || 0), 0);
-  const missingSpend   = shoppingList.filter(i => !i.is_completed).reduce((sum, i) => sum + (i.price || 0), 0);
-  const purchasedSpend = shoppingList.filter(i => i.is_completed).reduce((sum, i) => sum + (i.price || 0), 0);
-  const totalListCost  = missingSpend + purchasedSpend;
-  const totalBudget    = pantryValue + missingSpend;
-  const stockEfficiency = totalBudget > 0 ? Math.round((pantryValue / totalBudget) * 100) : 0;
-  const budgetLimit    = household?.budget_limit || 0;
-  const budgetPercent  = budgetLimit > 0 ? Math.min(100, Math.round((totalListCost / budgetLimit) * 100)) : 0;
-  const isOverBudget   = totalListCost > budgetLimit && budgetLimit > 0;
+  const { pantryValue, missingSpend, purchasedSpend, totalListCost, stockEfficiency, budgetLimit, budgetPercent, isOverBudget } = useMemo(() => {
+    const pantryValue    = fridge.reduce((sum, item) => sum + (item.price || 0), 0);
+    const missingSpend   = shoppingList.filter(i => !i.is_completed).reduce((sum, i) => sum + (i.price || 0), 0);
+    const purchasedSpend = shoppingList.filter(i => i.is_completed).reduce((sum, i) => sum + (i.price || 0), 0);
+    const totalListCost  = missingSpend + purchasedSpend;
+    const totalBudget    = pantryValue + missingSpend;
+    const stockEfficiency = totalBudget > 0 ? Math.round((pantryValue / totalBudget) * 100) : 0;
+    const budgetLimit    = household?.budget_limit || 0;
+    const budgetPercent  = budgetLimit > 0 ? Math.min(100, Math.round((totalListCost / budgetLimit) * 100)) : 0;
+    const isOverBudget   = totalListCost > budgetLimit && budgetLimit > 0;
+    return { pantryValue, missingSpend, purchasedSpend, totalListCost, stockEfficiency, budgetLimit, budgetPercent, isOverBudget };
+  }, [fridge, shoppingList, household?.budget_limit]);
 
   const totalMacros = (metrics.protein + metrics.carbs + metrics.fat) || 1;
   const getPercent  = (val) => Math.round((val / totalMacros) * 100);
 
   // ── Eco-Score calcs ──────────────────────────────────────────────────────
-  const now = new Date();
-  const expiringItems = fridge.filter(item => {
-    if (!item.expiry_date) return false;
-    const diff = (new Date(item.expiry_date) - now) / (1000 * 60 * 60 * 24);
-    return diff >= 0 && diff <= 7;
-  });
-  const expiredItems = fridge.filter(item => {
-    if (!item.expiry_date) return false;
-    return new Date(item.expiry_date) < now;
-  });
-  const atRiskValue = expiringItems.reduce((s, i) => s + (i.price || 0), 0);
-  const ecoRating = ECO_RATINGS.find(r => expiringItems.length <= r.maxRisk) || ECO_RATINGS[ECO_RATINGS.length - 1];
-  const uniqueStores = [...new Set(fridge.map(item => item.storeName).filter(Boolean))];
+  const { expiringItems, expiredItems, atRiskValue, ecoRating, uniqueStores } = useMemo(() => {
+    const now = Date.now();
+    const expiringItems = [];
+    const expiredItems = [];
+    fridge.forEach(item => {
+      if (!item.expiry_date) return;
+      const ts = new Date(item.expiry_date).getTime();
+      const diffDays = (ts - now) / (1000 * 60 * 60 * 24);
+      if (diffDays < 0) expiredItems.push(item);
+      else if (diffDays <= 7) expiringItems.push(item);
+    });
+    const atRiskValue = expiringItems.reduce((s, i) => s + (i.price || 0), 0);
+    const ecoRating = ECO_RATINGS.find(r => expiringItems.length <= r.maxRisk) || ECO_RATINGS[ECO_RATINGS.length - 1];
+    const uniqueStores = [...new Set(fridge.map(item => item.storeName).filter(Boolean))];
+    return { expiringItems, expiredItems, atRiskValue, ecoRating, uniqueStores };
+  }, [fridge]);
 
   // ── AI Coach ────────────────────────────────────────────────────────────
   const askAiCoach = async (macroKey) => {
@@ -364,7 +370,7 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
           <div className="space-y-2">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><AlertTriangle size={10} className="text-orange-400" /> Expiring Within 7 Days</p>
             {expiringItems.map((item, i) => {
-              const daysLeft = Math.ceil((new Date(item.expiry_date) - now) / (1000 * 60 * 60 * 24));
+              const daysLeft = Math.ceil((new Date(item.expiry_date) - Date.now()) / (1000 * 60 * 60 * 24));
               return (
                 <div key={i} className="flex items-center justify-between bg-orange-50 border border-orange-100 rounded-2xl px-4 py-2.5">
                   <span className="text-xs font-bold text-slate-700">{item.raw_name}</span>

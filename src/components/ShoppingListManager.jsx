@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, Check, Trash2, ShoppingCart, LayoutList, Store } from 'lucide-react';
 
 // Frozen and Snacks checked FIRST — "potato chips" must be Snacks, "frozen peas" must be Frozen
@@ -31,13 +31,13 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
     setShoppingInput('');
   };
 
-  const pending = list.filter(i => !i.is_completed);
-  const completed = list.filter(i => i.is_completed);
+  const pending = useMemo(() => list.filter(i => !i.is_completed), [list]);
+  const completed = useMemo(() => list.filter(i => i.is_completed), [list]);
 
-  const groupedByAisle = AISLES.reduce((acc, aisle) => {
+  const groupedByAisle = useMemo(() => AISLES.reduce((acc, aisle) => {
     acc[aisle.key] = pending.filter(i => getAisle(i.item_name) === aisle.key);
     return acc;
-  }, {});
+  }, {}), [pending]);
 
   const renderItem = (item) => (
     <div key={item.id} className={`bg-white border p-4 rounded-2xl flex items-center justify-between gap-4 transition-all ${item.is_completed ? 'border-transparent opacity-50' : 'border-blue-50 shadow-sm'}`}>

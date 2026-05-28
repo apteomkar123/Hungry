@@ -75,13 +75,13 @@ export default function AiIngredientPickerModal() {
         {/* Mode toggle */}
         <div className="bg-blue-50/60 rounded-2xl p-1 flex gap-1 mb-3">
           <button
-            onClick={() => { setMode('recipe'); setPrepPlan(null); }}
+            onClick={() => setMode('recipe')}
             className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${mode === 'recipe' ? 'bg-[#6BAEE0] text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <Sparkles size={11} /> Recipe
           </button>
           <button
-            onClick={() => { setMode('prep'); setPrepPlan(null); }}
+            onClick={() => setMode('prep')}
             className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${mode === 'prep' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <CalendarDays size={11} /> Meal Prep

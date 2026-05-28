@@ -13,7 +13,7 @@ export const toTitleCase = (str) => {
 export const vegetarianBlocklist = [
   'chicken', 'beef', 'pork', 'fish', 'shrimp', 'salmon', 'ham', 'bacon', 'anchovy', 'turkey', 'lamb', 'duck', 'mutton', 'veal', 'crab', 'lobster', 'sausage', 'pepperoni'
 ];
-// ... (rest of the file)
+
 export const isVegetarianIngredient = (value) => {
   if (!value) return true;
   const normalized = String(value).toLowerCase();
@@ -195,12 +195,10 @@ export const matchesRecipeFilter = (recipe, filter) => {
   }
 };
 
-/**
- * Estimate nutrition (per 100g) for a named ingredient using a static lookup.
- * Returns { kcal, protein, carbs, fat } or null if unknown.
- */
-export const estimateNutrition = (itemName) => {
-  const n = (itemName || '').toLowerCase();
+const _nutritionCache = new Map();
+const _categoryCache = new Map();
+
+const _estimateNutritionImpl = (n) => {
   if (/\b(chicken breast)\b/.test(n)) return { kcal: 165, protein: 31, carbs: 0, fat: 3.6 };
   if (/\b(chicken|poultry)\b/.test(n)) return { kcal: 215, protein: 27, carbs: 0, fat: 12 };
   if (/\b(beef|steak|brisket)\b/.test(n)) return { kcal: 250, protein: 26, carbs: 0, fat: 17 };
@@ -259,6 +257,19 @@ export const estimateNutrition = (itemName) => {
   if (/\b(tomato sauce|tomato paste|ketchup)\b/.test(n)) return { kcal: 82, protein: 3, carbs: 18, fat: 0.5 };
   if (/\b(broth|stock|bouillon)\b/.test(n)) return { kcal: 15, protein: 1, carbs: 1, fat: 0.5 };
   return null;
+};
+
+/**
+ * Estimate nutrition (per 100g) for a named ingredient using a static lookup.
+ * Returns { kcal, protein, carbs, fat } or null if unknown.
+ * Results are cached per ingredient name for the lifetime of the session.
+ */
+export const estimateNutrition = (itemName) => {
+  const n = (itemName || '').toLowerCase();
+  if (_nutritionCache.has(n)) return _nutritionCache.get(n);
+  const result = _estimateNutritionImpl(n);
+  _nutritionCache.set(n, result);
+  return result;
 };
 
 /**
@@ -338,8 +349,7 @@ export const CATEGORY_ORDER = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables
 // Frozen checked FIRST — "Frozen Chicken" must be Frozen, not Proteins
 // Snacks checked before Vegetables — "potato chips" must be Snacks not Vegetables
 // eggs? covers both "egg" and "eggs"
-export const categorizeItem = (itemName) => {
-  const n = (itemName || '').toLowerCase();
+const _categorizeItemImpl = (n) => {
   if (/\b(frozen|ice cream|gelato|popsicle|sorbet)\b/.test(n)) return 'Frozen';
   if (/\b(chicken|beef|pork|lamb|turkey|fish|salmon|tuna|shrimp|crab|lobster|bacon|sausage|ham|mutton|duck|seafood|steak|mince|pepperoni|anchovy|venison|veal|salami|meat|prawn)\b/.test(n)) return 'Proteins';
   if (/\b(milk|cheese|butter|yogurt|cream|eggs?|paneer|ghee|curd|whey|kefir|mozzarella|cheddar|parmesan|brie|ricotta|cottage|sour cream|dairy)\b/.test(n)) return 'Dairy & Eggs';
@@ -348,4 +358,12 @@ export const categorizeItem = (itemName) => {
   if (/\b(chip|crisp|cracker|cookie|biscuit|candy|chocolate|popcorn|pretzel|almond|cashew|walnut|peanut|pistachio|trail mix|granola|protein bar|rice cake|snack|nut)\b/.test(n)) return 'Snacks';
   if (/\b(carrot|potato|tomato|onion|garlic|spinach|broccoli|cauliflower|lettuce|cabbage|cucumber|pepper|celery|kale|zucchini|eggplant|mushroom|corn|pea|bean|lentil|asparagus|beetroot|radish|leek|okra|squash|yam|ginger|turmeric|chili|capsicum|chard|arugula|herb|cilantro|parsley|basil|mint)\b/.test(n)) return 'Vegetables';
   return 'General';
+};
+
+export const categorizeItem = (itemName) => {
+  const n = (itemName || '').toLowerCase();
+  if (_categoryCache.has(n)) return _categoryCache.get(n);
+  const result = _categorizeItemImpl(n);
+  _categoryCache.set(n, result);
+  return result;
 };

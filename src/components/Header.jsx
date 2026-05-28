@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LogOut, Sparkles, ShoppingBag, Loader2 } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
@@ -6,8 +6,10 @@ import { useRecipes } from './RecipeContext';
 export default function Header() {
   const { user, userName, handleSignOut } = useUser();
   const { setIsAiPickerOpen, triggerStoreTripPlanner, aiGenerating } = useRecipes();
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+  const [greeting] = useState(() => {
+    const h = new Date().getHours();
+    return h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
+  });
   const displayName = userName || user?.email?.split('@')[0] || 'Chef';
 
   return (

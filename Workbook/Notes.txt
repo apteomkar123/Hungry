@@ -201,6 +201,18 @@ Note that dietary restrictions should be considering throughout the whole app, i
 Add a separate monthly budget and an individual budget
 Split the last page in the following method: (Nutritional Overview, AI Nutrition Coach, Smart Meal Prep), (Eco-Score & Waste, Spending Breakdown, Personal monthly budget)
 Monthly budget should be removed from ths shopping list page, and moved to the aforementioned page. It should, of course, like all others, be a universal value.
+Add better organization in the place where you pick ingredients you want used in the AI generation. Group items by the same categories as the pantry, and make it more user friendly.
+Algorithm needs to be smarter with categorizing ingredients. For example, eggs are not getting categorized under the dairy and eggs section right now, which makes no sense. If an item is scanned using barcode, it should easily be able to tell the category. If the name has frozen, it's always going to be frozen.
+During voice input of items, listen for numbers as well, so that the user can say things like "2 tomatos, 5 potatos, 3 bananas" and the quantities can also be added to the pantry.
+Recipes should be pulled from API and stored in the database instead of having to use the API everytime for every recipe.
+Processes like the Smart Meal Prep should not stop just because I went to a different page/section of the app
+Household monthly income isn't getting updated. This should be editable from both the household page as well as the spending page.
+The store feature in shopping list isn't really doing anything, it just says pantry
+Potato chips are still showing up under vegetables. Do better
+Meal prep feature when I go through AI recipe generator pulls up the meal plan in a tiny window at the bottom. It should take up the whole screen as a card, and then each meal plan should open a new card on top, and then each recipe in the meal plan should pull up its own card. Both the meal plan and recipes should be addable to the recipe list. Build a separate meal plan section on the saved recipe list
+The "Hungry" in the header is bleeding into the greeting, create more space.
+The recipes in the meal plans from the smart meal prep feature should open up as a normal recipe card. The meal prep plans should also be saveable to the list.
+
 
 
 TESTED
