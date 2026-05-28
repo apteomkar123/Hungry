@@ -1,20 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User, GripVertical, ChevronRight, Mic, MicOff, UtensilsCrossed, Check } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { estimateNutrition } from './recipeUtils';
+import { estimateNutrition, categorizeItem, CATEGORY_ICONS } from './recipeUtils';
 
 const CATEGORIES = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Beverages', 'Snacks', 'Frozen', 'General'];
-
-const CATEGORY_ICONS = {
-  'Proteins': '🫘',
-  'Dairy & Eggs': '🥛',
-  'Fruits': '🍎',
-  'Vegetables': '🥦',
-  'Beverages': '☕',
-  'Snacks': '🍿',
-  'Frozen': '🧊',
-  'General': '📦',
-};
 
 const CATEGORY_COLORS = {
   'Proteins': 'bg-rose-50 text-rose-500 border-rose-100',
@@ -27,18 +16,6 @@ const CATEGORY_COLORS = {
   'General': 'bg-slate-50 text-slate-400 border-slate-100',
 };
 
-// NOTE: Snacks intentionally checked BEFORE Vegetables — "potato chips" must be Snacks not Vegetables
-const categorizeItem = (itemName) => {
-  const n = (itemName || '').toLowerCase();
-  if (/\b(chicken|beef|pork|lamb|turkey|fish|salmon|tuna|shrimp|crab|lobster|bacon|sausage|ham|mutton|duck|seafood|steak|mince|pepperoni|anchovy|venison|veal|salami|meat|prawn)\b/.test(n)) return 'Proteins';
-  if (/\b(milk|cheese|butter|yogurt|cream|egg|paneer|ghee|curd|whey|kefir|mozzarella|cheddar|parmesan|brie|ricotta|cottage|sour cream|dairy)\b/.test(n)) return 'Dairy & Eggs';
-  if (/\b(apple|banana|orange|mango|grape|strawberry|blueberry|raspberry|blackberry|lemon|lime|pear|peach|plum|cherry|watermelon|melon|pineapple|kiwi|avocado|fig|date|papaya|guava|coconut|pomegranate|passion fruit)\b/.test(n)) return 'Fruits';
-  if (/\b(water|juice|soda|tea|coffee|beer|wine|spirit|whiskey|vodka|rum|gin|drink|beverage|smoothie|shake|cola|lemonade|kombucha|sparkling)\b/.test(n)) return 'Beverages';
-  if (/\b(chip|crisp|cracker|cookie|biscuit|candy|chocolate|popcorn|pretzel|almond|cashew|walnut|peanut|pistachio|trail mix|granola|protein bar|rice cake|snack|nut)\b/.test(n)) return 'Snacks';
-  if (/\b(carrot|potato|tomato|onion|garlic|spinach|broccoli|cauliflower|lettuce|cabbage|cucumber|pepper|celery|kale|zucchini|eggplant|mushroom|corn|pea|bean|lentil|asparagus|beetroot|radish|leek|okra|squash|yam|ginger|turmeric|chili|capsicum|chard|arugula|herb|cilantro|parsley|basil|mint)\b/.test(n)) return 'Vegetables';
-  if (/\b(frozen|ice cream|gelato|popsicle|sorbet)\b/.test(n)) return 'Frozen';
-  return 'General';
-};
 
 const isExpiringSoon = (date) => {
   if (!date) return false;
@@ -342,6 +319,7 @@ export default function PantryManager({
   const [voiceListening, setVoiceListening] = useState(false);
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [voiceItems, setVoiceItems] = useState(null); // [{name, amount}] | null
+  const [voiceDismissing, setVoiceDismissing] = useState(false);
   const voiceRecognitionRef = useRef(null);
 
   // Barcode camera scanner — ref-locked to prevent double-scan
@@ -460,12 +438,23 @@ export default function PantryManager({
     setVoiceListening(true);
   };
 
+  const dismissVoicePanel = (callback) => {
+    setVoiceDismissing(true);
+    setTimeout(() => {
+      setVoiceItems(null);
+      setVoiceDismissing(false);
+      if (callback) callback();
+    }, 320);
+  };
+
   const addAllVoiceItems = async () => {
     if (!voiceItems) return;
-    for (const item of voiceItems) {
-      if (item.name) await handleAddManualItem(item.name);
-    }
-    setVoiceItems(null);
+    const items = [...voiceItems];
+    dismissVoicePanel(async () => {
+      for (const item of items) {
+        if (item.name) await handleAddManualItem(item.name, null, { amount: item.amount || '' });
+      }
+    });
   };
 
   const cycleItemHousehold = (item) => {
@@ -626,7 +615,7 @@ export default function PantryManager({
 
           {/* Voice items preview */}
           {voiceItems !== null && (
-            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 space-y-3 animate-in fade-in duration-300">
+            <div className={`bg-emerald-50 border border-emerald-100 rounded-2xl p-4 space-y-3 transition-all duration-300 ${voiceDismissing ? 'opacity-0 -translate-y-2 scale-95 pointer-events-none' : 'opacity-100 translate-y-0 scale-100'}`}>
               <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Heard these items:</p>
               {voiceItems.length === 0 ? (
                 <p className="text-xs text-slate-400 italic">Nothing recognized — please try again.</p>
@@ -644,7 +633,7 @@ export default function PantryManager({
                 <button onClick={addAllVoiceItems} disabled={voiceItems.length === 0} className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-500 text-white py-2.5 rounded-xl text-xs font-black disabled:opacity-50 transition-all">
                   <Check size={13} /> Add All
                 </button>
-                <button onClick={() => setVoiceItems(null)} className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 bg-white border border-slate-100 hover:border-slate-300 transition-all">
+                <button onClick={() => dismissVoicePanel()} className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 bg-white border border-slate-100 hover:border-slate-300 transition-all">
                   Discard
                 </button>
               </div>

@@ -82,7 +82,7 @@ export const RecipeProvider = ({ children, fridge }) => {
 
   const fetchSpoonacularRecipes = async () => {
     try {
-      const cacheKey = 'hungry_spoon_v2';
+      const cacheKey = 'hungry_spoon_v3';
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         try { return JSON.parse(cached); } catch {}
@@ -158,7 +158,7 @@ export const RecipeProvider = ({ children, fridge }) => {
       const res = await fetch('/.netlify/functions/scan-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customPrompt: prompt })
+        body: JSON.stringify({ customPrompt: prompt, directMode: true })
       });
 
       if (!res.ok) {

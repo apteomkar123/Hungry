@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hungry - Project Roadmap & Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Yellowtail&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #334155; }
+        .logo-font { font-family: 'Yellowtail', cursive; color: #6BAEE0; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(107, 174, 224, 0.2); }
+        .status-tested { background-color: #dcfce7; color: #166534; }
+        .status-not-tested { background-color: #f1f5f9; color: #475569; }
+        .status-improvement { background-color: #fef9c3; color: #854d0e; }
+        select { border: none; background: transparent; font-weight: 600; cursor: pointer; outline: none; }
+    </style>
+</head>
+<body class="p-6 md:p-12">
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="logo-font text-5xl mb-2">Hungry</h1>
+                <p class="text-slate-500 font-medium">Development Progress & Quality Assurance</p>
+            </div>
+            <div class="text-right">
+                <button onclick="clearStorage()" class="text-xs text-red-400 hover:underline">Reset Tracker State</button>
+            </div>
+        </header>
+
+        <div class="grid gap-6">
+            <!-- Section: Core Infrastructure & Fixes -->
+            <section class="glass rounded-3xl p-6 shadow-sm">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span class="w-2 h-6 bg-[#6BAEE0] rounded-full"></span>
+                    Core Infrastructure & Recent Fixes
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-slate-400 text-sm border-b border-slate-100">
+                                <th class="pb-3 font-medium">Task / Bug</th>
+                                <th class="pb-3 font-medium w-32">Status</th>
+                                <th class="pb-3 font-medium">Comments</th>
+                            </tr>
+                        </thead>
+                        <tbody id="core-tasks">
+                            <!-- Row -->
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Personalized Header Greeting</div>
+                                    <div class="text-xs text-slate-400">Fixed logic in Header.jsx to show Personal Name/Email/Chef.</div>
+                                </td>
+                                <td class="py-4"><select class="status-select p-1 rounded-lg text-xs" data-id="fix-greeting"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="fix-greeting" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Household Creation Sync</div>
+                                    <div class="text-xs text-slate-400">Fixed UserContext.jsx to link profiles correctly and avoid table schema errors.</div>
+                                </td>
+                                <td class="py-4"><select class="status-select p-1 rounded-lg text-xs" data-id="fix-household"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="fix-household" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">AI Recipe Generator Routing</div>
+                                    <div class="text-xs text-slate-400">Fixed Netlify function to handle both "Recipe" and "Substitution" modes accurately.</div>
+                                </td>
+                                <td class="py-4"><select class="status-select p-1 rounded-lg text-xs" data-id="fix-ai-routing"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="fix-ai-routing" placeholder="Add notes..."></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Section: Pending Features & Enhancements -->
+            <section class="glass rounded-3xl p-6 shadow-sm">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span class="w-2 h-6 bg-orange-400 rounded-full"></span>
+                    Pending Features & UX Enhancements
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <tbody id="feature-tasks">
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Eco-Score & Waste Analytics</div>
+                                    <div class="text-xs text-slate-400">Gamify waste reduction based on price and expiry tracking.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-eco"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-eco" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Smart Meal Prep "Batches"</div>
+                                    <div class="text-xs text-slate-400">AI strategy to cook bulk ingredients across multiple meals.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-prep"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-prep" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">iOS Live Activities</div>
+                                    <div class="text-xs text-slate-400">Lock-screen cooking steps and timers for mobile UX.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-live"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-live" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">AI Sensory Input (Leftover Recon)</div>
+                                    <div class="text-xs text-slate-400">Vision-based meal identification for fridge inventory.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-vision"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-vision" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Branding: Cursive Logo Font</div>
+                                    <div class="text-xs text-slate-400">Replace "techy" header font with a free-flowing cursive style.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-brand-font"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-brand-font" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Navigation Refactor: Pages</div>
+                                    <div class="text-xs text-slate-400">Split Settings and Households into standalone pages.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-page-separation"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-page-separation" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Dual Budgeting & New Dashboard</div>
+                                    <div class="text-xs text-slate-400">Separate Monthly/Personal budgets. Layout: (Nutritional/Prep) & (Eco/Spending).</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-budget-dual"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-budget-dual" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Standardization: Units & Naming</div>
+                                    <div class="text-xs text-slate-400">Enforce American units and Proper Noun capitalization for all items/recipes.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-american-units"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-american-units" placeholder="Add notes..."></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Section: Reported Bugs (From Notes) -->
+            <section class="glass rounded-3xl p-6 shadow-sm border-red-100">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-red-600">
+                    <span class="w-2 h-6 bg-red-400 rounded-full"></span>
+                    Unresolved Bugs Checklist
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <tbody id="bug-tasks">
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700 text-sm italic">"Vegetarian and Vegan filters not working"</div>
+                                    <div class="text-xs text-slate-400">Anchovies/Mincemeat still appearing in filtered lists.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-dietary"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-dietary" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700 text-sm italic">"Monthly budget save button"</div>
+                                    <div class="text-xs text-slate-400">Value resets to 0. Move from Shopping List to Analytics.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-budget"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-budget" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700 text-sm italic">"Barcode lookup failed message"</div>
+                                    <div class="text-xs text-slate-400">Scanner glitches and doesn't close automatically.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-barcode"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-barcode" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700 text-sm italic">"Blank screen on RecipeModal close"</div>
+                                    <div class="text-xs text-slate-400">Intermittent crash when dismissing recipe view.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-blank-screen"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-blank-screen" placeholder="Add notes..."></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        const options = [
+            { value: 'not-tested', label: 'Not Tested' },
+            { value: 'tested', label: 'Tested & Verified' },
+            { value: 'improvement', label: 'Needs Improvement' }
+        ];
+
+        function init() {
+            const selects = document.querySelectorAll('.status-select');
+            const inputs = document.querySelectorAll('.comment-input');
+            const savedData = JSON.parse(localStorage.getItem('hungry-tracker-v1') || '{}');
+
+            selects.forEach(select => {
+                options.forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = opt.value;
+                    o.textContent = opt.label;
+                    select.appendChild(o);
+                });
+
+                const id = select.getAttribute('data-id');
+                if (savedData[id]?.status) {
+                    select.value = savedData[id].status;
+                }
+                updateStyle(select);
+
+                select.addEventListener('change', (e) => {
+                    updateStyle(e.target);
+                    saveData(id, 'status', e.target.value);
+                });
+            });
+
+            inputs.forEach(input => {
+                const id = input.getAttribute('data-id');
+                if (savedData[id]?.comment) {
+                    input.value = savedData[id].comment;
+                }
+                input.addEventListener('input', (e) => {
+                    saveData(id, 'comment', e.target.value);
+                });
+            });
+        }
+
+        function updateStyle(el) {
+            el.classList.remove('status-tested', 'status-not-tested', 'status-improvement');
+            el.classList.add(`status-${el.value}`);
+        }
+
+        function saveData(id, field, value) {
+            const data = JSON.parse(localStorage.getItem('hungry-tracker-v1') || '{}');
+            if (!data[id]) data[id] = {};
+            data[id][field] = value;
+            localStorage.setItem('hungry-tracker-v1', JSON.stringify(data));
+        }
+
+        function clearStorage() {
+            if(confirm('Clear all progress data?')) {
+                localStorage.removeItem('hungry-tracker-v1');
+                location.reload();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

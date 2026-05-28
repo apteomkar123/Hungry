@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
-import { cleanIngredientLocally, triggerHaptic, getEstimatedExpiry } from './recipeUtils';
+import { cleanIngredientLocally, triggerHaptic, getEstimatedExpiry, toTitleCase } from './recipeUtils';
 import { put, getAll, remove, OBJECT_STORES } from '../dbUtils';
 
 export const useInventory = (user, household) => {
@@ -183,9 +183,11 @@ export const useInventory = (user, household) => {
     const estimatedExpiry = extraData.expiry_date || getEstimatedExpiry(itemName);
 
     const tempId = `temp-${Date.now()}`;
+    const amount = extraData.amount || '';
+    const displayName = amount ? `${amount} ${toTitleCase(itemName)}` : toTitleCase(itemName);
     setFridge(prev => [...prev, {
       id: tempId,
-      raw_name: itemName,
+      raw_name: displayName,
       item_name: sanitized,
       household_id: targetHouseholdId,
       nutrition: extraData.nutrition || null,

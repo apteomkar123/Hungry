@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Copy, Plus, Home, Check, Trash2, Settings, DollarSign } from 'lucide-react';
+import { Users, Copy, Plus, Home, Check, Trash2, DollarSign } from 'lucide-react';
 import { useUser } from './UserContext';
-
-const DIETARY_OPTIONS = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Halal', 'Kosher', 'Dairy-Free', 'Nut-Free', 'Low-Carb', 'High-Protein'];
-const NUTRITION_GOALS = ['Balanced', 'High Protein', 'Low Carb', 'Low Fat', 'Build Muscle', 'Lose Weight'];
 
 export default function HouseholdSettings() {
   const {
     households,
     activeHousehold,
-    userName: profileName,
-    userSettings,
-    handleUpdateProfileName: onUpdateName,
-    handleUpdateSettings,
     handleCreateHousehold: onCreate,
     handleJoinHousehold: onJoin,
     handleSetActiveHousehold: onSetActive,
@@ -20,31 +13,10 @@ export default function HouseholdSettings() {
     handleUpdateBudgetLimit,
   } = useUser();
 
-  const [activeTab, setActiveTab] = useState('households');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [displayName, setDisplayName] = useState(profileName || '');
   const [showAddForm, setShowAddForm] = useState(false);
   const [budgetInputs, setBudgetInputs] = useState({});
-
-  // Settings state
-  const [dietary, setDietary] = useState(userSettings?.dietary_restrictions || []);
-  const [goal, setGoal] = useState(userSettings?.nutrition_goal || 'Balanced');
-  const [age, setAge] = useState(String(userSettings?.age || ''));
-  const [weight, setWeight] = useState(String(userSettings?.weight || ''));
-  const [height, setHeight] = useState(String(userSettings?.height || ''));
-  const [settingsSaved, setSettingsSaved] = useState(false);
-
-  useEffect(() => { setDisplayName(profileName || ''); }, [profileName]);
-  useEffect(() => {
-    if (userSettings) {
-      setDietary(userSettings.dietary_restrictions || []);
-      setGoal(userSettings.nutrition_goal || 'Balanced');
-      setAge(String(userSettings.age || ''));
-      setWeight(String(userSettings.weight || ''));
-      setHeight(String(userSettings.height || ''));
-    }
-  }, [userSettings]);
 
   useEffect(() => {
     const inputs = {};
@@ -57,44 +29,10 @@ export default function HouseholdSettings() {
   const handleCreate = () => { onCreate(name); setName(''); setShowAddForm(false); };
   const handleJoin = () => { onJoin(code); setCode(''); setShowAddForm(false); };
 
-  const toggleDietary = (opt) => {
-    setDietary(prev => prev.includes(opt) ? prev.filter(d => d !== opt) : [...prev, opt]);
-  };
-
-  const saveSettings = async () => {
-    await handleUpdateSettings({
-      name: displayName,
-      dietary_restrictions: dietary,
-      nutrition_goal: goal,
-      age: age ? Number(age) : '',
-      weight: weight ? Number(weight) : '',
-      height: height ? Number(height) : '',
-    });
-    onUpdateName(displayName);
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 2000);
-  };
-
   return (
     <div className="max-w-md mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Tab switcher */}
-      <div className="bg-white/80 backdrop-blur-lg rounded-[2rem] border border-white/20 shadow-xl shadow-blue-900/5 p-1.5 flex gap-1">
-        <button
-          onClick={() => setActiveTab('households')}
-          className={`flex-1 py-3 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${activeTab === 'households' ? 'bg-[#6BAEE0] text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
-        >
-          <Home size={13} /> Households
-        </button>
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`flex-1 py-3 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${activeTab === 'settings' ? 'bg-[#6BAEE0] text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
-        >
-          <Settings size={13} /> Settings
-        </button>
-      </div>
-
-      {/* ── HOUSEHOLDS TAB ── */}
-      {activeTab === 'households' && (
+      {/* ── HOUSEHOLDS ── */}
+      {(
         <>
           {households.length > 0 && (
             <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5 space-y-4">
@@ -189,85 +127,6 @@ export default function HouseholdSettings() {
         </>
       )}
 
-      {/* ── SETTINGS TAB ── */}
-      {activeTab === 'settings' && (
-        <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5 space-y-6">
-          {/* Name */}
-          <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Display Name</label>
-            <input
-              type="text"
-              placeholder="Your name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full mt-1 bg-blue-50/50 border border-blue-100 px-4 py-3 rounded-2xl text-sm font-bold text-slate-800 focus:border-sky-400 focus:outline-none"
-            />
-          </div>
-
-          {/* Body stats */}
-          <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Body Stats</label>
-            <div className="grid grid-cols-3 gap-2 mt-1">
-              {[
-                { label: 'Age', value: age, set: setAge, placeholder: 'yrs', unit: 'yrs' },
-                { label: 'Weight', value: weight, set: setWeight, placeholder: 'kg', unit: 'kg' },
-                { label: 'Height', value: height, set: setHeight, placeholder: 'cm', unit: 'cm' },
-              ].map(({ label, value, set, unit }) => (
-                <div key={label} className="relative">
-                  <input
-                    type="number" min="0" value={value}
-                    onChange={(e) => set(e.target.value)}
-                    placeholder="—"
-                    className="w-full bg-blue-50/50 border border-blue-100 px-3 pt-5 pb-2 rounded-2xl text-sm font-bold text-slate-800 focus:border-sky-400 focus:outline-none"
-                  />
-                  <span className="absolute top-1.5 left-3 text-[9px] font-black text-slate-400 uppercase tracking-wider">{label} ({unit})</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Dietary restrictions */}
-          <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dietary Restrictions</label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {DIETARY_OPTIONS.map(opt => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => toggleDietary(opt)}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all border ${dietary.includes(opt) ? 'bg-[#6BAEE0] text-white border-[#6BAEE0] shadow-md' : 'bg-white text-slate-400 border-blue-100 hover:border-sky-300'}`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Nutrition goal */}
-          <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nutrition Goal</label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {NUTRITION_GOALS.map(g => (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => setGoal(g)}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all border ${goal === g ? 'bg-slate-700 text-white border-slate-700 shadow-md' : 'bg-white text-slate-400 border-blue-100 hover:border-slate-300'}`}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={saveSettings}
-            className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg ${settingsSaved ? 'bg-emerald-500 text-white' : 'bg-[#6BAEE0] text-white shadow-blue-100'}`}
-          >
-            {settingsSaved ? 'Saved!' : 'Save Settings'}
-          </button>
-        </section>
-      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2 } from 'lucide-react';
+import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings } from 'lucide-react';
 import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic } from './components/recipeUtils';
 import Header from './components/Header';
 import PantryManager from './components/PantryManager';
@@ -9,6 +9,7 @@ import RecipeModal from './components/RecipeModal';
 import CookingMode from './components/CookingMode';
 import AiIngredientPickerModal from './components/AiIngredientPickerModal';
 import HouseholdSettings from './components/HouseholdSettings';
+import SettingsPage from './components/SettingsPage';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import AuthManager from './components/AuthManager';
 import { useUser } from './components/UserContext';
@@ -110,6 +111,7 @@ function AppContent({ inventory }) {
               />
             )}
             {activeTab === 'household' && <HouseholdSettings />}
+            {activeTab === 'settings' && <SettingsPage />}
             {activeTab === 'saved' && (
               <div className="space-y-6">
                 <div className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
@@ -185,6 +187,7 @@ function AppContent({ inventory }) {
           <button onClick={() => { triggerHaptic(); setActiveTab('saved'); }} className={`p-2 rounded-full transition-all ${activeTab === 'saved' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Star size={24} /></button>
           <button onClick={() => { triggerHaptic(); setActiveTab('household'); }} className={`p-2 rounded-full transition-all ${activeTab === 'household' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Users size={24} /></button>
           <button onClick={() => { triggerHaptic(); setActiveTab('analytics'); }} className={`p-2 rounded-full transition-all ${activeTab === 'analytics' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><BarChart3 size={24} /></button>
+          <button onClick={() => { triggerHaptic(); setActiveTab('settings'); }} className={`p-2 rounded-full transition-all ${activeTab === 'settings' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Settings size={22} /></button>
         </nav>
       </div>
 

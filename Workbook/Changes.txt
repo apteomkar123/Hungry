@@ -1,0 +1,14 @@
+BUGS TO FIX. 
+-------------
+Add better organization in the place where you pick ingredients you want used in the AI generation. Group items by the same categories as the pantry, and make it more user friendly.
+Algorithm needs to be smarter with categorizing ingredients. For example, eggs are not getting categorized under the dairy and eggs section right now, which makes no sense. If an item is scanned using barcode, it should easily be able to tell the category. If the name has frozen, it's always going to be frozen.
+ 
+-------------------------------------------
+
+FEATURES TO ADD:
+-------------------
+During voice input of items, listen for numbers as well, so that the user can say things like "2 tomatos, 5 potatos, 3 bananas" and the quantities can also be added to the pantry.
+ 
+
+AFTER YOU GET HERE, GO THROUGH THE WHOLE FILE AND MAKE SURE YOU'VE IMPLEMENTED EACH AND EVERY THING LISTED IN FILE PROPERLY
+PUSH TO GIT

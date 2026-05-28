@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, BarChart, ShoppingBag, TrendingDown, PieChart, Target, Sparkles, Loader2, RefreshCw, Star, Plus, Leaf, AlertTriangle, CalendarDays, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { DollarSign, BarChart, ShoppingBag, TrendingDown, PieChart, Target, Sparkles, Loader2, RefreshCw, Star, Plus, Leaf, AlertTriangle, CalendarDays, Clock, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
 
@@ -18,18 +18,21 @@ const ECO_RATINGS = [
 ];
 
 export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAddShoppingItem }) {
-  const { household } = useUser();
-  const { onSaveRecipe, processedRecipes, savedRecipes } = useRecipes();
+  const { household, userSettings, handleUpdatePersonalBudget } = useUser();
+  const { onSaveRecipe, onRemoveSavedRecipe, processedRecipes, savedRecipes, setActiveModalRecipe } = useRecipes();
 
+  const [dashTab, setDashTab] = useState('nutrition');
   const [selectedMacro, setSelectedMacro] = useState(null);
   const [aiResult, setAiResult] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [addedIngredients, setAddedIngredients] = useState(new Set());
-  const [starredRecipes, setStarredRecipes] = useState(new Set());
 
   const [prepPlan, setPrepPlan] = useState(null);
   const [prepLoading, setPrepLoading] = useState(false);
   const [expandedBatch, setExpandedBatch] = useState(null);
+
+  const [isEditingPersonalBudget, setIsEditingPersonalBudget] = useState(false);
+  const [personalBudgetInput, setPersonalBudgetInput] = useState('');
 
   // ── Spending calcs ───────────────────────────────────────────────────────
   const pantryValue    = fridge.reduce((sum, item) => sum + (item.price || 0), 0);
@@ -79,7 +82,7 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
       const res = await fetch('/.netlify/functions/scan-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customPrompt: prompt })
+        body: JSON.stringify({ customPrompt: prompt, directMode: true })
       });
 
       const text = await res.text();
@@ -101,10 +104,24 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
     setAddedIngredients(prev => new Set([...prev, name]));
   };
 
-  const handleStarRecipe = (recipeName) => {
+  const handleOpenRecipe = (recipeName) => {
     const match = processedRecipes.find(r => r.name.toLowerCase() === recipeName.toLowerCase());
-    if (match) onSaveRecipe(match);
-    setStarredRecipes(prev => new Set([...prev, recipeName]));
+    if (match) setActiveModalRecipe(match);
+  };
+
+  const handleToggleStar = (recipeName) => {
+    const alreadySaved = savedRecipes?.find(sr => sr.recipe_name?.toLowerCase() === recipeName.toLowerCase());
+    if (alreadySaved) {
+      onRemoveSavedRecipe(alreadySaved.id);
+    } else {
+      const match = processedRecipes.find(r => r.name.toLowerCase() === recipeName.toLowerCase());
+      if (match) onSaveRecipe(match);
+    }
+  };
+
+  const savePersonalBudget = () => {
+    if (handleUpdatePersonalBudget) handleUpdatePersonalBudget(personalBudgetInput);
+    setIsEditingPersonalBudget(false);
   };
 
   const generateMealPrepPlan = async () => {
@@ -119,7 +136,7 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
       const res = await fetch('/.netlify/functions/scan-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customPrompt: prompt })
+        body: JSON.stringify({ customPrompt: prompt, directMode: true })
       });
 
       const text = await res.text();
@@ -133,9 +150,28 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
     }
   };
 
-  return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+  const personalBudget = userSettings?.personal_budget_limit || 0;
 
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+      {/* ── Sub-tab switcher ──────────────────────────────────────────────── */}
+      <div className="bg-white/80 backdrop-blur-lg rounded-[2rem] border border-white/20 shadow-xl shadow-blue-900/5 p-1.5 flex gap-1">
+        <button
+          onClick={() => setDashTab('nutrition')}
+          className={`flex-1 py-3 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${dashTab === 'nutrition' ? 'bg-[#6BAEE0] text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          <BarChart size={13} /> Nutrition
+        </button>
+        <button
+          onClick={() => setDashTab('spending')}
+          className={`flex-1 py-3 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${dashTab === 'spending' ? 'bg-[#6BAEE0] text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          <DollarSign size={13} /> Spending
+        </button>
+      </div>
+
+      {dashTab === 'nutrition' && <>
       {/* ── Nutritional Overview ──────────────────────────────────────────── */}
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
         <div className="flex items-center gap-2 mb-6 px-2">
@@ -249,20 +285,24 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Recipe Suggestions</p>
                 <div className="space-y-2">
                   {aiResult.recipes.map((rec, i) => {
-                    const isAlreadySaved = savedRecipes?.some(sr => sr.recipe_name?.toLowerCase() === rec.name?.toLowerCase());
-                    const isJustStarred = starredRecipes.has(rec.name);
+                    const savedEntry = savedRecipes?.find(sr => sr.recipe_name?.toLowerCase() === rec.name?.toLowerCase());
+                    const isSaved = !!savedEntry;
+                    const canOpen = processedRecipes.some(r => r.name.toLowerCase() === rec.name?.toLowerCase());
                     return (
                       <div key={i} className="flex items-start justify-between gap-3 bg-sky-50 border border-sky-100 rounded-2xl px-4 py-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-black text-slate-700">{rec.name}</p>
-                          <p className="text-[11px] text-slate-400 leading-snug mt-0.5">{rec.reason}</p>
-                        </div>
                         <button
-                          onClick={() => handleStarRecipe(rec.name)}
-                          disabled={isAlreadySaved || isJustStarred}
-                          className={`shrink-0 p-2 rounded-xl transition-all ${(isAlreadySaved || isJustStarred) ? 'text-amber-400' : 'bg-white border border-sky-100 text-slate-300 hover:text-amber-400'}`}
+                          className="flex-1 min-w-0 text-left"
+                          onClick={() => handleOpenRecipe(rec.name)}
+                          disabled={!canOpen}
                         >
-                          <Star size={14} fill={(isAlreadySaved || isJustStarred) ? 'currentColor' : 'none'} />
+                          <p className={`text-xs font-black ${canOpen ? 'text-[#6BAEE0] hover:underline' : 'text-slate-700'}`}>{rec.name}</p>
+                          <p className="text-[11px] text-slate-400 leading-snug mt-0.5">{rec.reason}</p>
+                        </button>
+                        <button
+                          onClick={() => handleToggleStar(rec.name)}
+                          className={`shrink-0 p-2 rounded-xl transition-all ${isSaved ? 'text-amber-400' : 'bg-white border border-sky-100 text-slate-300 hover:text-amber-400'}`}
+                        >
+                          <Star size={14} fill={isSaved ? 'currentColor' : 'none'} />
                         </button>
                       </div>
                     );
@@ -348,12 +388,23 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
                         <div className="mt-3">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Recipes in This Batch</p>
                           <div className="flex flex-col gap-1.5">
-                            {batch.recipes.map((r, j) => (
-                              <div key={j} className="flex items-center gap-2 bg-white/70 rounded-xl px-3 py-2">
-                                <span className={`text-[10px] font-black ${c.accent}`}>{j + 1}.</span>
-                                <span className="text-xs font-semibold text-slate-700">{r}</span>
-                              </div>
-                            ))}
+                            {batch.recipes.map((r, j) => {
+                              const savedEntry = savedRecipes?.find(sr => sr.recipe_name?.toLowerCase() === r.toLowerCase());
+                              const canOpen = processedRecipes.some(rr => rr.name.toLowerCase() === r.toLowerCase());
+                              return (
+                                <div key={j} className="flex items-center gap-2 bg-white/70 rounded-xl px-3 py-2">
+                                  <span className={`text-[10px] font-black ${c.accent}`}>{j + 1}.</span>
+                                  <button
+                                    className={`flex-1 text-left text-xs font-semibold ${canOpen ? 'text-[#6BAEE0] hover:underline' : 'text-slate-700'}`}
+                                    onClick={() => handleOpenRecipe(r)}
+                                    disabled={!canOpen}
+                                  >{r}</button>
+                                  <button onClick={() => handleToggleStar(r)} className={`shrink-0 transition-all ${savedEntry ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}`}>
+                                    <Star size={12} fill={savedEntry ? 'currentColor' : 'none'} />
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -383,7 +434,9 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
           </div>
         )}
       </section>
+      </>}
 
+      {dashTab === 'spending' && <>
       {/* ── Eco-Score & Waste Analytics ───────────────────────────────────── */}
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
         <div className="flex items-center gap-2 mb-5 px-1">
@@ -525,6 +578,58 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
           <p className="mt-4 text-center text-xs text-slate-400">Tracked stores: {uniqueStores.join(', ')}</p>
         )}
       </section>
+
+      {/* ── Personal Monthly Budget ───────────────────────────────────────── */}
+      <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
+        <div className="flex items-center justify-between mb-4 px-1">
+          <div className="flex items-center gap-2">
+            <Target className="text-[#6BAEE0]" size={18} />
+            <h2 className="text-[14px] font-bold text-slate-400">Personal Monthly Budget</h2>
+          </div>
+          <button
+            onClick={() => { setIsEditingPersonalBudget(v => !v); setPersonalBudgetInput(String(personalBudget)); }}
+            className="p-2 bg-blue-50 text-[#6BAEE0] rounded-xl hover:bg-sky-100 transition-all"
+          >
+            <Edit2 size={15} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex-1 bg-blue-50 rounded-2xl border border-blue-100 p-4">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">My Budget</p>
+            <p className="text-2xl font-black text-[#6BAEE0]">${personalBudget.toFixed(2)}<span className="text-sm font-bold text-slate-400">/mo</span></p>
+          </div>
+          <div className="flex-1 bg-blue-50 rounded-2xl border border-blue-100 p-4">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Household Budget</p>
+            <p className="text-2xl font-black text-slate-700">${(household?.budget_limit || 0).toFixed(2)}<span className="text-sm font-bold text-slate-400">/mo</span></p>
+          </div>
+        </div>
+
+        {isEditingPersonalBudget && (
+          <div className="flex gap-2 animate-in slide-in-from-top-2 duration-300">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">$</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={personalBudgetInput}
+                onChange={(e) => setPersonalBudgetInput(e.target.value)}
+                placeholder="0.00"
+                className="w-full bg-white border border-blue-100 pl-7 pr-4 py-3 rounded-2xl text-xs font-bold text-slate-800 focus:border-sky-400 focus:outline-none"
+              />
+            </div>
+            <button
+              onClick={savePersonalBudget}
+              className="bg-[#6BAEE0] text-white px-5 py-3 rounded-2xl text-xs font-black shadow-md shadow-blue-100 hover:bg-[#5da0cf] transition-all"
+            >
+              Save
+            </button>
+          </div>
+        )}
+      </section>
+      </>}
+
     </div>
   );
 }

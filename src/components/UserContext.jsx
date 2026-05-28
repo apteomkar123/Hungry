@@ -32,8 +32,10 @@ export const UserProvider = ({ children }) => {
     dietary_restrictions: [],
     nutrition_goal: 'Balanced',
     age: '',
-    weight: '',
-    height: '',
+    weight_lbs: '',
+    height_ft: '',
+    height_in: '',
+    personal_budget_limit: 0,
   });
 
   const loadUserState = async (authUser) => {
@@ -42,7 +44,7 @@ export const UserProvider = ({ children }) => {
       setHouseholds([]);
       setActiveHousehold(null);
       setUserName('');
-      setUserSettings({ dietary_restrictions: [], nutrition_goal: 'Balanced', age: '', weight: '', height: '' });
+      setUserSettings({ dietary_restrictions: [], nutrition_goal: 'Balanced', age: '', weight_lbs: '', height_ft: '', height_in: '', personal_budget_limit: 0 });
       return;
     }
     setUser(authUser);
@@ -52,8 +54,10 @@ export const UserProvider = ({ children }) => {
       dietary_restrictions: meta.dietary_restrictions || [],
       nutrition_goal: meta.nutrition_goal || 'Balanced',
       age: meta.age || '',
-      weight: meta.weight || '',
-      height: meta.height || '',
+      weight_lbs: meta.weight_lbs || '',
+      height_ft: meta.height_ft || '',
+      height_in: meta.height_in || '',
+      personal_budget_limit: meta.personal_budget_limit || 0,
     });
 
     // Support both old single household_id and new household_ids array
@@ -168,9 +172,20 @@ export const UserProvider = ({ children }) => {
         dietary_restrictions: meta.dietary_restrictions || [],
         nutrition_goal: meta.nutrition_goal || 'Balanced',
         age: meta.age || '',
-        weight: meta.weight || '',
-        height: meta.height || '',
+        weight_lbs: meta.weight_lbs || '',
+        height_ft: meta.height_ft || '',
+        height_in: meta.height_in || '',
+        personal_budget_limit: meta.personal_budget_limit || 0,
       });
+    }
+  };
+
+  const handleUpdatePersonalBudget = async (newLimit) => {
+    if (!user) return;
+    const limitVal = parseFloat(newLimit) || 0;
+    const { data, error } = await supabase.auth.updateUser({ data: { personal_budget_limit: limitVal } });
+    if (!error && data.user) {
+      setUserSettings(prev => ({ ...prev, personal_budget_limit: limitVal }));
     }
   };
 
@@ -191,6 +206,7 @@ export const UserProvider = ({ children }) => {
       handleSetActiveHousehold,
       handleDeleteHousehold,
       handleUpdateBudgetLimit,
+      handleUpdatePersonalBudget,
       handleSignOut,
       loading
     }}>

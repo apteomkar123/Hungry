@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, Trash2, ShoppingCart, Target, Edit2, LayoutList, Store } from 'lucide-react';
-import { useUser } from './UserContext';
+import { Plus, Check, Trash2, ShoppingCart, LayoutList, Store } from 'lucide-react';
 
 const AISLES = [
   { key: 'Produce', emoji: '🥦', pattern: /\b(apple|banana|orange|mango|grape|strawberry|blueberry|raspberry|lemon|lime|pear|peach|cherry|watermelon|pineapple|kiwi|avocado|fig|coconut|carrot|potato|tomato|onion|garlic|spinach|broccoli|cauliflower|lettuce|cabbage|cucumber|pepper|celery|kale|zucchini|eggplant|mushroom|corn|pea|bean|lentil|asparagus|beetroot|radish|leek|squash|ginger|chili|herb|cilantro|parsley|basil|mint|thyme|rosemary|scallion|shallot|arugula|chard)\b/i },
@@ -21,10 +20,7 @@ const getAisle = (itemName) => {
 };
 
 export default function ShoppingListManager({ list = [], onAdd, onToggle, onClear }) {
-  const { household, handleUpdateBudgetLimit } = useUser();
   const [shoppingInput, setShoppingInput] = useState('');
-  const [isEditingBudget, setIsEditingBudget] = useState(false);
-  const [budgetInput, setBudgetInput] = useState(household?.budget_limit || 0);
   const [storeView, setStoreView] = useState(false);
 
   const handleAddSubmit = (e) => {
@@ -32,12 +28,6 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
     if (!shoppingInput.trim()) return;
     onAdd(shoppingInput);
     setShoppingInput('');
-  };
-
-  const handleSaveBudget = () => {
-    if (!handleUpdateBudgetLimit) return;
-    handleUpdateBudgetLimit(budgetInput);
-    setIsEditingBudget(false);
   };
 
   const pending = list.filter(i => !i.is_completed);
@@ -62,40 +52,6 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Budget Limit Section */}
-      <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
-        <div className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-sky-50 text-[#6BAEE0] rounded-2xl">
-              <Target size={20} />
-            </div>
-            <div>
-              <h2 className="text-[14px] font-bold text-slate-400">Monthly Budget</h2>
-              <p className="text-lg font-black text-slate-700">${(household?.budget_limit || 0).toFixed(2)}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => { setIsEditingBudget(!isEditingBudget); setBudgetInput(household?.budget_limit || 0); }}
-            className="p-3 bg-blue-50 text-[#6BAEE0] rounded-2xl hover:bg-sky-100 transition-all"
-          >
-            <Edit2 size={16} />
-          </button>
-        </div>
-
-        {isEditingBudget && (
-          <div className="mt-4 flex gap-2 animate-in slide-in-from-top-2 duration-300">
-            <input
-              type="number"
-              value={budgetInput}
-              onChange={(e) => setBudgetInput(e.target.value)}
-              className="flex-1 bg-white border border-blue-100 px-5 py-3 rounded-2xl text-xs font-semibold focus:border-sky-400 focus:outline-none"
-              placeholder="Set limit..."
-            />
-            <button onClick={handleSaveBudget} className="bg-[#6BAEE0] text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest">Save</button>
-          </div>
-        )}
-      </section>
-
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
         <div className="flex items-center justify-between mb-6 px-2">
           <div className="flex items-center gap-3">

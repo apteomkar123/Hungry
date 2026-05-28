@@ -165,10 +165,8 @@ const cuisineMatch = (recipe, ...areas) => {
 export const matchesRecipeFilter = (recipe, filter) => {
   switch (filter) {
     case 'vegetarian':
-      if (/\bvegetarian\b/i.test(recipe.meal_type || '')) return true;
       return !isRecipeMeat(recipe) && !isRecipeFish(recipe);
     case 'vegan':
-      if (/\bvegan\b/i.test(recipe.meal_type || '')) return true;
       return isRecipeVegan(recipe) && !isRecipeMeat(recipe) && !isRecipeFish(recipe);
     case 'gluten-free': return !isRecipeGluten(recipe);
     case 'dairy-free': return !isRecipeDairy(recipe);
@@ -322,4 +320,32 @@ export const triggerHaptic = (intensity = 10) => {
   if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
     window.navigator.vibrate(intensity);
   }
+};
+
+export const CATEGORY_ICONS = {
+  'Proteins': '🫘',
+  'Dairy & Eggs': '🥛',
+  'Fruits': '🍎',
+  'Vegetables': '🥦',
+  'Beverages': '☕',
+  'Snacks': '🍿',
+  'Frozen': '🧊',
+  'General': '📦',
+};
+
+export const CATEGORY_ORDER = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Beverages', 'Snacks', 'Frozen', 'General'];
+
+// Frozen checked FIRST — "Frozen Chicken" must be Frozen, not Proteins
+// Snacks checked before Vegetables — "potato chips" must be Snacks not Vegetables
+// eggs? covers both "egg" and "eggs"
+export const categorizeItem = (itemName) => {
+  const n = (itemName || '').toLowerCase();
+  if (/\b(frozen|ice cream|gelato|popsicle|sorbet)\b/.test(n)) return 'Frozen';
+  if (/\b(chicken|beef|pork|lamb|turkey|fish|salmon|tuna|shrimp|crab|lobster|bacon|sausage|ham|mutton|duck|seafood|steak|mince|pepperoni|anchovy|venison|veal|salami|meat|prawn)\b/.test(n)) return 'Proteins';
+  if (/\b(milk|cheese|butter|yogurt|cream|eggs?|paneer|ghee|curd|whey|kefir|mozzarella|cheddar|parmesan|brie|ricotta|cottage|sour cream|dairy)\b/.test(n)) return 'Dairy & Eggs';
+  if (/\b(apple|banana|orange|mango|grape|strawberry|blueberry|raspberry|blackberry|lemon|lime|pear|peach|plum|cherry|watermelon|melon|pineapple|kiwi|avocado|fig|date|papaya|guava|coconut|pomegranate|passion fruit)\b/.test(n)) return 'Fruits';
+  if (/\b(water|juice|soda|tea|coffee|beer|wine|spirit|whiskey|vodka|rum|gin|drink|beverage|smoothie|shake|cola|lemonade|kombucha|sparkling)\b/.test(n)) return 'Beverages';
+  if (/\b(chip|crisp|cracker|cookie|biscuit|candy|chocolate|popcorn|pretzel|almond|cashew|walnut|peanut|pistachio|trail mix|granola|protein bar|rice cake|snack|nut)\b/.test(n)) return 'Snacks';
+  if (/\b(carrot|potato|tomato|onion|garlic|spinach|broccoli|cauliflower|lettuce|cabbage|cucumber|pepper|celery|kale|zucchini|eggplant|mushroom|corn|pea|bean|lentil|asparagus|beetroot|radish|leek|okra|squash|yam|ginger|turmeric|chili|capsicum|chard|arugula|herb|cilantro|parsley|basil|mint)\b/.test(n)) return 'Vegetables';
+  return 'General';
 };
