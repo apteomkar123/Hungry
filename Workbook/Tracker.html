@@ -148,6 +148,70 @@
                                 <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-american-units"></select></td>
                                 <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-american-units" placeholder="Add notes..."></td>
                             </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Pantry Proximity / Geofencing Store Alerts</div>
+                                    <div class="text-xs text-slate-400">Detect when a household member is at a grocery store via GPS and notify other members to add items before checkout.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-geofence"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-geofence" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Shopping List: Grocery Store Aisle View</div>
+                                    <div class="text-xs text-slate-400">Organize shopping list items by aisle (Produce, Dairy, Frozen, etc.) based on category metadata when in "Store View".</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-aisle-view"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-aisle-view" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Voice Input: Quantity Recognition</div>
+                                    <div class="text-xs text-slate-400">Parse numbers from voice input so "2 tomatoes, 3 bananas" adds quantity alongside item name to the pantry.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-voice-qty"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-voice-qty" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Pantry: Drag & Drop Between Categories</div>
+                                    <div class="text-xs text-slate-400">Allow users to drag ingredients from one pantry category into another to override auto-categorization.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-drag-drop"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-drag-drop" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Household Cost Splitting via Venmo</div>
+                                    <div class="text-xs text-slate-400">When a shared pantry item is added, automatically split cost between household members and request payment via Venmo API.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-venmo"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-venmo" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Cache Recipes in Database</div>
+                                    <div class="text-xs text-slate-400">Store fetched recipes in Supabase so the app doesn't re-call the API on every load. Speeds up recipe browsing significantly.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-recipe-db-cache"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-recipe-db-cache" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Background Tasks Persist Across Navigation</div>
+                                    <div class="text-xs text-slate-400">Processes like Smart Meal Prep generation should not stop when the user navigates to a different section of the app.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-bg-tasks"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-bg-tasks" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700">Barcode Scanner: Sound Effect on Success</div>
+                                    <div class="text-xs text-slate-400">Play a satisfying sound when a barcode is successfully identified. Scanner UI should also match the app's design language.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="feat-barcode-sound"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="feat-barcode-sound" placeholder="Add notes..."></td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -193,6 +257,62 @@
                                 </td>
                                 <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-blank-screen"></select></td>
                                 <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-blank-screen" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700 text-sm italic">"AI Nutrition Coach — no ingredients / recipes not openable"</div>
+                                    <div class="text-xs text-slate-400">After selecting a nutrition goal, no ingredient suggestions appear. Recipes shown are not openable and starred ones can't be unstarred.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-nutrition-coach"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-nutrition-coach" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700 text-sm italic">"Vegetarian recipes miscategorized as meat (Mince Pies, Pierogi)"</div>
+                                    <div class="text-xs text-slate-400">MEAT_PATTERN or ingredient text matches non-meat words (e.g. "mincemeat" in desserts, breadcrumb fillings). Need tighter word-boundary logic.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-veg-miscategorized"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-veg-miscategorized" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700 text-sm italic">"Make Vegetarian / Make Vegan returns 'Could not adapt recipe'"</div>
+                                    <div class="text-xs text-slate-400">AI adaptation call fails with a server error. Need to check Netlify function logs and handle edge cases in the adaptRecipe prompt.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-adapt-error"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-adapt-error" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700 text-sm italic">"Voice input overlay doesn't dismiss after Add / Discard"</div>
+                                    <div class="text-xs text-slate-400">After confirming or discarding voice-recognized items, the recognition panel should slide away. Currently stays visible.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-voice-dismiss"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-voice-dismiss" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700 text-sm italic">"Household monthly income not saving"</div>
+                                    <div class="text-xs text-slate-400">Editing monthly income on the Household or Spending page doesn't persist. Should be a shared universal value editable from both locations.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-household-income"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-household-income" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700 text-sm italic">"Shopping List 'Store' feature non-functional (just says Pantry)"</div>
+                                    <div class="text-xs text-slate-400">The store-trip planner button doesn't do anything useful. Should organize items by aisle / show nearby store suggestions.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-store-feature"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-store-feature" placeholder="Add notes..."></td>
+                            </tr>
+                            <tr class="border-b border-slate-50">
+                                <td class="py-4">
+                                    <div class="font-semibold text-slate-700 text-sm italic">"Potato chips and similar snacks still categorized as Vegetables"</div>
+                                    <div class="text-xs text-slate-400">Ingredient auto-categorizer still misfiles obvious snacks into Vegetables. Needs more specific pattern matching before the vegetable check.</div>
+                                </td>
+                                <td class="py-4 w-32"><select class="status-select p-1 rounded-lg text-xs" data-id="bug-categorizer-snacks"></select></td>
+                                <td class="py-4"><input type="text" class="comment-input w-full bg-transparent text-sm italic" data-id="bug-categorizer-snacks" placeholder="Add notes..."></td>
                             </tr>
                         </tbody>
                     </table>
