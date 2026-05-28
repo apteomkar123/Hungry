@@ -82,7 +82,7 @@ export default function HouseholdSettings() {
                           />
                         </div>
                         <button
-                          onClick={() => handleUpdateBudgetLimit(budgetInputs[hh.id] || 0)}
+                          onClick={() => handleUpdateBudgetLimit(budgetInputs[hh.id] || 0, hh.id)}
                           className="bg-[#6BAEE0] text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-md shadow-blue-100 hover:bg-[#5da0cf] transition-all"
                         >
                           Save

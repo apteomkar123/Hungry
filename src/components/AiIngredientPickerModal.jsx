@@ -1,16 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Sparkles, Loader2, CalendarDays, ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import { X, Sparkles, Loader2, CalendarDays } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { categorizeItem, CATEGORY_ICONS, CATEGORY_ORDER } from './recipeUtils';
 
-const BATCH_COLORS = [
-  { bg: 'bg-sky-50', border: 'border-sky-100', accent: 'text-[#6BAEE0]', dot: 'bg-[#6BAEE0]' },
-  { bg: 'bg-violet-50', border: 'border-violet-100', accent: 'text-violet-500', dot: 'bg-violet-400' },
-  { bg: 'bg-emerald-50', border: 'border-emerald-100', accent: 'text-emerald-600', dot: 'bg-emerald-500' },
-];
-
 export default function AiIngredientPickerModal() {
-  const { isAiPickerOpen, setIsAiPickerOpen, fridge, handleGenerateAiRecipe, aiGenerating } = useRecipes();
+  const { isAiPickerOpen, setIsAiPickerOpen, fridge, handleGenerateAiRecipe, aiGenerating, generateMealPlan, prepLoading } = useRecipes();
 
   const allItems = useMemo(() => {
     if (!fridge) return [];
@@ -34,15 +28,10 @@ export default function AiIngredientPickerModal() {
 
   const [selected, setSelected] = useState(new Set());
   const [mode, setMode] = useState('recipe'); // 'recipe' | 'prep'
-  const [prepPlan, setPrepPlan] = useState(null);
-  const [prepLoading, setPrepLoading] = useState(false);
-  const [expandedBatch, setExpandedBatch] = useState(null);
 
   useEffect(() => {
     if (isAiPickerOpen) {
       setSelected(new Set(allItems.map(i => i.raw_name)));
-      setPrepPlan(null);
-      setExpandedBatch(null);
     }
   }, [isAiPickerOpen, allItems]);
 
@@ -61,29 +50,11 @@ export default function AiIngredientPickerModal() {
     handleGenerateAiRecipe(ingredients);
   };
 
-  const handleMealPrep = async () => {
+  const handleMealPrep = () => {
     const ingredients = allItems.filter(i => selected.has(i.raw_name)).map(i => i.raw_name);
     if (ingredients.length === 0) return;
-
-    setPrepPlan(null);
-    setExpandedBatch(null);
-    setPrepLoading(true);
-
-    try {
-      const prompt = `I have these ingredients: ${ingredients.slice(0, 20).join(', ')}. Create a smart weekly meal prep plan by grouping recipes that share these ingredients for efficient batch cooking. Return ONLY valid JSON with no markdown: {"batches":[{"title":"string","recipes":["recipe1","recipe2"],"sharedIngredients":["ingredient1","ingredient2"],"prepTime":"string","tip":"under 30 words"}]} — include 3 batches.`;
-      const res = await fetch('/.netlify/functions/scan-receipt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customPrompt: prompt, directMode: true })
-      });
-      const text = await res.text();
-      const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
-      setPrepPlan(Array.isArray(parsed.batches) ? parsed.batches : []);
-    } catch {
-      setPrepPlan([]);
-    } finally {
-      setPrepLoading(false);
-    }
+    setIsAiPickerOpen(false);
+    generateMealPlan(ingredients);
   };
 
   if (!isAiPickerOpen) return null;
@@ -162,62 +133,6 @@ export default function AiIngredientPickerModal() {
             </div>
           ))}
         </div>
-
-        {/* Meal Prep results */}
-        {mode === 'prep' && (prepPlan !== null || prepLoading) && (
-          <div className="mt-4 border-t border-blue-50 pt-4 space-y-2 max-h-64 overflow-y-auto">
-            {prepLoading ? (
-              <div className="flex items-center justify-center gap-2 py-4 text-slate-400">
-                <Loader2 size={16} className="animate-spin text-[#6BAEE0]" />
-                <span className="text-xs font-bold">Building your prep plan…</span>
-              </div>
-            ) : prepPlan.length === 0 ? (
-              <p className="text-xs text-slate-400 italic text-center py-3">Could not generate a plan. Please try again.</p>
-            ) : prepPlan.map((batch, i) => {
-              const isOpen = expandedBatch === i;
-              const c = BATCH_COLORS[i % BATCH_COLORS.length];
-              return (
-                <div key={i} className={`rounded-2xl border ${c.bg} ${c.border} overflow-hidden`}>
-                  <button onClick={() => setExpandedBatch(isOpen ? null : i)} className="w-full flex items-center justify-between px-4 py-3 text-left">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${c.dot}`} />
-                      <div className="min-w-0">
-                        <p className={`text-xs font-black ${c.accent} truncate`}>{batch.title}</p>
-                        <p className="text-[9px] text-slate-400">{batch.recipes?.length || 0} recipes</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      {batch.prepTime && <span className="text-[9px] text-slate-400 flex items-center gap-0.5"><Clock size={9} /> {batch.prepTime}</span>}
-                      {isOpen ? <ChevronUp size={12} className="text-slate-400" /> : <ChevronDown size={12} className="text-slate-400" />}
-                    </div>
-                  </button>
-                  {isOpen && (
-                    <div className="px-4 pb-3 space-y-2 border-t" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-                      {batch.recipes?.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {batch.recipes.map((r, j) => (
-                            <div key={j} className="flex items-center gap-1.5 bg-white/70 rounded-lg px-2.5 py-1.5">
-                              <span className={`text-[9px] font-black ${c.accent}`}>{j + 1}.</span>
-                              <span className="text-xs font-semibold text-slate-700">{r}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {batch.sharedIngredients?.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {batch.sharedIngredients.map((ing, j) => (
-                            <span key={j} className="text-[9px] font-bold bg-white/80 border border-blue-100 text-slate-500 px-2 py-0.5 rounded-full">{ing}</span>
-                          ))}
-                        </div>
-                      )}
-                      {batch.tip && <p className="text-[10px] text-slate-500 italic">💡 {batch.tip}</p>}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
 
         <div className="mt-4 pt-4 border-t border-blue-50">
           {mode === 'recipe' ? (

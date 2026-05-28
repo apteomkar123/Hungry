@@ -11,6 +11,7 @@ import AiIngredientPickerModal from './components/AiIngredientPickerModal';
 import HouseholdSettings from './components/HouseholdSettings';
 import SettingsPage from './components/SettingsPage';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
+import MealPrepModal from './components/MealPrepModal';
 import AuthManager from './components/AuthManager';
 import { useUser } from './components/UserContext';
 import { RecipeProvider, useRecipes } from './components/RecipeContext';
@@ -56,6 +57,10 @@ function AppContent({ inventory }) {
     shoppingAlerts,
     isStoreAlertOpen,
     setIsStoreAlertOpen,
+    savedMealPlans,
+    removeMealPlan,
+    setActiveMealPlan,
+    setIsMealPrepOpen,
   } = useRecipes();
 
   const [activeTab, setActiveTab] = useState('pantry');
@@ -114,6 +119,39 @@ function AppContent({ inventory }) {
             {activeTab === 'settings' && <SettingsPage />}
             {activeTab === 'saved' && (
               <div className="space-y-6">
+                {/* ── Meal Plans ── */}
+                {savedMealPlans.length > 0 && (
+                  <div className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
+                    <h2 className="text-[14px] font-bold text-slate-400 mb-4 flex items-center gap-2">
+                      <span className="text-base">📅</span> Saved Meal Plans
+                    </h2>
+                    <div className="space-y-3">
+                      {savedMealPlans.map(plan => (
+                        <div key={plan.id} className="bg-sky-50 border border-sky-100 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-black text-[#6BAEE0]">{plan.batches?.length || 0} Batch{plan.batches?.length !== 1 ? 'es' : ''}</p>
+                            <p className="text-[10px] text-slate-400">{new Date(plan.savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => { setActiveMealPlan(plan); setIsMealPrepOpen(true); }}
+                              className="text-[10px] font-black text-[#6BAEE0] bg-white border border-sky-200 px-3 py-1.5 rounded-xl hover:bg-sky-50 transition-all"
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => removeMealPlan(plan.id)}
+                              className="text-red-300 hover:text-red-500 transition-colors p-1.5"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
                   <div className="relative mb-6">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -192,6 +230,7 @@ function AppContent({ inventory }) {
       </div>
 
       <AiIngredientPickerModal />
+      <MealPrepModal />
 
       {activeModalRecipe && (
         <RecipeModal

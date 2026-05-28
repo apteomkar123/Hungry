@@ -132,14 +132,15 @@ export const UserProvider = ({ children }) => {
     if (!error) setActiveHousehold(households.find(h => h.id === householdId) || null);
   };
 
-  const handleUpdateBudgetLimit = async (newLimit) => {
-    if (!activeHousehold) return;
+  const handleUpdateBudgetLimit = async (newLimit, householdId) => {
+    const targetId = householdId || activeHousehold?.id;
+    if (!targetId) return;
     const limitVal = parseFloat(newLimit) || 0;
-    const { error } = await supabase.from('households').update({ budget_limit: limitVal }).eq('id', activeHousehold.id);
+    const { error } = await supabase.from('households').update({ budget_limit: limitVal }).eq('id', targetId);
     if (!error) {
-      const updated = { ...activeHousehold, budget_limit: limitVal };
-      setActiveHousehold(updated);
-      setHouseholds(prev => prev.map(h => h.id === activeHousehold.id ? updated : h));
+      const updated = { budget_limit: limitVal };
+      setHouseholds(prev => prev.map(h => h.id === targetId ? { ...h, ...updated } : h));
+      if (activeHousehold?.id === targetId) setActiveHousehold(prev => ({ ...prev, ...updated }));
     }
   };
 

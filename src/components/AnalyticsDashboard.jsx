@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, BarChart, ShoppingBag, TrendingDown, PieChart, Target, Sparkles, Loader2, RefreshCw, Star, Plus, Leaf, AlertTriangle, CalendarDays, Clock, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
+import { DollarSign, BarChart, ShoppingBag, TrendingDown, PieChart, Target, Sparkles, Loader2, RefreshCw, Star, Plus, Leaf, AlertTriangle, CalendarDays, Edit2 } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
 
@@ -18,8 +18,8 @@ const ECO_RATINGS = [
 ];
 
 export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAddShoppingItem }) {
-  const { household, userSettings, handleUpdatePersonalBudget } = useUser();
-  const { onSaveRecipe, onRemoveSavedRecipe, processedRecipes, savedRecipes, setActiveModalRecipe } = useRecipes();
+  const { household, userSettings, handleUpdatePersonalBudget, handleUpdateBudgetLimit } = useUser();
+  const { onSaveRecipe, onRemoveSavedRecipe, processedRecipes, savedRecipes, setActiveModalRecipe, generateMealPlan, prepLoading, activeMealPlan, setActiveMealPlan, setIsMealPrepOpen } = useRecipes();
 
   const [dashTab, setDashTab] = useState('nutrition');
   const [selectedMacro, setSelectedMacro] = useState(null);
@@ -27,12 +27,11 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
   const [aiLoading, setAiLoading] = useState(false);
   const [addedIngredients, setAddedIngredients] = useState(new Set());
 
-  const [prepPlan, setPrepPlan] = useState(null);
-  const [prepLoading, setPrepLoading] = useState(false);
-  const [expandedBatch, setExpandedBatch] = useState(null);
-
   const [isEditingPersonalBudget, setIsEditingPersonalBudget] = useState(false);
   const [personalBudgetInput, setPersonalBudgetInput] = useState('');
+  const [isEditingHouseholdBudget, setIsEditingHouseholdBudget] = useState(false);
+  const [householdBudgetInput, setHouseholdBudgetInput] = useState('');
+  const [starredRecipes, setStarredRecipes] = useState(new Set());
 
   // ── Spending calcs ───────────────────────────────────────────────────────
   const pantryValue    = fridge.reduce((sum, item) => sum + (item.price || 0), 0);
@@ -122,32 +121,6 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
   const savePersonalBudget = () => {
     if (handleUpdatePersonalBudget) handleUpdatePersonalBudget(personalBudgetInput);
     setIsEditingPersonalBudget(false);
-  };
-
-  const generateMealPrepPlan = async () => {
-    setPrepPlan(null);
-    setPrepLoading(true);
-    setExpandedBatch(null);
-
-    try {
-      const ingredients = fridge.map(i => i.raw_name).filter(Boolean).slice(0, 30).join(', ');
-      const prompt = `I have these pantry/fridge ingredients: ${ingredients || 'general pantry staples'}. Create a smart weekly meal prep plan that batches cooking efficiently by grouping recipes that share ingredients or cooking methods. Return ONLY valid JSON (no markdown): {"batches":[{"title":"string","recipes":["recipe1","recipe2"],"sharedIngredients":["ingredient1","ingredient2"],"prepTime":"string","tip":"under 30 words"}]} — include 3 batches.`;
-
-      const res = await fetch('/.netlify/functions/scan-receipt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customPrompt: prompt, directMode: true })
-      });
-
-      const text = await res.text();
-      const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsed = JSON.parse(cleaned);
-      setPrepPlan(Array.isArray(parsed.batches) ? parsed.batches : []);
-    } catch {
-      setPrepPlan([]);
-    } finally {
-      setPrepLoading(false);
-    }
   };
 
   const personalBudget = userSettings?.personal_budget_limit || 0;
@@ -314,25 +287,25 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
         )}
       </section>
 
-      {/* ── Smart Meal Prep Batches ───────────────────────────────────────── */}
+      {/* ── Smart Meal Prep ───────────────────────────────────────────────── */}
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
         <div className="flex items-center justify-between mb-5 px-1">
           <div className="flex items-center gap-2">
             <CalendarDays className="text-[#6BAEE0]" size={18} />
             <h2 className="text-[14px] font-bold text-slate-400">Smart Meal Prep</h2>
           </div>
-          {prepPlan && (
-            <button onClick={() => { setPrepPlan(null); setExpandedBatch(null); }} className="text-slate-300 hover:text-[#6BAEE0] transition-colors">
+          {activeMealPlan && !prepLoading && (
+            <button onClick={() => setActiveMealPlan(null)} className="text-slate-300 hover:text-[#6BAEE0] transition-colors">
               <RefreshCw size={14} />
             </button>
           )}
         </div>
 
-        {!prepPlan && !prepLoading && (
+        {!activeMealPlan && !prepLoading && (
           <div className="text-center space-y-4">
             <p className="text-xs text-slate-400 px-2">AI analyses your pantry and groups recipes into efficient weekly prep batches — cook less, eat better.</p>
             <button
-              onClick={generateMealPrepPlan}
+              onClick={() => generateMealPlan(fridge.map(i => i.raw_name).filter(Boolean))}
               className="inline-flex items-center gap-2 bg-[#6BAEE0] text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider shadow-lg shadow-blue-100 hover:bg-[#5da0cf] transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Sparkles size={14} /> Generate Weekly Plan
@@ -347,90 +320,20 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
           </div>
         )}
 
-        {prepPlan && !prepLoading && (
+        {activeMealPlan && !prepLoading && (
           <div className="space-y-3">
-            {prepPlan.length === 0 ? (
-              <p className="text-xs text-slate-400 italic text-center py-4">Could not generate a plan. Tap refresh to try again.</p>
-            ) : prepPlan.map((batch, i) => {
-              const isOpen = expandedBatch === i;
-              const batchColors = [
-                { bg: 'bg-sky-50', border: 'border-sky-100', accent: 'text-[#6BAEE0]', dot: 'bg-[#6BAEE0]' },
-                { bg: 'bg-violet-50', border: 'border-violet-100', accent: 'text-violet-500', dot: 'bg-violet-400' },
-                { bg: 'bg-emerald-50', border: 'border-emerald-100', accent: 'text-emerald-600', dot: 'bg-emerald-500' },
-              ];
-              const c = batchColors[i % batchColors.length];
-              return (
-                <div key={i} className={`rounded-2xl border ${c.bg} ${c.border} overflow-hidden`}>
-                  <button
-                    onClick={() => setExpandedBatch(isOpen ? null : i)}
-                    className="w-full flex items-center justify-between px-4 py-3.5 text-left"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${c.dot}`} />
-                      <div className="min-w-0">
-                        <p className={`text-xs font-black ${c.accent} truncate`}>{batch.title}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">{batch.recipes?.length || 0} recipes</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
-                      {batch.prepTime && (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                          <Clock size={10} /> {batch.prepTime}
-                        </span>
-                      )}
-                      {isOpen ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
-                    </div>
-                  </button>
-
-                  {isOpen && (
-                    <div className="px-4 pb-4 space-y-3 border-t border-current border-opacity-10" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
-                      {batch.recipes?.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Recipes in This Batch</p>
-                          <div className="flex flex-col gap-1.5">
-                            {batch.recipes.map((r, j) => {
-                              const savedEntry = savedRecipes?.find(sr => sr.recipe_name?.toLowerCase() === r.toLowerCase());
-                              const canOpen = processedRecipes.some(rr => rr.name.toLowerCase() === r.toLowerCase());
-                              return (
-                                <div key={j} className="flex items-center gap-2 bg-white/70 rounded-xl px-3 py-2">
-                                  <span className={`text-[10px] font-black ${c.accent}`}>{j + 1}.</span>
-                                  <button
-                                    className={`flex-1 text-left text-xs font-semibold ${canOpen ? 'text-[#6BAEE0] hover:underline' : 'text-slate-700'}`}
-                                    onClick={() => handleOpenRecipe(r)}
-                                    disabled={!canOpen}
-                                  >{r}</button>
-                                  <button onClick={() => handleToggleStar(r)} className={`shrink-0 transition-all ${savedEntry ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}`}>
-                                    <Star size={12} fill={savedEntry ? 'currentColor' : 'none'} />
-                                  </button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {batch.sharedIngredients?.length > 0 && (
-                        <div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Shared Ingredients</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {batch.sharedIngredients.map((ing, j) => (
-                              <span key={j} className="text-[10px] font-bold bg-white/80 border border-blue-100 text-slate-600 px-2.5 py-1 rounded-full">{ing}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {batch.tip && (
-                        <div className="bg-white/60 rounded-xl px-3 py-2.5 flex gap-2 items-start">
-                          <span className="text-sm">💡</span>
-                          <p className="text-[11px] text-slate-500 leading-snug">{batch.tip}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black text-[#6BAEE0]">{activeMealPlan.batches?.length || 0} Batch{activeMealPlan.batches?.length !== 1 ? 'es' : ''} Ready</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Your weekly prep plan is ready to view.</p>
+              </div>
+              <button
+                onClick={() => setIsMealPrepOpen(true)}
+                className="bg-[#6BAEE0] text-white px-4 py-2 rounded-xl text-xs font-black shadow-sm hover:bg-[#5da0cf] transition-all"
+              >
+                View Plan
+              </button>
+            </div>
           </div>
         )}
       </section>
@@ -599,14 +502,20 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">My Budget</p>
             <p className="text-2xl font-black text-[#6BAEE0]">${personalBudget.toFixed(2)}<span className="text-sm font-bold text-slate-400">/mo</span></p>
           </div>
-          <div className="flex-1 bg-blue-50 rounded-2xl border border-blue-100 p-4">
+          <div className="flex-1 bg-blue-50 rounded-2xl border border-blue-100 p-4 relative">
+            <button
+              onClick={() => { setIsEditingHouseholdBudget(v => !v); setHouseholdBudgetInput(String(Number(household?.budget_limit || 0).toFixed(2))); }}
+              className="absolute top-2 right-2 p-1 text-slate-300 hover:text-[#6BAEE0] transition-colors"
+            >
+              <Edit2 size={12} />
+            </button>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Household Budget</p>
             <p className="text-2xl font-black text-slate-700">${(household?.budget_limit || 0).toFixed(2)}<span className="text-sm font-bold text-slate-400">/mo</span></p>
           </div>
         </div>
 
         {isEditingPersonalBudget && (
-          <div className="flex gap-2 animate-in slide-in-from-top-2 duration-300">
+          <div className="flex gap-2 animate-in slide-in-from-top-2 duration-300 mb-3">
             <div className="relative flex-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">$</span>
               <input
@@ -621,6 +530,30 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
             </div>
             <button
               onClick={savePersonalBudget}
+              className="bg-[#6BAEE0] text-white px-5 py-3 rounded-2xl text-xs font-black shadow-md shadow-blue-100 hover:bg-[#5da0cf] transition-all"
+            >
+              Save
+            </button>
+          </div>
+        )}
+
+        {isEditingHouseholdBudget && (
+          <div className="flex gap-2 animate-in slide-in-from-top-2 duration-300">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest self-center shrink-0">Household:</p>
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">$</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={householdBudgetInput}
+                onChange={(e) => setHouseholdBudgetInput(e.target.value)}
+                placeholder="0.00"
+                className="w-full bg-white border border-blue-100 pl-7 pr-4 py-3 rounded-2xl text-xs font-bold text-slate-800 focus:border-sky-400 focus:outline-none"
+              />
+            </div>
+            <button
+              onClick={() => { handleUpdateBudgetLimit(householdBudgetInput); setIsEditingHouseholdBudget(false); }}
               className="bg-[#6BAEE0] text-white px-5 py-3 rounded-2xl text-xs font-black shadow-md shadow-blue-100 hover:bg-[#5da0cf] transition-all"
             >
               Save

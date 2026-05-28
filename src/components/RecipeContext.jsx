@@ -12,6 +12,9 @@ import {
 
 const RecipeContext = createContext();
 
+const MEALDB_CACHE_KEY = 'hungry_mealdb_v1';
+const MEALDB_CACHE_TTL = 24 * 60 * 60 * 1000;
+
 export const useRecipes = () => {
   const context = useContext(RecipeContext);
   if (!context) throw new Error('useRecipes must be used within a RecipeProvider');
@@ -42,6 +45,13 @@ export const RecipeProvider = ({ children, fridge }) => {
   const [shoppingAlerts, setShoppingAlerts] = useState([]);
   const [isStoreAlertOpen, setIsStoreAlertOpen] = useState(false);
 
+  const [activeMealPlan, setActiveMealPlan] = useState(null);
+  const [isMealPrepOpen, setIsMealPrepOpen] = useState(false);
+  const [prepLoading, setPrepLoading] = useState(false);
+  const [savedMealPlans, setSavedMealPlans] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('hungry_meal_plans_v1')) || []; } catch { return []; }
+  });
+
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedRecipeSearch(recipeSearch), 300);
     return () => clearTimeout(handler);
@@ -53,18 +63,26 @@ export const RecipeProvider = ({ children, fridge }) => {
   }, [savedSearch]);
 
   const fetchMealDbRecipes = async () => {
+    try {
+      const cached = localStorage.getItem(MEALDB_CACHE_KEY);
+      if (cached) {
+        const { data, ts } = JSON.parse(cached);
+        if (Date.now() - ts < MEALDB_CACHE_TTL && Array.isArray(data) && data.length > 0) return data;
+      }
+    } catch {}
+
     const letters = 'abcdefghijklmnopqrstuvwxyz'.split('');
     const results = await Promise.all(letters.map(async (l) => {
       try {
         const res = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?f=${l}`);
         const data = await res.json();
         return data.meals || [];
-      } catch (err) { return []; }
+      } catch { return []; }
     }));
 
     const meals = results.flat();
     const unique = Array.from(new Map(meals.map(m => [m.idMeal, m])).values());
-    return unique.map(m => {
+    const processed = unique.map(m => {
       const ings = [];
       for (let i = 1; i <= 20; i++) {
         if (m[`strIngredient${i}`]) ings.push(`${m[`strMeasure${i}`] || ''} ${m[`strIngredient${i}`]}`.trim());
@@ -78,6 +96,8 @@ export const RecipeProvider = ({ children, fridge }) => {
         steps: String(m.strInstructions || '').split(/\r?\n+/).filter(Boolean)
       };
     });
+    try { localStorage.setItem(MEALDB_CACHE_KEY, JSON.stringify({ data: processed, ts: Date.now() })); } catch {}
+    return processed;
   };
 
   const fetchSpoonacularRecipes = async () => {
@@ -274,6 +294,44 @@ export const RecipeProvider = ({ children, fridge }) => {
     }
   };
 
+  const generateMealPlan = async (ingredients) => {
+    const ingredientList = (ingredients || (fridge || []).map(i => i.raw_name)).filter(Boolean).slice(0, 30);
+    setActiveMealPlan(null);
+    setPrepLoading(true);
+    setIsMealPrepOpen(true);
+    try {
+      const prompt = `I have these pantry/fridge ingredients: ${ingredientList.join(', ') || 'general pantry staples'}. Create a smart weekly meal prep plan that batches cooking efficiently by grouping recipes that share ingredients or cooking methods. Return ONLY valid JSON (no markdown): {"batches":[{"title":"string","recipes":["recipe1","recipe2"],"sharedIngredients":["ingredient1","ingredient2"],"prepTime":"string","tip":"under 30 words"}]} — include 3 batches.`;
+      const res = await fetch('/.netlify/functions/scan-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customPrompt: prompt, directMode: true })
+      });
+      const text = await res.text();
+      const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
+      setActiveMealPlan({ batches: Array.isArray(parsed.batches) ? parsed.batches : [], generatedAt: Date.now() });
+    } catch {
+      setActiveMealPlan({ batches: [], generatedAt: Date.now() });
+    } finally {
+      setPrepLoading(false);
+    }
+  };
+
+  const saveMealPlan = (plan) => {
+    const newPlan = { ...plan, id: `plan-${Date.now()}`, savedAt: Date.now() };
+    setSavedMealPlans(prev => {
+      const next = [newPlan, ...prev];
+      try { localStorage.setItem('hungry_meal_plans_v1', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const removeMealPlan = (id) => {
+    setSavedMealPlans(prev => {
+      const next = prev.filter(p => p.id !== id);
+      try { localStorage.setItem('hungry_meal_plans_v1', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   const filteredSavedRecipes = useMemo(() => {
     if (!savedRecipes) return [];
@@ -339,6 +397,15 @@ export const RecipeProvider = ({ children, fridge }) => {
       isStoreAlertOpen,
       setIsStoreAlertOpen,
       triggerStoreTripPlanner,
+      activeMealPlan,
+      setActiveMealPlan,
+      isMealPrepOpen,
+      setIsMealPrepOpen,
+      prepLoading,
+      generateMealPlan,
+      savedMealPlans,
+      saveMealPlan,
+      removeMealPlan,
       fridge
     }}>
       {children}
