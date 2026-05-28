@@ -50,12 +50,12 @@ function AppContent({ inventory }) {
     filteredSavedRecipes,
     savedSearch,
     setSavedSearch,
-    savedCategoryFilter,
-    setSavedCategoryFilter,
-    savedDietFilter,
-    setSavedDietFilter,
-    savedCuisineFilter,
-    setSavedCuisineFilter,
+    savedCategoryFilters,
+    setSavedCategoryFilters,
+    savedDietFilters,
+    setSavedDietFilters,
+    savedCuisineFilters,
+    setSavedCuisineFilters,
     shoppingAlerts,
     isStoreAlertOpen,
     setIsStoreAlertOpen,
@@ -68,9 +68,11 @@ function AppContent({ inventory }) {
   const [activeTab, setActiveTab] = useState('pantry');
   const [isCookingMode, setIsCookingMode] = useState(false);
   const mainRef = useRef(null);
-  const [shopCategoryFilter, setShopCategoryFilter] = useState('all');
-  const [shopDietFilter, setShopDietFilter] = useState('all');
-  const [shopCuisineFilter, setShopCuisineFilter] = useState('all');
+  const [shopCategoryFilters, setShopCategoryFilters] = useState([]);
+  const [shopDietFilters, setShopDietFilters] = useState([]);
+  const [shopCuisineFilters, setShopCuisineFilters] = useState([]);
+  const toggleFilter = (setter) => (f) =>
+    setter(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
   const scrollToTop = useCallback(() => mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), []);
 
   const addedItems = new Set(shoppingList.map(i => cleanIngredientLocally(i.item_name)));
@@ -171,34 +173,26 @@ function AppContent({ inventory }) {
                     />
                   </div>
                   <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    {['all', 'breakfast', 'lunch', 'dinner', 'snack', 'dessert'].map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setSavedCategoryFilter(f)}
-                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedCategoryFilter === f ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}
-                      >
+                    <button onClick={() => setSavedCategoryFilters([])} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedCategoryFilters.length === 0 ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}>all</button>
+                    {['breakfast', 'lunch', 'dinner', 'snack', 'dessert'].map((f) => (
+                      <button key={f} onClick={() => toggleFilter(setSavedCategoryFilters)(f)}
+                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedCategoryFilters.includes(f) ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}>
                         {f}
                       </button>
                     ))}
                   </div>
                   <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-2">
                     {['vegetarian', 'vegan', 'meat', 'fish'].map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setSavedDietFilter(savedDietFilter === f ? 'all' : f)}
-                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedDietFilter === f ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-emerald-200'}`}
-                      >
+                      <button key={f} onClick={() => toggleFilter(setSavedDietFilters)(f)}
+                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedDietFilters.includes(f) ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-emerald-200'}`}>
                         {f}
                       </button>
                     ))}
                   </div>
                   <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
                     {['indian', 'chinese', 'mexican', 'japanese', 'korean', 'jamaican', 'latin', 'african', 'mediterranean'].map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setSavedCuisineFilter(savedCuisineFilter === f ? 'all' : f)}
-                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedCuisineFilter === f ? 'bg-slate-700 text-white shadow-lg' : 'bg-white text-slate-400 border border-blue-50 hover:border-slate-300'}`}
-                      >
+                      <button key={f} onClick={() => toggleFilter(setSavedCuisineFilters)(f)}
+                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedCuisineFilters.includes(f) ? 'bg-slate-700 text-white shadow-lg' : 'bg-white text-slate-400 border border-blue-50 hover:border-slate-300'}`}>
                         {f}
                       </button>
                     ))}
@@ -280,18 +274,19 @@ function AppContent({ inventory }) {
             {/* Filters */}
             <div className="mb-4 space-y-2">
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {['all', 'breakfast', 'lunch', 'dinner', 'snack', 'dessert'].map(f => (
-                  <button key={f} onClick={() => setShopCategoryFilter(f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${shopCategoryFilter === f ? 'bg-[#6BAEE0] text-white shadow-md' : 'bg-blue-50 text-slate-400 hover:border-sky-200'}`}>{f}</button>
+                <button onClick={() => setShopCategoryFilters([])} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${shopCategoryFilters.length === 0 ? 'bg-[#6BAEE0] text-white shadow-md' : 'bg-blue-50 text-slate-400 hover:border-sky-200'}`}>all</button>
+                {['breakfast', 'lunch', 'dinner', 'snack', 'dessert'].map(f => (
+                  <button key={f} onClick={() => toggleFilter(setShopCategoryFilters)(f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${shopCategoryFilters.includes(f) ? 'bg-[#6BAEE0] text-white shadow-md' : 'bg-blue-50 text-slate-400 hover:border-sky-200'}`}>{f}</button>
                 ))}
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {['vegetarian', 'vegan', 'meat', 'fish'].map(f => (
-                  <button key={f} onClick={() => setShopDietFilter(shopDietFilter === f ? 'all' : f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${shopDietFilter === f ? 'bg-emerald-500 text-white shadow-md' : 'bg-blue-50 text-slate-400 hover:border-emerald-200'}`}>{f}</button>
+                  <button key={f} onClick={() => toggleFilter(setShopDietFilters)(f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${shopDietFilters.includes(f) ? 'bg-emerald-500 text-white shadow-md' : 'bg-blue-50 text-slate-400 hover:border-emerald-200'}`}>{f}</button>
                 ))}
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {['indian', 'chinese', 'mexican', 'japanese', 'korean', 'jamaican', 'latin', 'african', 'mediterranean'].map(f => (
-                  <button key={f} onClick={() => setShopCuisineFilter(shopCuisineFilter === f ? 'all' : f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${shopCuisineFilter === f ? 'bg-slate-700 text-white shadow-md' : 'bg-blue-50 text-slate-400 hover:border-slate-300'}`}>{f}</button>
+                  <button key={f} onClick={() => toggleFilter(setShopCuisineFilters)(f)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${shopCuisineFilters.includes(f) ? 'bg-slate-700 text-white shadow-md' : 'bg-blue-50 text-slate-400 hover:border-slate-300'}`}>{f}</button>
                 ))}
               </div>
             </div>
@@ -299,9 +294,9 @@ function AppContent({ inventory }) {
             {(() => {
               const filtered = shoppingAlerts.filter(a => {
                 const r = a.recipe;
-                if (!matchesRecipeFilter(r, shopCategoryFilter)) return false;
-                if (shopDietFilter !== 'all' && !matchesRecipeFilter(r, shopDietFilter)) return false;
-                if (shopCuisineFilter !== 'all' && !matchesRecipeFilter(r, shopCuisineFilter)) return false;
+                if (shopCategoryFilters.length > 0 && !shopCategoryFilters.some(f => matchesRecipeFilter(r, f))) return false;
+                if (shopDietFilters.length > 0 && !shopDietFilters.some(f => matchesRecipeFilter(r, f))) return false;
+                if (shopCuisineFilters.length > 0 && !shopCuisineFilters.some(f => matchesRecipeFilter(r, f))) return false;
                 return true;
               });
               if (filtered.length === 0) return (

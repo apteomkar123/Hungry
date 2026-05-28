@@ -17,6 +17,7 @@ export default function MealPrepModal() {
     savedMealPlans,
     saveMealPlan,
     findRecipeByName,
+    generateRecipeByName,
     savedRecipes,
     onSaveRecipe,
     onRemoveSavedRecipe,
@@ -25,6 +26,7 @@ export default function MealPrepModal() {
 
   const [expandedBatch, setExpandedBatch] = useState(null);
   const [planSaved, setPlanSaved] = useState(false);
+  const [generatingRecipe, setGeneratingRecipe] = useState(null); // recipe name being generated
 
   if (!isMealPrepOpen) return null;
 
@@ -40,11 +42,17 @@ export default function MealPrepModal() {
     }
   };
 
-  const handleOpenRecipe = (recipeName) => {
+  const handleOpenRecipe = async (recipeName) => {
     const match = findRecipeByName(recipeName);
     if (match) {
       setActiveModalRecipe(match);
-    } else {
+      return;
+    }
+    setGeneratingRecipe(recipeName);
+    try {
+      const generated = await generateRecipeByName(recipeName);
+      setActiveModalRecipe(generated);
+    } catch {
       setActiveModalRecipe({
         id: `plan-${Date.now()}`,
         name: recipeName,
@@ -52,8 +60,10 @@ export default function MealPrepModal() {
         cuisine: '',
         ingredients: [],
         cleanedIngredients: [],
-        steps: ['This recipe was suggested in your meal plan. Search for it in the Recipes tab for full details.']
+        steps: ['Could not load recipe details. Try searching in the Recipes tab.']
       });
+    } finally {
+      setGeneratingRecipe(null);
     }
   };
 
@@ -167,13 +177,16 @@ export default function MealPrepModal() {
                             <div className="space-y-2">
                               {batch.recipes.map((r, j) => {
                                 const savedEntry = savedRecipes?.find(sr => sr.recipe_name?.toLowerCase() === r.toLowerCase());
+                                const isThisGenerating = generatingRecipe === r;
                                 return (
                                   <div key={j} className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${c.bg} ${c.border}`}>
                                     <span className={`text-[11px] font-black ${c.accent} shrink-0 w-5`}>{j + 1}.</span>
                                     <button
-                                      className={`flex-1 text-left text-xs font-bold ${c.accent} hover:underline`}
+                                      className={`flex-1 text-left text-xs font-bold ${c.accent} hover:underline flex items-center gap-1.5`}
                                       onClick={() => handleOpenRecipe(r)}
+                                      disabled={isThisGenerating || generatingRecipe !== null}
                                     >
+                                      {isThisGenerating && <Loader2 size={11} className="animate-spin shrink-0" />}
                                       {r}
                                     </button>
                                     <button

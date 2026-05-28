@@ -7,20 +7,23 @@ export default function RecipeExplorer() {
     processedRecipes: recipes,
     recipeSearch,
     setRecipeSearch,
-    categoryFilter,
-    setCategoryFilter,
-    dietFilter,
-    setDietFilter,
-    cuisineFilter,
-    setCuisineFilter,
+    categoryFilters,
+    setCategoryFilters,
+    dietFilters: activeDietFilters,
+    setDietFilters,
+    cuisineFilters: activeCuisineFilters,
+    setCuisineFilters,
     setActiveModalRecipe: onOpenRecipe,
     onSaveRecipe,
     onRemoveSavedRecipe,
     savedRecipes
   } = useRecipes();
-  const mealTypeFilters = ['all', 'breakfast', 'lunch', 'dinner', 'snack', 'dessert'];
-  const dietFilters = ['vegetarian', 'vegan', 'meat', 'fish'];
-  const cuisineFilters = ['indian', 'chinese', 'mexican', 'japanese', 'korean', 'jamaican', 'latin', 'african', 'mediterranean'];
+  const mealTypeOptions = ['breakfast', 'lunch', 'dinner', 'snack', 'dessert'];
+  const dietOptions = ['vegetarian', 'vegan', 'meat', 'fish'];
+  const cuisineOptions = ['indian', 'chinese', 'mexican', 'japanese', 'korean', 'jamaican', 'latin', 'african', 'mediterranean'];
+
+  const toggleFilter = (setter) => (f) =>
+    setter(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
 
   // Map<recipe_id_string → saved_record_pk_id> built once when savedRecipes changes
   const savedRecipesMap = useMemo(
@@ -44,22 +47,23 @@ export default function RecipeExplorer() {
         </div>
         
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {mealTypeFilters.map((f) => (
-            <button key={f} onClick={() => setCategoryFilter(f)} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilter === f ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}>
+          <button onClick={() => setCategoryFilters([])} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilters.length === 0 ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}>all</button>
+          {mealTypeOptions.map((f) => (
+            <button key={f} onClick={() => toggleFilter(setCategoryFilters)(f)} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${categoryFilters.includes(f) ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}>
               {f}
             </button>
           ))}
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-2">
-          {dietFilters.map((f) => (
-            <button key={f} onClick={() => setDietFilter(dietFilter === f ? 'all' : f)} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${dietFilter === f ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-emerald-200'}`}>
+          {dietOptions.map((f) => (
+            <button key={f} onClick={() => toggleFilter(setDietFilters)(f)} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${activeDietFilters.includes(f) ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-emerald-200'}`}>
               {f}
             </button>
           ))}
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
-          {cuisineFilters.map((f) => (
-            <button key={f} onClick={() => setCuisineFilter(cuisineFilter === f ? 'all' : f)} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${cuisineFilter === f ? 'bg-slate-700 text-white shadow-lg' : 'bg-white text-slate-400 border border-blue-50 hover:border-slate-300'}`}>
+          {cuisineOptions.map((f) => (
+            <button key={f} onClick={() => toggleFilter(setCuisineFilters)(f)} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${activeCuisineFilters.includes(f) ? 'bg-slate-700 text-white shadow-lg' : 'bg-white text-slate-400 border border-blue-50 hover:border-slate-300'}`}>
               {f}
             </button>
           ))}
@@ -68,7 +72,7 @@ export default function RecipeExplorer() {
 
       {/* Recipe Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {recipes.length === 0 && (categoryFilter !== 'all' || cuisineFilter !== 'all') ? (
+        {recipes.length === 0 && (categoryFilters.length > 0 || activeDietFilters.length > 0 || activeCuisineFilters.length > 0) ? (
           <div className="col-span-full bg-white/80 border border-blue-100 p-8 rounded-[2rem] text-center text-slate-500">
             No recipes found for this filter.
           </div>

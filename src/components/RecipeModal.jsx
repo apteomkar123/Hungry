@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw, Dumbbell } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
 import { parseRecipeIngredientMeasurements, cleanIngredientLocally, estimateNutrition, isRecipeMeat, isRecipeFish, isRecipeVegan, matchesRecipeFilter } from './recipeUtils';
@@ -14,34 +14,82 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     onSaveRecipe,
     onRemoveSavedRecipe,
     adaptRecipe,
+    proteinizeRecipe,
     fridge,
   } = useRecipes();
 
   const { userSettings } = useUser();
+
+  // Reset all local state when a new recipe is opened
   const [pantryAdded, setPantryAdded] = useState(new Set());
   const [adaptedRecipe, setAdaptedRecipe] = useState(null);
-  const [adapting, setAdapting] = useState(false);
+  const [adapting, setAdapting] = useState(null); // null | 'vegetarian' | 'vegan' | 'meat' | restriction string
+  const [substitutes, setSubstitutes] = useState({});
+  const [loadingSub, setLoadingSub] = useState(null);
+  const [proteinResult, setProteinResult] = useState(null); // {updatedRecipe, proteinIngredient, proteinAdded}
+  const [proteinizing, setProteinizing] = useState(false);
 
-  const displayRecipe = adaptedRecipe || recipe;
-
-  const hasMeat = useMemo(() => isRecipeMeat(recipe), [recipe]);
-  const hasFish = useMemo(() => isRecipeFish(recipe), [recipe]);
-  const isVeg = useMemo(() => !hasMeat && !hasFish, [hasMeat, hasFish]);
+  useEffect(() => {
+    setAdaptedRecipe(null);
+    setAdapting(null);
+    setPantryAdded(new Set());
+    setSubstitutes({});
+    setProteinResult(null);
+  }, [recipe?.id]);
 
   const violatedRestrictions = useMemo(() => {
     const restrictions = userSettings?.dietary_restrictions || [];
     return restrictions.filter(r => !matchesRecipeFilter(recipe, r.toLowerCase()));
   }, [recipe, userSettings]);
 
+  // Auto-convert when recipe conflicts with user's dietary restrictions
+  useEffect(() => {
+    if (!recipe?.id || violatedRestrictions.length === 0) return;
+    const restriction = violatedRestrictions[0].toLowerCase();
+    const cacheKey = `_adapted_${recipe.id}_${restriction}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try { setAdaptedRecipe(JSON.parse(cached)); return; } catch {}
+    }
+    setAdapting(`auto_${restriction}`);
+    adaptRecipe(recipe, restriction)
+      .then(adapted => {
+        setAdaptedRecipe(adapted);
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(adapted)); } catch {}
+      })
+      .catch(() => {})
+      .finally(() => setAdapting(null));
+  }, [recipe?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const displayRecipe = proteinResult?.updatedRecipe || adaptedRecipe || recipe;
+
+  const hasMeat = useMemo(() => isRecipeMeat(recipe), [recipe]);
+  const hasFish = useMemo(() => isRecipeFish(recipe), [recipe]);
+  const isVeg = useMemo(() => !hasMeat && !hasFish, [hasMeat, hasFish]);
+
   const handleAdapt = async (targetDiet) => {
-    setAdapting(true);
+    setAdapting(targetDiet);
     try {
+      const cacheKey = `_adapted_${recipe.id}_${targetDiet}`;
       const adapted = await adaptRecipe(recipe, targetDiet);
       setAdaptedRecipe(adapted);
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(adapted)); } catch {}
     } catch (e) {
       alert('Could not adapt recipe. Please try again.');
     } finally {
-      setAdapting(false);
+      setAdapting(null);
+    }
+  };
+
+  const handleProteinize = async () => {
+    setProteinizing(true);
+    try {
+      const result = await proteinizeRecipe(displayRecipe);
+      setProteinResult(result);
+    } catch (e) {
+      alert('Could not proteinize recipe. Please try again.');
+    } finally {
+      setProteinizing(false);
     }
   };
 
@@ -70,12 +118,9 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     }
   };
 
-  const [substitutes, setSubstitutes] = useState({});
-  const [loadingSub, setLoadingSub] = useState(null);
-
   // Estimate total nutrition for the recipe (per serving, ~4 servings assumed)
   const recipeNutrition = useMemo(() => {
-    const ings = recipe.cleanedIngredients || [];
+    const ings = displayRecipe.cleanedIngredients || [];
     if (ings.length === 0) return null;
     let totalKcal = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0, matched = 0;
     ings.forEach(ing => {
@@ -90,14 +135,16 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     });
     if (matched === 0) return null;
     const servings = 4 * multiplier;
+    const proteinDeltaPerServing = proteinResult ? Math.round((proteinResult.proteinAdded / (4 * multiplier)) * 10) / 10 : 0;
     return {
       kcal: Math.round(totalKcal / servings),
-      protein: Math.round((totalProtein / servings) * 10) / 10,
+      protein: Math.round((totalProtein / servings + proteinDeltaPerServing) * 10) / 10,
       carbs: Math.round((totalCarbs / servings) * 10) / 10,
       fat: Math.round((totalFat / servings) * 10) / 10,
-      coverage: Math.round((matched / ings.length) * 100)
+      coverage: Math.round((matched / ings.length) * 100),
+      proteinDelta: proteinDeltaPerServing,
     };
-  }, [recipe.cleanedIngredients, multiplier]);
+  }, [displayRecipe.cleanedIngredients, multiplier, proteinResult]);
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}?recipe=${recipe.id}`;
@@ -165,30 +212,35 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   return (
     <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-[60] overflow-y-auto">
       <div className="bg-white/90 backdrop-blur-2xl p-8 rounded-[3rem] shadow-2xl border border-white/50 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
-        {/* Dietary restriction warning */}
-        {violatedRestrictions.length > 0 && !adaptedRecipe && (
-          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+        {/* Auto-adapting spinner */}
+        {adapting?.startsWith('auto_') && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <Loader2 size={14} className="animate-spin text-amber-500 shrink-0" />
             <p className="text-[11px] font-bold text-amber-700">
-              This recipe contains ingredients that conflict with your {violatedRestrictions.join(', ')} preference.
+              Adapting recipe for your {adapting.replace('auto_', '')} preference…
             </p>
-            <button
-              onClick={() => handleAdapt(violatedRestrictions[0].toLowerCase())}
-              disabled={adapting}
-              className="shrink-0 text-[10px] font-black bg-amber-500 text-white px-3 py-1.5 rounded-xl hover:bg-amber-600 transition-colors flex items-center gap-1"
-            >
-              {adapting ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
-              Adapt
-            </button>
           </div>
         )}
 
         {/* Adapted recipe banner */}
-        {adaptedRecipe && (
+        {adaptedRecipe && !adapting && (
           <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
             <p className="text-[11px] font-bold text-emerald-700">
-              Showing {displayRecipe._adaptedFor} version
+              Adapted for {displayRecipe._adaptedFor}
             </p>
             <button onClick={() => setAdaptedRecipe(null)} className="shrink-0 text-[10px] font-black text-emerald-600 flex items-center gap-1 hover:underline">
+              <RotateCcw size={11} /> Revert to original
+            </button>
+          </div>
+        )}
+
+        {/* Proteinized banner */}
+        {proteinResult && (
+          <div className="mb-4 bg-violet-50 border border-violet-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+            <p className="text-[11px] font-bold text-violet-700">
+              💪 +{Math.round(proteinResult.proteinAdded / 4)}g protein/serving via {proteinResult.proteinIngredient}
+            </p>
+            <button onClick={() => setProteinResult(null)} className="shrink-0 text-[10px] font-black text-violet-600 flex items-center gap-1 hover:underline">
               <RotateCcw size={11} /> Revert
             </button>
           </div>
@@ -266,43 +318,45 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
             </div>
             <div className="grid grid-cols-4 gap-3 text-center">
               <div><p className="text-base font-black text-[#6BAEE0]">{recipeNutrition.kcal}</p><p className="text-[9px] text-slate-400">kcal</p></div>
-              <div><p className="text-base font-black text-emerald-500">{recipeNutrition.protein}g</p><p className="text-[9px] text-slate-400">protein</p></div>
+              <div>
+                <p className="text-base font-black text-emerald-500">{recipeNutrition.protein}g</p>
+                {recipeNutrition.proteinDelta > 0 && <p className="text-[9px] font-bold text-violet-500">+{recipeNutrition.proteinDelta}g</p>}
+                <p className="text-[9px] text-slate-400">protein</p>
+              </div>
               <div><p className="text-base font-black text-amber-500">{recipeNutrition.carbs}g</p><p className="text-[9px] text-slate-400">carbs</p></div>
               <div><p className="text-base font-black text-rose-500">{recipeNutrition.fat}g</p><p className="text-[9px] text-slate-400">fat</p></div>
             </div>
           </div>
         )}
 
-        {/* Convert buttons */}
+        {/* Convert + Proteinize buttons */}
         <div className="mt-6 flex flex-wrap gap-2">
           {(hasMeat || hasFish) && (
-            <button
-              onClick={() => handleAdapt('vegetarian')}
-              disabled={adapting}
-              className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50"
-            >
-              {adapting ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+            <button onClick={() => handleAdapt('vegetarian')} disabled={adapting !== null}
+              className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors disabled:opacity-50">
+              {adapting === 'vegetarian' ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
               Make Vegetarian
             </button>
           )}
           {(hasMeat || hasFish) && !isRecipeVegan(recipe) && (
-            <button
-              onClick={() => handleAdapt('vegan')}
-              disabled={adapting}
-              className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 rounded-xl bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 transition-colors disabled:opacity-50"
-            >
-              {adapting ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+            <button onClick={() => handleAdapt('vegan')} disabled={adapting !== null}
+              className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 rounded-xl bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 transition-colors disabled:opacity-50">
+              {adapting === 'vegan' ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
               Make Vegan
             </button>
           )}
           {isVeg && (
-            <button
-              onClick={() => handleAdapt('meat')}
-              disabled={adapting}
-              className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 rounded-xl bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100 transition-colors disabled:opacity-50"
-            >
-              {adapting ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+            <button onClick={() => handleAdapt('meat')} disabled={adapting !== null}
+              className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 rounded-xl bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100 transition-colors disabled:opacity-50">
+              {adapting === 'meat' ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
               Add Meat
+            </button>
+          )}
+          {!proteinResult && (
+            <button onClick={handleProteinize} disabled={proteinizing || adapting !== null}
+              className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 rounded-xl bg-violet-50 text-violet-600 border border-violet-200 hover:bg-violet-100 transition-colors disabled:opacity-50">
+              {proteinizing ? <Loader2 size={11} className="animate-spin" /> : <Dumbbell size={11} />}
+              Proteinize
             </button>
           )}
         </div>

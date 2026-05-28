@@ -27,13 +27,13 @@ export const RecipeProvider = ({ children, fridge }) => {
   const [masterRecipes, setMasterRecipes] = useState([]);
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [recipeSearch, setRecipeSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [dietFilter, setDietFilter] = useState('all');
-  const [cuisineFilter, setCuisineFilter] = useState('all');
+  const [categoryFilters, setCategoryFilters] = useState([]);
+  const [dietFilters, setDietFilters] = useState([]);
+  const [cuisineFilters, setCuisineFilters] = useState([]);
   const [savedSearch, setSavedSearch] = useState('');
-  const [savedCategoryFilter, setSavedCategoryFilter] = useState('all');
-  const [savedDietFilter, setSavedDietFilter] = useState('all');
-  const [savedCuisineFilter, setSavedCuisineFilter] = useState('all');
+  const [savedCategoryFilters, setSavedCategoryFilters] = useState([]);
+  const [savedDietFilters, setSavedDietFilters] = useState([]);
+  const [savedCuisineFilters, setSavedCuisineFilters] = useState([]);
 
   // Debounced search states to prevent heavy filtering on every keystroke
   const [debouncedRecipeSearch, setDebouncedRecipeSearch] = useState('');
@@ -266,15 +266,15 @@ export const RecipeProvider = ({ children, fridge }) => {
           const s = debouncedRecipeSearch.toLowerCase();
           return !s || r.name.toLowerCase().includes(s) || r.cleanedIngredients.some(i => i.includes(s));
         })
-        .filter(r => matchesRecipeFilter(r, categoryFilter))
-        .filter(r => dietFilter === 'all' || matchesRecipeFilter(r, dietFilter))
-        .filter(r => cuisineFilter === 'all' || matchesRecipeFilter(r, cuisineFilter))
+        .filter(r => categoryFilters.length === 0 || categoryFilters.some(f => matchesRecipeFilter(r, f)))
+        .filter(r => dietFilters.length === 0 || dietFilters.some(f => matchesRecipeFilter(r, f)))
+        .filter(r => cuisineFilters.length === 0 || cuisineFilters.some(f => matchesRecipeFilter(r, f)))
         .filter(r => {
           const restrictions = userSettings?.dietary_restrictions || [];
           return restrictions.every(d => matchesRecipeFilter(r, d.toLowerCase()));
         })
         .sort((a, b) => b.matchPercentage - a.matchPercentage);
-    }, [fridge, masterRecipes, debouncedRecipeSearch, categoryFilter, dietFilter, cuisineFilter, userSettings]);
+    }, [fridge, masterRecipes, debouncedRecipeSearch, categoryFilters, dietFilters, cuisineFilters, userSettings]);
 
   const triggerStoreTripPlanner = useCallback(() => {
     const pantryTokens = (fridge || []).map(f => f.item_name).filter(Boolean);
@@ -403,36 +403,21 @@ export const RecipeProvider = ({ children, fridge }) => {
         return !s || name.toLowerCase().includes(s) || ings.some(i => i.toLowerCase().includes(s));
       })
       .filter(r => {
-        if (savedCategoryFilter === 'all') return true;
-        const normalized = {
-          meal_type: r.meal_type,
-          name: r.recipe_name,
-          cuisine: r.meal_type || '',
-          cleanedIngredients: r.ingredients ? r.ingredients.map(cleanIngredientLocally) : []
-        };
-        return matchesRecipeFilter(normalized, savedCategoryFilter);
+        if (savedCategoryFilters.length === 0) return true;
+        const n = { meal_type: r.meal_type, name: r.recipe_name, cuisine: r.meal_type || '', cleanedIngredients: r.ingredients ? r.ingredients.map(cleanIngredientLocally) : [] };
+        return savedCategoryFilters.some(f => matchesRecipeFilter(n, f));
       })
       .filter(r => {
-        if (savedDietFilter === 'all') return true;
-        const normalized = {
-          meal_type: r.meal_type,
-          name: r.recipe_name,
-          cuisine: r.meal_type || '',
-          cleanedIngredients: r.ingredients ? r.ingredients.map(cleanIngredientLocally) : []
-        };
-        return matchesRecipeFilter(normalized, savedDietFilter);
+        if (savedDietFilters.length === 0) return true;
+        const n = { meal_type: r.meal_type, name: r.recipe_name, cuisine: r.meal_type || '', cleanedIngredients: r.ingredients ? r.ingredients.map(cleanIngredientLocally) : [] };
+        return savedDietFilters.some(f => matchesRecipeFilter(n, f));
       })
       .filter(r => {
-        if (savedCuisineFilter === 'all') return true;
-        const normalized = {
-          meal_type: r.meal_type,
-          name: r.recipe_name,
-          cuisine: r.meal_type || '',
-          cleanedIngredients: r.ingredients ? r.ingredients.map(cleanIngredientLocally) : []
-        };
-        return matchesRecipeFilter(normalized, savedCuisineFilter);
+        if (savedCuisineFilters.length === 0) return true;
+        const n = { meal_type: r.meal_type, name: r.recipe_name, cuisine: r.meal_type || '', cleanedIngredients: r.ingredients ? r.ingredients.map(cleanIngredientLocally) : [] };
+        return savedCuisineFilters.some(f => matchesRecipeFilter(n, f));
       });
-  }, [savedRecipes, debouncedSavedSearch, savedCategoryFilter, savedDietFilter, savedCuisineFilter]);
+  }, [savedRecipes, debouncedSavedSearch, savedCategoryFilters, savedDietFilters, savedCuisineFilters]);
 
   const findRecipeByName = useCallback((name) => {
     const lower = name.toLowerCase();
@@ -441,29 +426,86 @@ export const RecipeProvider = ({ children, fridge }) => {
       || masterRecipes.find(r => lower.includes(r.name.toLowerCase()));
   }, [masterRecipes]);
 
+  const generateRecipeByName = useCallback(async (recipeName) => {
+    const cacheKey = `_genrec_${recipeName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) { try { return JSON.parse(cached); } catch {} }
+    const prompt = `Create a complete, authentic, detailed recipe for "${recipeName}". Return ONLY valid JSON: {"recipeName": string, "meal_type": string, "cuisine": string, "ingredients": string[], "steps": string[]}. Include 8-15 real ingredients and 4-6 clear cooking steps.`;
+    const res = await fetch('/.netlify/functions/scan-receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customPrompt: prompt, directMode: true }),
+    });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const text = await res.text();
+    const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
+    const ingredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : [];
+    const generated = {
+      id: `gen-${Date.now()}`,
+      name: parsed.recipeName || recipeName,
+      meal_type: parsed.meal_type || 'Main',
+      cuisine: parsed.cuisine || '',
+      ingredients,
+      cleanedIngredients: ingredients.map(cleanIngredientLocally).filter(Boolean),
+      steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+    };
+    try { sessionStorage.setItem(cacheKey, JSON.stringify(generated)); } catch {}
+    return generated;
+  }, []);
+
+  const proteinizeRecipe = useCallback(async (recipe) => {
+    const prompt = `This recipe is "${recipe.name}" with ingredients: ${(recipe.ingredients || []).join(', ')}.
+
+Suggest ONE high-protein ingredient addition that complements this dish naturally (e.g. grilled chicken for pasta, paneer for curry, Greek yogurt for soup, lentils for stew). Choose something fitting the cuisine and flavour profile.
+
+Return ONLY valid JSON: {"proteinIngredient": "name and quantity", "proteinAdded": number (total grams added to the whole dish), "ingredients": [full updated ingredient list], "steps": [full updated cooking steps incorporating the protein]}`;
+    const res = await fetch('/.netlify/functions/scan-receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customPrompt: prompt, directMode: true }),
+    });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const text = await res.text();
+    const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
+    const ingredients = Array.isArray(parsed.ingredients) ? parsed.ingredients : recipe.ingredients;
+    return {
+      updatedRecipe: {
+        ...recipe,
+        ingredients,
+        cleanedIngredients: ingredients.map(cleanIngredientLocally).filter(Boolean),
+        steps: Array.isArray(parsed.steps) ? parsed.steps : recipe.steps,
+        _proteinized: true,
+      },
+      proteinIngredient: parsed.proteinIngredient || '',
+      proteinAdded: typeof parsed.proteinAdded === 'number' ? parsed.proteinAdded : 0,
+    };
+  }, []);
+
   return (
     <RecipeContext.Provider value={{
       masterRecipes,
       processedRecipes,
       findRecipeByName,
+      generateRecipeByName,
+      proteinizeRecipe,
       savedRecipes,
       filteredSavedRecipes,
       recipeSearch,
       setRecipeSearch,
-      categoryFilter,
-      setCategoryFilter,
-      dietFilter,
-      setDietFilter,
-      cuisineFilter,
-      setCuisineFilter,
+      categoryFilters,
+      setCategoryFilters,
+      dietFilters,
+      setDietFilters,
+      cuisineFilters,
+      setCuisineFilters,
       savedSearch,
       setSavedSearch,
-      savedCategoryFilter,
-      setSavedCategoryFilter,
-      savedDietFilter,
-      setSavedDietFilter,
-      savedCuisineFilter,
-      setSavedCuisineFilter,
+      savedCategoryFilters,
+      setSavedCategoryFilters,
+      savedDietFilters,
+      setSavedDietFilters,
+      savedCuisineFilters,
+      setSavedCuisineFilters,
       aiGenerating,
       isAiPickerOpen,
       setIsAiPickerOpen,
