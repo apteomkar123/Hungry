@@ -16,13 +16,11 @@
 
 /* Apply it to a specific class or heading */
 .logo-text {
-  font-family: 'Space Grotesk', sans-serif;
-  letter-spacing: -0.04em;
-  background: linear-gradient(135deg, #1F6FB8 0%, #6BAEE0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-family: 'Pacifico', cursive;
+  color: #1F6FB8;
+  letter-spacing: 0.01em;
   line-height: 1;
+  font-size: 1.75rem;
 }
 
 @keyframes floatUp {

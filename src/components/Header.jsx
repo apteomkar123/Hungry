@@ -13,7 +13,7 @@ export default function Header() {
   return (
     <header className="bg-white border border-blue-100 rounded-[2.5rem] sticky top-4 mx-4 z-40 px-6 py-5 flex justify-between items-center w-[calc(100%-2rem)] max-w-6xl shadow-lg shadow-slate-200 backdrop-blur-xl">
       <div>
-        <h1 className="logo-text text-3xl font-black text-[#1F6FB8]">Hungry</h1>
+        <h1 className="logo-text">Hungry</h1>
         <p className="text-slate-500 text-[11px] font-bold mt-0.5">{greeting}, <span className="text-[#1F6FB8]">{displayName}</span>!</p>
       </div>
       <div className="flex items-center gap-3">

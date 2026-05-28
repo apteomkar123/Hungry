@@ -136,6 +136,55 @@ The nutritional info for ingredients should show up when the ingredient card is 
 Ingredient names should be properly capitalized as proper nouns
 Vegetarian and Vegan filters don't work for recipes
 Change the icon for protien to something non meat
+If an ingredient is added to a household, the cost of the ingredient should be automatically split between the household members. Pull the Venmo API, and allow the money to be requested straight through Venmo.
+Add cuisine filters to the recipe suggestions as well, not just saved recipes.
+Add an AI agent at the nutritional overview section that'll give the user recommendations on what things to get to increase their protein, carbs, or fat in the overview.
+The AI nutrition coach should be right under the nutritional overview, and should ask the user what major food group they would like to increase in their diet. It should then give recipe and ingredient suggestions, and give the user the ability to add the ingredient to their shopping list or the recipe to their starred recipes.
+Add a proper settings section where the user can set their name, dietary restrictions, age, weight, height, and nutrition goals. Take the dietary restrictions and nutrition goals into account when suggesting recipes.
+
+"Eco-Score" & Waste Analytics
+Since you already have expiry_date and price tracking in your useInventory hook, you can gamify food waste reduction.
+
+The Feature: A dashboard that calculates how much money you "saved" by using items before they expired versus what was thrown away.
+The "Wow" Factor: Give users a "Green Chef" rating. If an item is 24 hours from expiring, the AI sends a push notification: "Your spinach is about to wilt! Want a quick 5-minute smoothie recipe to save $4.00?"
+
+------------------------
+
+Smart Meal Prep "Batches"
+Expand the AI Recipe Generator to think ahead.
+
+The Feature: Instead of one-off recipes, the AI suggests a "Prep Strategy." For example, if you have 2lbs of chicken and 3 peppers, it suggests: "Cook all chicken now: Half for tonight's Fajitas, half for tomorrow's Caesar Salad."
+Integration: This would hook into your shopping_list to ensure the user buys bulk quantities when it's cost-effective.
+
+--------------------------------
+
+iOS Live Activities & Dynamic Island (For Mobile)
+Since you mentioned planning for a mobile launch, this is a top-tier UX move.
+
+The Feature: When the user enters "Hands-Free Cooking Mode," use a Live Activity to show the current step, a timer, and the next ingredient directly on the lock screen or Dynamic Island.
+Benefit: Users won't have to keep touching their phone screen with messy "cooking hands" to see the next instruction.
+
+--------------------------
+
+
+"Pantry Proximity" Shared Shopping
+Enhance the collaborative "Home" pantries you've already started.
+
+The Feature: Using geofencing, if a household member is at a grocery store (detected via GPS), the app sends a notification to other members: "Omkar is at Whole Foods. Anything to add to the list before they check out?"
+UI: A "Store View" in the Shopping List that organizes items by aisle (Produce, Dairy, Frozen) based on the category metadata you're pulling from the APIs.
+
+----------------------------------------------------
+
+AI Sensory Input (Voice & Vision)
+Move beyond simple barcode/receipt scanning.
+
+The Feature: "Leftover Recon." The user snaps a photo of a Tupperware container. The AI identifies it as "Leftover Pasta" and asks for the date. It then tracks it as a "Prepared Meal" in the pantry.
+The Feature: "Voice Inventory." A "walk-in" mode where a user can simply talk while putting groceries away: "Hungry, I'm adding two gallons of milk, a pack of blueberries, and some Greek yogurt." The AI parses the speech and populates the inventory in bulk.
+The vegetarian and vegan filtes still aren't working, for example mincemeat and anchovies are showing up in vegetarian, neither of which are vegetarian.
+There are no recipes showing up under Indian and many other cusines, pull 50 dishes each for all the cuisnes.
+The monthly budget save button doesn't work, the monthly budget stays 0.
+The font in which it says "hungry" in the header looks to techy and futuristic, make it something cursive and more free following.
+Properly capitalize the ingredient and recipe names, capitalize them proper nouns are done.
 
 
 

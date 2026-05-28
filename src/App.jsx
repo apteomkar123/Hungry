@@ -106,6 +106,7 @@ function AppContent({ inventory }) {
                 metrics={nutritionMetrics}
                 fridge={fridge}
                 shoppingList={shoppingList}
+                onAddShoppingItem={handleAddShoppingItem}
               />
             )}
             {activeTab === 'household' && <HouseholdSettings />}

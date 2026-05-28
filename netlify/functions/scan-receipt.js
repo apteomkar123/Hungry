@@ -60,8 +60,14 @@ export const handler = async (event) => {
       };
     }
 
-    // Channel B: Recipe generator / ingredient substitution
+    // Channel B: Recipe generator / ingredient substitution / direct AI prompt
     if (bodyData?.customPrompt) {
+      // directMode: pass prompt through untouched — used for structured JSON requests that need exact format
+      if (bodyData.directMode) {
+        const rawText = await callGemini(apiKey, [{ text: bodyData.customPrompt }], { temperature: 0.4 });
+        return { statusCode: 200, headers: HEADERS, body: rawText.replace(/```json/g, '').replace(/```/g, '').trim() };
+      }
+
       const lower = bodyData.customPrompt.toLowerCase();
       const isSubstitution = lower.includes('substitute') || lower.includes('substitution') || lower.includes('swap');
       const isRecipe = !isSubstitution && (lower.includes('recipe') || lower.includes('cook') || lower.includes('meal') || lower.includes('generate'));
@@ -79,9 +85,23 @@ export const handler = async (event) => {
       };
     }
 
-    // Channel C: Receipt image OCR
+    // Channel C: Receipt image OCR / leftover recognition
     if (bodyData?.image && bodyData.image.trim()) {
       const rawBase64 = bodyData.image.includes(',') ? bodyData.image.split(',')[1] : bodyData.image;
+
+      if (bodyData.leftoverMode) {
+        const prompt = 'Look at this food in a container, plate, or bowl. Identify what the prepared food or leftover meal is. Return ONLY valid JSON with no markdown: {"meal":"Leftover Pasta Bolognese"}. Be specific (2-5 words), start with "Leftover" if it looks like a stored meal.';
+        const rawText = await callGemini(apiKey, [{ text: prompt }, { inlineData: { data: rawBase64, mimeType: 'image/jpeg' } }], { temperature: 0.3 });
+        let meal = 'Prepared Meal';
+        try {
+          const p = JSON.parse(rawText.replace(/```json/g, '').replace(/```/g, '').trim());
+          meal = p.meal || meal;
+        } catch {
+          meal = rawText.replace(/['"#*`\n{}:]/g, '').trim().split(',')[0] || meal;
+        }
+        return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true, meal }) };
+      }
+
       const prompt = 'Read this receipt image. Return ONLY a JSON object: { "storeName": "string", "items": ["array of food item strings"] }. No markdown, no explanation.';
       const rawText = await callGemini(
         apiKey,

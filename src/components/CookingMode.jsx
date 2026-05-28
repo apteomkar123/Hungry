@@ -7,6 +7,7 @@ export default function CookingMode({ steps, onClose }) {
 
   const recognitionRef = useRef(null);
   const utteranceRef = useRef(null);
+  const wakeLockRef = useRef(null);
   const isListeningRef = useRef(false); // ref to avoid stale closure in recognition.onend
   const isMounted = useRef(true);
   const currentStepRef = useRef(0); // ref so voice callbacks always read current step
@@ -27,6 +28,21 @@ export default function CookingMode({ steps, onClose }) {
     setCurrentStepIndex(next);
     readStep(next);
   }, [steps, readStep]);
+
+  // Keep screen awake during cooking
+  useEffect(() => {
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').then(lock => {
+        wakeLockRef.current = lock;
+      }).catch(() => {});
+    }
+    return () => {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+        wakeLockRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     isMounted.current = true;

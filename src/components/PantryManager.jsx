@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User, GripVertical, ChevronRight } from 'lucide-react';
+import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User, GripVertical, ChevronRight, Mic, MicOff, UtensilsCrossed, Check } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { estimateNutrition } from './recipeUtils';
 
@@ -333,6 +333,17 @@ export default function PantryManager({
   });
   const hasScannedRef = useRef(false);
 
+  // Leftover Recon state
+  const [leftoverLoading, setLeftoverLoading] = useState(false);
+  const [leftoverPreview, setLeftoverPreview] = useState(null); // { meal }
+  const [leftoverDate, setLeftoverDate] = useState('');
+
+  // Voice Inventory state
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceLoading, setVoiceLoading] = useState(false);
+  const [voiceItems, setVoiceItems] = useState(null); // [{name, amount}] | null
+  const voiceRecognitionRef = useRef(null);
+
   // Barcode camera scanner — ref-locked to prevent double-scan
   useEffect(() => {
     let scanner;
@@ -365,6 +376,96 @@ export default function PantryManager({
     if (!manualItem.trim()) return;
     handleAddManualItem(manualItem, selectedHouseholdId);
     setManualItem('');
+  };
+
+  // ── Leftover Recon ──────────────────────────────────────────────────────────
+  const handleLeftoverScan = (file) => {
+    if (!file) return;
+    setLeftoverLoading(true);
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = async () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 600;
+        canvas.height = (img.height / img.width) * 600 || 800;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const base64Data = canvas.toDataURL('image/jpeg', 0.75);
+        const res = await fetch('/.netlify/functions/scan-receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64Data, leftoverMode: true })
+        });
+        const data = await res.json();
+        setLeftoverPreview({ meal: data.meal || 'Prepared Meal' });
+        setLeftoverDate(new Date().toISOString().split('T')[0]);
+      } catch {
+        setLeftoverPreview({ meal: 'Prepared Meal' });
+        setLeftoverDate(new Date().toISOString().split('T')[0]);
+      } finally {
+        setLeftoverLoading(false);
+      }
+    };
+    img.onerror = () => setLeftoverLoading(false);
+  };
+
+  const confirmLeftover = () => {
+    if (!leftoverPreview) return;
+    handleAddManualItem(leftoverPreview.meal, null, { expiry_date: leftoverDate || null });
+    setLeftoverPreview(null);
+  };
+
+  // ── Voice Inventory ─────────────────────────────────────────────────────────
+  const startVoice = () => {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) { alert('Voice input is not supported in this browser. Try Chrome or Safari.'); return; }
+
+    if (voiceListening) {
+      voiceRecognitionRef.current?.stop();
+      setVoiceListening(false);
+      return;
+    }
+
+    const rec = new SpeechRec();
+    rec.lang = 'en-US';
+    rec.continuous = false;
+    rec.interimResults = false;
+
+    rec.onresult = async (e) => {
+      const transcript = e.results[0][0].transcript;
+      setVoiceListening(false);
+      setVoiceLoading(true);
+      try {
+        const prompt = `Parse this spoken grocery list into individual items with amounts. Speech: "${transcript}". Return ONLY valid JSON with no markdown: {"items":[{"name":"string","amount":"string or empty"}]}. Include every food item mentioned.`;
+        const res = await fetch('/.netlify/functions/scan-receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customPrompt: prompt, directMode: true })
+        });
+        const text = await res.text();
+        const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
+        setVoiceItems(Array.isArray(parsed.items) ? parsed.items.filter(i => i.name) : []);
+      } catch {
+        setVoiceItems([]);
+      } finally {
+        setVoiceLoading(false);
+      }
+    };
+
+    rec.onerror = () => setVoiceListening(false);
+    rec.onend = () => setVoiceListening(false);
+
+    voiceRecognitionRef.current = rec;
+    rec.start();
+    setVoiceListening(true);
+  };
+
+  const addAllVoiceItems = async () => {
+    if (!voiceItems) return;
+    for (const item of voiceItems) {
+      if (item.name) await handleAddManualItem(item.name);
+    }
+    setVoiceItems(null);
   };
 
   const cycleItemHousehold = (item) => {
@@ -495,6 +596,61 @@ export default function PantryManager({
             <Camera size={16} /> Scan with Camera
           </button>
 
+          {/* AI Sensory Row: Leftover Recon + Voice Inventory */}
+          <div className="grid grid-cols-2 gap-2">
+            <label
+              htmlFor="leftover-upload"
+              className={`cursor-pointer flex items-center justify-center gap-1.5 bg-violet-50 text-violet-600 border border-violet-100 px-4 py-3.5 rounded-2xl text-xs font-bold hover:bg-violet-100 transition-all text-center ${leftoverLoading ? 'opacity-60 pointer-events-none' : ''}`}
+            >
+              {leftoverLoading ? <Loader2 size={15} className="animate-spin" /> : <UtensilsCrossed size={15} />}
+              {leftoverLoading ? 'Scanning…' : 'Scan Leftover'}
+            </label>
+            <input id="leftover-upload" type="file" accept="image/*" capture="environment" onChange={(e) => { handleLeftoverScan(e.target.files[0]); e.target.value = ''; }} className="hidden" />
+
+            <button
+              type="button"
+              onClick={startVoice}
+              disabled={voiceLoading}
+              className={`flex items-center justify-center gap-1.5 px-4 py-3.5 rounded-2xl text-xs font-bold transition-all border ${
+                voiceListening
+                  ? 'bg-red-500 text-white border-red-500 animate-pulse'
+                  : voiceLoading
+                  ? 'bg-slate-50 text-slate-400 border-slate-100 opacity-60'
+                  : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'
+              }`}
+            >
+              {voiceLoading ? <Loader2 size={15} className="animate-spin" /> : voiceListening ? <MicOff size={15} /> : <Mic size={15} />}
+              {voiceLoading ? 'Parsing…' : voiceListening ? 'Tap to stop' : 'Voice Add'}
+            </button>
+          </div>
+
+          {/* Voice items preview */}
+          {voiceItems !== null && (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 space-y-3 animate-in fade-in duration-300">
+              <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Heard these items:</p>
+              {voiceItems.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">Nothing recognized — please try again.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {voiceItems.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2">
+                      <span className="text-xs font-bold text-slate-700">{item.name}</span>
+                      {item.amount && <span className="text-[10px] text-slate-400">· {item.amount}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button onClick={addAllVoiceItems} disabled={voiceItems.length === 0} className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-500 text-white py-2.5 rounded-xl text-xs font-black disabled:opacity-50 transition-all">
+                  <Check size={13} /> Add All
+                </button>
+                <button onClick={() => setVoiceItems(null)} className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 bg-white border border-slate-100 hover:border-slate-300 transition-all">
+                  Discard
+                </button>
+              </div>
+            </div>
+          )}
+
           {barcodeResult && <p className="text-[12px] text-slate-500">{barcodeResult}</p>}
         </div>
       </section>
@@ -596,6 +752,39 @@ export default function PantryManager({
           onDelete={(id) => { handleRemoveItem(id); setActiveIngredient(null); setActiveSheet(null); }}
           households={households}
         />
+      )}
+
+      {/* ── Leftover Confirm Modal ─────────────────────────────────────────── */}
+      {leftoverPreview && (
+        <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-end justify-center z-[70]">
+          <div className="bg-white/95 backdrop-blur-2xl p-6 rounded-t-[3rem] w-full max-w-lg shadow-2xl border-t border-white/50 space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-slate-800 flex items-center gap-2"><UtensilsCrossed size={16} className="text-violet-500" /> Leftover Identified</h3>
+              <button onClick={() => setLeftoverPreview(null)} className="p-2 text-slate-400 hover:text-slate-600"><X size={18} /></button>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Meal Name</label>
+              <input
+                type="text"
+                value={leftoverPreview.meal}
+                onChange={(e) => setLeftoverPreview(p => ({ ...p, meal: e.target.value }))}
+                className="w-full mt-1 bg-violet-50 border border-violet-100 px-4 py-3 rounded-2xl text-sm font-bold text-slate-800 focus:border-violet-400 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Made On</label>
+              <input
+                type="date"
+                value={leftoverDate}
+                onChange={(e) => setLeftoverDate(e.target.value)}
+                className="w-full mt-1 bg-blue-50/50 border border-blue-100 px-4 py-3 rounded-2xl text-sm font-bold text-slate-800 focus:border-sky-400 focus:outline-none"
+              />
+            </div>
+            <button onClick={confirmLeftover} className="w-full bg-violet-500 text-white py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-violet-100 hover:bg-violet-600 transition-all">
+              Add to Pantry
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

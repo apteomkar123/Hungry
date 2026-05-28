@@ -28,17 +28,33 @@ export const UserProvider = ({ children }) => {
     setActiveHousehold(list.find(h => h.id === activeId) || list[0] || null);
   };
 
+  const [userSettings, setUserSettings] = useState({
+    dietary_restrictions: [],
+    nutrition_goal: 'Balanced',
+    age: '',
+    weight: '',
+    height: '',
+  });
+
   const loadUserState = async (authUser) => {
     if (!authUser) {
       setUser(null);
       setHouseholds([]);
       setActiveHousehold(null);
       setUserName('');
+      setUserSettings({ dietary_restrictions: [], nutrition_goal: 'Balanced', age: '', weight: '', height: '' });
       return;
     }
     setUser(authUser);
     const meta = authUser.user_metadata || {};
     setUserName(meta.name || '');
+    setUserSettings({
+      dietary_restrictions: meta.dietary_restrictions || [],
+      nutrition_goal: meta.nutrition_goal || 'Balanced',
+      age: meta.age || '',
+      weight: meta.weight || '',
+      height: meta.height || '',
+    });
 
     // Support both old single household_id and new household_ids array
     const ids = meta.household_ids || (meta.household_id ? [meta.household_id] : []);
@@ -143,16 +159,33 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const handleUpdateSettings = async (settings) => {
+    if (!user) return;
+    const { data, error } = await supabase.auth.updateUser({ data: settings });
+    if (!error && data.user) {
+      const meta = data.user.user_metadata || {};
+      setUserSettings({
+        dietary_restrictions: meta.dietary_restrictions || [],
+        nutrition_goal: meta.nutrition_goal || 'Balanced',
+        age: meta.age || '',
+        weight: meta.weight || '',
+        height: meta.height || '',
+      });
+    }
+  };
+
   const handleSignOut = async () => { await supabase.auth.signOut(); };
 
   return (
     <UserContext.Provider value={{
       user,
-      household: activeHousehold,   // backward-compat alias used throughout the app
+      household: activeHousehold,
       households,
       activeHousehold,
       userName,
+      userSettings,
       handleUpdateProfileName,
+      handleUpdateSettings,
       handleJoinHousehold,
       handleCreateHousehold,
       handleSetActiveHousehold,

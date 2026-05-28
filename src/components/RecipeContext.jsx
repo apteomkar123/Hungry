@@ -6,7 +6,8 @@ import {
   normalizeIngredientTokens,
   fuzzyTokenMatch,
   getStaticRecipeSteps,
-  matchesRecipeFilter
+  matchesRecipeFilter,
+  toTitleCase
 } from './recipeUtils';
 
 const RecipeContext = createContext();
@@ -18,7 +19,7 @@ export const useRecipes = () => {
 };
 
 export const RecipeProvider = ({ children, fridge }) => {
-  const { user } = useUser();
+  const { user, userSettings } = useUser();
   const [masterRecipes, setMasterRecipes] = useState([]);
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [recipeSearch, setRecipeSearch] = useState('');
@@ -70,10 +71,10 @@ export const RecipeProvider = ({ children, fridge }) => {
       }
       return {
         id: m.idMeal,
-        name: m.strMeal,
+        name: toTitleCase(m.strMeal || ''),
         meal_type: m.strCategory || 'General',
         cuisine: m.strArea || '',
-        ingredients: ings,
+        ingredients: ings.map(i => toTitleCase(i)),
         steps: String(m.strInstructions || '').split(/\r?\n+/).filter(Boolean)
       };
     });
@@ -81,11 +82,18 @@ export const RecipeProvider = ({ children, fridge }) => {
 
   const fetchSpoonacularRecipes = async () => {
     try {
+      const cacheKey = 'hungry_spoon_v2';
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        try { return JSON.parse(cached); } catch {}
+      }
       const res = await fetch('/.netlify/functions/get-recipes');
       if (!res.ok) return [];
       const data = await res.json();
-      return data.recipes || [];
-    } catch (err) {
+      const recipes = data.recipes || [];
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(recipes)); } catch {}
+      return recipes;
+    } catch {
       return [];
     }
   };
@@ -104,6 +112,8 @@ export const RecipeProvider = ({ children, fridge }) => {
 
       const normalized = combined.map(r => ({
         ...r,
+        name: toTitleCase(r.name || ''),
+        ingredients: (r.ingredients || []).map(i => toTitleCase(i)),
         cleanedIngredients: (r.ingredients || []).map(cleanIngredientLocally).filter(Boolean),
         steps: getStaticRecipeSteps(r)
       }));
@@ -141,7 +151,10 @@ export const RecipeProvider = ({ children, fridge }) => {
 
     setAiGenerating(true);
     try {
-      const prompt = `Create a unique vegetarian recipe name, ingredient list, and steps using: ${pantry.slice(0, 10).join(', ')}. Return ONLY valid JSON with keys recipeName, ingredients, and steps.`;
+      const restrictions = (userSettings?.dietary_restrictions || []).join(', ');
+      const goal = userSettings?.nutrition_goal || '';
+      const dietContext = [restrictions, goal].filter(Boolean).join('; ');
+      const prompt = `Create a unique recipe using: ${pantry.slice(0, 10).join(', ')}${dietContext ? `. Dietary context: ${dietContext}` : ''}. Return ONLY valid JSON with keys recipeName, ingredients, and steps.`;
       const res = await fetch('/.netlify/functions/scan-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -215,8 +228,12 @@ export const RecipeProvider = ({ children, fridge }) => {
         })
         .filter(r => matchesRecipeFilter(r, categoryFilter))
         .filter(r => cuisineFilter === 'all' || matchesRecipeFilter(r, cuisineFilter))
+        .filter(r => {
+          const restrictions = userSettings?.dietary_restrictions || [];
+          return restrictions.every(d => matchesRecipeFilter(r, d.toLowerCase()));
+        })
         .sort((a, b) => b.matchPercentage - a.matchPercentage);
-    }, [fridge, masterRecipes, debouncedRecipeSearch, categoryFilter, cuisineFilter]);
+    }, [fridge, masterRecipes, debouncedRecipeSearch, categoryFilter, cuisineFilter, userSettings]);
 
   const triggerStoreTripPlanner = useCallback(() => {
     const pantryTokens = (fridge || []).map(f => f.item_name).filter(Boolean);

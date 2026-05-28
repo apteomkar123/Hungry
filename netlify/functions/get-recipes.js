@@ -1,3 +1,27 @@
+const CUISINES = [
+  'indian', 'chinese', 'mexican', 'japanese', 'korean',
+  'jamaican', 'greek', 'italian', 'moroccan', 'spanish',
+  'turkish', 'thai', 'french', 'vietnamese', 'american', 'british'
+];
+
+const formatRecipe = (r, sourceCuisine) => {
+  const ingredients = (r.extendedIngredients || []).map(ing => ing.original || ing.name || '');
+  const steps = (r.analyzedInstructions || [])
+    .flatMap(block => block.steps || [])
+    .map(s => s.step || '')
+    .filter(Boolean);
+  const cuisines = (r.cuisines || []).join(' ').toLowerCase() || sourceCuisine;
+  return {
+    id: `spoon-${r.id}`,
+    name: r.title || '',
+    meal_type: [...(r.dishTypes || []), ...(r.diets || [])].join(' ') || 'General',
+    cuisine: cuisines,
+    ingredients,
+    steps: steps.length > 0 ? steps : ['Follow the ingredient list to prepare this dish.'],
+    image: r.image || ''
+  };
+};
+
 export const handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -15,52 +39,55 @@ export const handler = async (event) => {
 
   try {
     const params = event.queryStringParameters || {};
-    const cuisine = params.cuisine || 'indian,chinese,mexican,japanese,korean,jamaican,african,mediterranean,latin american';
-    const number = Math.min(parseInt(params.number || '80', 10), 100);
-    const ingredients = params.ingredients || '';
+    const requestedCuisine = params.cuisine;
 
-    const url = new URL('https://api.spoonacular.com/recipes/complexSearch');
-    url.searchParams.set('apiKey', apiKey);
-    url.searchParams.set('number', String(number));
-    url.searchParams.set('addRecipeInformation', 'true');
-    url.searchParams.set('fillIngredients', 'true');
-    url.searchParams.set('instructionsRequired', 'true');
+    // Single cuisine request (used for lazy loading per-cuisine)
+    if (requestedCuisine) {
+      const url = new URL('https://api.spoonacular.com/recipes/complexSearch');
+      url.searchParams.set('apiKey', apiKey);
+      url.searchParams.set('cuisine', requestedCuisine);
+      url.searchParams.set('number', '50');
+      url.searchParams.set('addRecipeInformation', 'true');
+      url.searchParams.set('fillIngredients', 'true');
+      url.searchParams.set('instructionsRequired', 'true');
 
-    if (ingredients) {
-      url.searchParams.set('includeIngredients', ingredients);
-    } else {
-      url.searchParams.set('cuisine', cuisine);
+      const res = await fetch(url.toString());
+      if (!res.ok) return { statusCode: 200, headers, body: JSON.stringify({ recipes: [] }) };
+      const data = await res.json();
+      const recipes = (data.results || []).map(r => formatRecipe(r, requestedCuisine));
+      return { statusCode: 200, headers, body: JSON.stringify({ recipes }) };
     }
 
-    const res = await fetch(url.toString());
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error('Spoonacular error:', res.status, errText);
-      return { statusCode: 200, headers, body: JSON.stringify({ recipes: [] }) };
-    }
+    // Default: fetch all cuisines in parallel, 50 each
+    const batches = await Promise.all(
+      CUISINES.map(async (cuisine) => {
+        try {
+          const url = new URL('https://api.spoonacular.com/recipes/complexSearch');
+          url.searchParams.set('apiKey', apiKey);
+          url.searchParams.set('cuisine', cuisine);
+          url.searchParams.set('number', '50');
+          url.searchParams.set('addRecipeInformation', 'true');
+          url.searchParams.set('fillIngredients', 'true');
+          url.searchParams.set('instructionsRequired', 'true');
 
-    const data = await res.json();
-    const results = (data.results || []).map(r => {
-      const ingredients = (r.extendedIngredients || []).map(ing => ing.original || ing.name || '');
-      const steps = (r.analyzedInstructions || [])
-        .flatMap(block => block.steps || [])
-        .map(s => s.step || '')
-        .filter(Boolean);
+          const res = await fetch(url.toString());
+          if (!res.ok) return [];
+          const data = await res.json();
+          return (data.results || []).map(r => formatRecipe(r, cuisine));
+        } catch { return []; }
+      })
+    );
 
-      return {
-        id: `spoon-${r.id}`,
-        name: r.title || '',
-        // Join ALL dish types and diets so every filter can match
-        meal_type: [...(r.dishTypes || []), ...(r.diets || [])].join(' ') || 'General',
-        // Join ALL cuisines so multi-cuisine recipes match any of them
-        cuisine: (r.cuisines || []).join(' ').toLowerCase() || '',
-        ingredients,
-        steps: steps.length > 0 ? steps : ['Follow the ingredient list to prepare this dish.'],
-        image: r.image || ''
-      };
+    const allRecipes = batches.flat();
+    // Deduplicate by Spoonacular ID
+    const seen = new Set();
+    const unique = allRecipes.filter(r => {
+      if (seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
     });
 
-    return { statusCode: 200, headers, body: JSON.stringify({ recipes: results }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ recipes: unique }) };
   } catch (err) {
     console.error('get-recipes error:', err);
     return { statusCode: 200, headers, body: JSON.stringify({ recipes: [] }) };

@@ -1,3 +1,15 @@
+const MINOR_WORDS = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'by', 'in', 'of', 'up', 'as', 'with', 'from', 'into']);
+
+export const toTitleCase = (str) => {
+  if (!str) return '';
+  return String(str).toLowerCase().split(' ').map((word, i) => {
+    if (!word) return word;
+    return (i === 0 || !MINOR_WORDS.has(word))
+      ? word.charAt(0).toUpperCase() + word.slice(1)
+      : word;
+  }).join(' ');
+};
+
 export const vegetarianBlocklist = [
   'chicken', 'beef', 'pork', 'fish', 'shrimp', 'salmon', 'ham', 'bacon', 'anchovy', 'turkey', 'lamb', 'duck', 'mutton', 'veal', 'crab', 'lobster', 'sausage', 'pepperoni'
 ];
@@ -85,11 +97,17 @@ export const recipeCategoryMatches = (recipe, patterns) => {
 };
 
 // Word-boundary patterns prevent false positives: "graham" won't match "ham", "butternut" won't match "butter"
-const MEAT_PATTERN = /\b(chicken|beef|pork|lamb|turkey|bacon|sausage|ham|veal|duck|venison|mutton|meat|meatball|pepperoni|salami|anchovy|prawn|brisket|chorizo|lard|suet|gelatin)\b/;
-const FISH_PATTERN = /\b(fish|salmon|tuna|shrimp|crab|lobster|anchovy|trout|cod|seafood|tilapia|halibut|sardine|prawn|mussel|clam|oyster|scallop|squid|calamari|eel)\b/;
+const MEAT_PATTERN = /\b(chicken|beef|pork|lamb|turkey|bacon|sausage|ham|veal|duck|venison|mutton|meat|meatball|mincemeat|mince|pepperoni|salami|anchovies|anchovy|prawn|brisket|chorizo|lard|suet|gelatin)\b/;
+const FISH_PATTERN = /\b(fish|salmon|tuna|shrimp|crab|lobster|anchovies|anchovy|trout|cod|seafood|tilapia|halibut|sardine|prawn|mussel|clam|oyster|scallop|squid|calamari|eel)\b/;
 // Plant milks/creams are excluded from the non-vegan check
 const PLANT_BASE = /\b(oat|coconut|soy|almond|rice|cashew|hemp|macadamia|hazelnut)\b/;
 const NON_VEGAN_PATTERN = /\b(egg|eggs|milk|butter|cheese|cream|yogurt|honey|gelatin|paneer|whey|lard|suet|casein|lactose|rennet)\b/;
+
+const GLUTEN_PATTERN = /\b(wheat|flour|bread|pasta|rye|barley|spelt|semolina|couscous|bulgur|malt|noodle|crouton|breadcrumb|orzo|udon|soba|batter|dumpling|pita|panko)\b/;
+const DAIRY_PATTERN = /\b(milk|cheese|butter|cream|yogurt|paneer|ghee|curd|whey|kefir|mozzarella|cheddar|parmesan|brie|ricotta|cottage|sour cream|custard|lactose|casein|rennet)\b/;
+const NUT_PATTERN = /\b(almond|cashew|walnut|peanut|pistachio|hazelnut|pecan|macadamia|brazil nut|pine nut|chestnut|praline)\b/;
+const PORK_PATTERN = /\b(pork|ham|bacon|sausage|salami|pepperoni|chorizo|lard|prosciutto|pancetta)\b/;
+const SHELLFISH_PATTERN = /\b(shrimp|crab|lobster|prawn|mussel|clam|oyster|scallop|crayfish)\b/;
 
 export const isRecipeVegan = (recipe) => {
   return !(recipe.cleanedIngredients || []).some((ing) => {
@@ -119,6 +137,25 @@ export const isRecipeEgg = (recipe) => {
   return (recipe.cleanedIngredients || []).some((ing) => /(egg|eggs)/.test(ing));
 };
 
+export const isRecipeGluten = (recipe) =>
+  (recipe.cleanedIngredients || []).some(ing => GLUTEN_PATTERN.test(ing));
+
+export const isRecipeDairy = (recipe) =>
+  (recipe.cleanedIngredients || []).some(ing => {
+    if (!DAIRY_PATTERN.test(ing)) return false;
+    if (PLANT_BASE.test(ing) && /\b(milk|cream)\b/.test(ing)) return false;
+    return true;
+  });
+
+export const isRecipeNut = (recipe) =>
+  (recipe.cleanedIngredients || []).some(ing => NUT_PATTERN.test(ing));
+
+export const isRecipePork = (recipe) =>
+  (recipe.cleanedIngredients || []).some(ing => PORK_PATTERN.test(ing));
+
+export const isRecipeShellfish = (recipe) =>
+  (recipe.cleanedIngredients || []).some(ing => SHELLFISH_PATTERN.test(ing));
+
 const cuisineMatch = (recipe, ...areas) => {
   // Check both cuisine field and meal_type (saved recipes embed cuisine in meal_type)
   const c = ((recipe.cuisine || '') + ' ' + (recipe.meal_type || '')).toLowerCase();
@@ -133,6 +170,11 @@ export const matchesRecipeFilter = (recipe, filter) => {
     case 'vegan':
       if (/\bvegan\b/i.test(recipe.meal_type || '')) return true;
       return isRecipeVegan(recipe) && !isRecipeMeat(recipe) && !isRecipeFish(recipe);
+    case 'gluten-free': return !isRecipeGluten(recipe);
+    case 'dairy-free': return !isRecipeDairy(recipe);
+    case 'nut-free': return !isRecipeNut(recipe);
+    case 'halal': return !isRecipePork(recipe);
+    case 'kosher': return !isRecipePork(recipe) && !isRecipeShellfish(recipe);
     case 'breakfast': return recipeCategoryMatches(recipe, ['breakfast', 'morning', 'brunch', 'pancake', 'waffle', 'oat', 'cereal', 'muffin', 'toast', 'smoothie bowl']);
     case 'lunch': return recipeCategoryMatches(recipe, ['lunch', 'sandwich', 'salad', 'bowl', 'soup', 'wrap', 'light meal', 'starter', 'side']);
     case 'dinner': return recipeCategoryMatches(recipe, ['dinner', 'supper', 'main', 'casserole', 'stew', 'pasta', 'beef', 'chicken', 'lamb', 'pork', 'seafood', 'biryani', 'curry', 'roast', 'baked', 'goat', 'miscellaneous']);
