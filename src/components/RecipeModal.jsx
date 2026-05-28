@@ -44,8 +44,6 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   const [proteinResult, setProteinResult] = useState(null); // {updatedRecipe, proteinIngredient, proteinAdded}
   const [proteinizing, setProteinizing] = useState(false);
   const [cooked, setCooked] = useState(false);
-  const autoAdaptedKeyRef = React.useRef(null);
-
   useEffect(() => {
     setAdaptedRecipe(null);
     setAdapting(null);
@@ -53,7 +51,6 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     setSubstitutes({});
     setProteinResult(null);
     setCooked(false);
-    autoAdaptedKeyRef.current = null;
   }, [recipe?.id]);
 
   const violatedRestrictions = useMemo(() => {
@@ -61,24 +58,22 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     return restrictions.filter(r => !matchesRecipeFilter(recipe, r.toLowerCase()));
   }, [recipe, userSettings]);
 
-  // Auto-convert when recipe conflicts with user's dietary restrictions (instant, local)
-  useEffect(() => {
-    if (!recipe?.id || violatedRestrictions.length === 0) return;
+  // Auto-conversion: computed synchronously during render — no timing issues.
+  // Uses session-storage cache keyed by recipe+restriction so it only runs once per combo.
+  const autoAdaptedRecipe = useMemo(() => {
+    if (!recipe?.id || violatedRestrictions.length === 0) return null;
     const restriction = violatedRestrictions[0].toLowerCase();
-    const key = `${recipe.id}:${restriction}`;
-    if (autoAdaptedKeyRef.current === key) return; // already adapted this combo
-    autoAdaptedKeyRef.current = key;
     const cacheKey = `_adapted_${recipe.id}_${restriction}`;
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached) {
-      try { setAdaptedRecipe(JSON.parse(cached)); return; } catch {}
-    }
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch {}
     const adapted = locallyAdaptRecipe(recipe, restriction);
-    setAdaptedRecipe(adapted);
     try { sessionStorage.setItem(cacheKey, JSON.stringify(adapted)); } catch {}
-  }, [recipe?.id, violatedRestrictions]); // eslint-disable-line react-hooks/exhaustive-deps
+    return adapted;
+  }, [recipe, violatedRestrictions]);
 
-  const displayRecipe = proteinResult?.updatedRecipe || adaptedRecipe || recipe;
+  const displayRecipe = proteinResult?.updatedRecipe || adaptedRecipe || autoAdaptedRecipe || recipe;
 
   const hasMeat = useMemo(() => isRecipeMeat(recipe), [recipe]);
   const hasFish = useMemo(() => isRecipeFish(recipe), [recipe]);
@@ -248,14 +243,18 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
         )}
 
         {/* Adapted recipe banner */}
-        {adaptedRecipe && !adapting && (
+        {(adaptedRecipe || autoAdaptedRecipe) && !adapting && (
           <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
             <p className="text-[11px] font-bold text-emerald-700">
-              Adapted for {displayRecipe._adaptedFor}
+              {autoAdaptedRecipe && !adaptedRecipe
+                ? `Auto-adapted for your ${autoAdaptedRecipe._adaptedFor} preference`
+                : `Adapted for ${displayRecipe._adaptedFor}`}
             </p>
-            <button onClick={() => setAdaptedRecipe(null)} className="shrink-0 text-[10px] font-black text-emerald-600 flex items-center gap-1 hover:underline">
-              <RotateCcw size={11} /> Revert to original
-            </button>
+            {adaptedRecipe && (
+              <button onClick={() => setAdaptedRecipe(null)} className="shrink-0 text-[10px] font-black text-emerald-600 flex items-center gap-1 hover:underline">
+                <RotateCcw size={11} /> Revert to original
+              </button>
+            )}
           </div>
         )}
 

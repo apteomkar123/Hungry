@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings, Clock } from 'lucide-react';
+import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings, Clock, PlusCircle, Menu, X } from 'lucide-react';
 import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic, matchesRecipeFilter } from './components/recipeUtils';
 import Header from './components/Header';
 import PantryManager from './components/PantryManager';
@@ -17,6 +17,7 @@ import { useUser } from './components/UserContext';
 import { RecipeProvider, useRecipes } from './components/RecipeContext';
 import { useInventory } from './components/useInventory';
 import ChefHistory from './components/ChefHistory';
+import AddRecipeModal from './components/AddRecipeModal';
 
 function AppContent({ inventory }) {
   const { household: activeHousehold, households } = useUser();
@@ -41,7 +42,10 @@ function AppContent({ inventory }) {
     handleBarcodeLookup,
     handleFileUpload,
     handleUpdateItem,
-    handleMarkCooked
+    handleMarkCooked,
+    quantities,
+    adjustQuantity,
+    setQuantityForItem,
   } = inventory;
 
   const {
@@ -69,6 +73,8 @@ function AppContent({ inventory }) {
 
   const [activeTab, setActiveTab] = useState('pantry');
   const [isCookingMode, setIsCookingMode] = useState(false);
+  const [isAddRecipeOpen, setIsAddRecipeOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const mainRef = useRef(null);
   const [shopCategoryFilters, setShopCategoryFilters] = useState([]);
   const [shopDietFilters, setShopDietFilters] = useState([]);
@@ -79,8 +85,66 @@ function AppContent({ inventory }) {
 
   const addedItems = new Set(shoppingList.map(i => cleanIngredientLocally(i.item_name)));
 
+  const NAV_ITEMS = [
+    { tab: 'pantry',      icon: <Refrigerator size={22} />, label: 'Pantry' },
+    { tab: 'recipes',     icon: <ChefHat size={22} />,      label: 'Recipes' },
+    { tab: 'shopping',    icon: <ShoppingCart size={22} />,  label: 'Shopping' },
+    { tab: 'saved',       icon: <Star size={22} />,          label: 'Saved' },
+    { tab: 'chefHistory', icon: <Clock size={22} />,         label: 'Chef History' },
+    { tab: 'analytics',   icon: <BarChart3 size={22} />,     label: 'Analytics' },
+    { tab: 'household',   icon: <Users size={22} />,         label: 'Household' },
+    { tab: 'settings',    icon: <Settings size={22} />,      label: 'Settings' },
+  ];
+
+  const switchTab = (tab) => {
+    triggerHaptic();
+    setActiveTab(tab);
+    setNavOpen(false);
+  };
+
   return (
-    <div className="h-[100dvh] flex flex-col bg-blue-50/50 text-slate-800 font-sans antialiased selection:bg-[#6BAEE0] selection:text-white overflow-hidden">
+    <div className="h-[100dvh] flex bg-blue-50/50 text-slate-800 font-sans antialiased selection:bg-[#6BAEE0] selection:text-white overflow-hidden">
+
+      {/* ── Left Nav Backdrop ─────────────────────────────────────────────── */}
+      {navOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[50]"
+          onClick={() => setNavOpen(false)}
+        />
+      )}
+
+      {/* ── Left Slide-out Nav ─────────────────────────────────────────────── */}
+      <nav className={`fixed left-0 top-0 bottom-0 z-[55] flex flex-col bg-white/90 backdrop-blur-2xl border-r border-white/50 shadow-2xl shadow-blue-900/10 transition-transform duration-300 ease-out w-64 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex items-center justify-between px-5 pt-8 pb-6 border-b border-blue-50">
+          <span className="text-lg font-black text-[#6BAEE0] tracking-tight">Hungry</span>
+          <button onClick={() => setNavOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto py-3 space-y-0.5 px-2">
+          {NAV_ITEMS.map(({ tab, icon, label }) => (
+            <button
+              key={tab}
+              onClick={() => switchTab(tab)}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all text-left ${activeTab === tab ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-500 hover:bg-blue-50/50 hover:text-slate-700'}`}
+            >
+              <span className={activeTab === tab ? 'text-[#6BAEE0]' : 'text-slate-400'}>{icon}</span>
+              {label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {/* ── Main area ─────────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
+        {/* Hamburger trigger — top-left pill */}
+        <button
+          onClick={() => setNavOpen(true)}
+          className="fixed top-4 left-4 z-[45] bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg p-3 rounded-2xl text-slate-500 hover:text-[#6BAEE0] transition-all"
+        >
+          <Menu size={20} />
+        </button>
+
       {/* Scrollable area — Header sticky inside here */}
       <main ref={mainRef} className="flex-1 overflow-y-auto w-full">
         <div className="w-full flex justify-center">
@@ -107,6 +171,9 @@ function AppContent({ inventory }) {
                 barcodeResult={barcodeResult}
                 isScanningBarcode={isScanningBarcode}
                 setIsScanningBarcode={setIsScanningBarcode}
+                quantities={quantities}
+                adjustQuantity={adjustQuantity}
+                setQuantityForItem={setQuantityForItem}
               />
             )}
             {activeTab === 'recipes' && <RecipeExplorer />}
@@ -131,6 +198,14 @@ function AppContent({ inventory }) {
             {activeTab === 'settings' && <SettingsPage />}
             {activeTab === 'saved' && (
               <div className="space-y-6">
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setIsAddRecipeOpen(true)}
+                    className="flex items-center gap-2 bg-[#6BAEE0] text-white px-5 py-2.5 rounded-2xl text-xs font-black shadow-lg shadow-blue-100 active:scale-95 transition-all"
+                  >
+                    <PlusCircle size={15} /> Add Recipe
+                  </button>
+                </div>
                 {/* ── Meal Plans ── */}
                 {savedMealPlans.length > 0 && (
                   <div className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
@@ -230,23 +305,11 @@ function AppContent({ inventory }) {
           </div>
         </div>
       </main>
-
-      {/* Bottom nav — always at bottom, never scrolls */}
-      <div className="shrink-0 w-full flex justify-center px-4 pb-6 pt-3 bg-blue-50/60 backdrop-blur-sm">
-        <nav className="w-full max-w-md bg-white/80 backdrop-blur-2xl border border-white/50 rounded-full h-16 shadow-2xl flex items-center justify-around px-6 transition-all hover:scale-[1.02]">
-          <button onClick={() => { triggerHaptic(); setActiveTab('pantry'); }} className={`p-2 rounded-full transition-all ${activeTab === 'pantry' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Refrigerator size={24} /></button>
-          <button onClick={() => { triggerHaptic(); setActiveTab('recipes'); }} className={`p-2 rounded-full transition-all ${activeTab === 'recipes' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><ChefHat size={24} /></button>
-          <button onClick={() => { triggerHaptic(); setActiveTab('shopping'); }} className={`p-2 rounded-full transition-all ${activeTab === 'shopping' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><ShoppingCart size={24} /></button>
-          <button onClick={() => { triggerHaptic(); setActiveTab('saved'); }} className={`p-2 rounded-full transition-all ${activeTab === 'saved' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Star size={24} /></button>
-          <button onClick={() => { triggerHaptic(); setActiveTab('chefHistory'); }} className={`p-2 rounded-full transition-all ${activeTab === 'chefHistory' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Clock size={22} /></button>
-          <button onClick={() => { triggerHaptic(); setActiveTab('household'); }} className={`p-2 rounded-full transition-all ${activeTab === 'household' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Users size={24} /></button>
-          <button onClick={() => { triggerHaptic(); setActiveTab('analytics'); }} className={`p-2 rounded-full transition-all ${activeTab === 'analytics' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><BarChart3 size={24} /></button>
-          <button onClick={() => { triggerHaptic(); setActiveTab('settings'); }} className={`p-2 rounded-full transition-all ${activeTab === 'settings' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Settings size={22} /></button>
-        </nav>
-      </div>
+      </div> {/* end main area wrapper */}
 
       <AiIngredientPickerModal />
       <MealPrepModal />
+      {isAddRecipeOpen && <AddRecipeModal onClose={() => setIsAddRecipeOpen(false)} />}
 
       {activeModalRecipe && (
         <RecipeModal
@@ -334,7 +397,6 @@ function AppContent({ inventory }) {
                 </div>
               );
             })()}
-            )}
             <div className="mt-6 text-right">
               <button
                 onClick={() => { setIsStoreAlertOpen(false); setActiveTab('shopping'); }}

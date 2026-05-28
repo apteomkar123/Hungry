@@ -19,7 +19,7 @@ const ECO_RATINGS = [
 
 export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAddShoppingItem }) {
   const { household, userSettings, handleUpdatePersonalBudget, handleUpdateBudgetLimit } = useUser();
-  const { onSaveRecipe, onRemoveSavedRecipe, processedRecipes, savedRecipes, setActiveModalRecipe, generateMealPlan, prepLoading, activeMealPlan, setActiveMealPlan, setIsMealPrepOpen } = useRecipes();
+  const { onSaveRecipe, onRemoveSavedRecipe, processedRecipes, savedRecipes, setActiveModalRecipe, generateMealPlan, prepLoading, activeMealPlan, setActiveMealPlan, setIsMealPrepOpen, generateRecipeByName, findRecipeByName } = useRecipes();
 
   const [dashTab, setDashTab] = useState('nutrition');
   const [selectedMacro, setSelectedMacro] = useState(null);
@@ -32,6 +32,7 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
   const [isEditingHouseholdBudget, setIsEditingHouseholdBudget] = useState(false);
   const [householdBudgetInput, setHouseholdBudgetInput] = useState('');
   const [starredRecipes, setStarredRecipes] = useState(new Set());
+  const [openingRecipe, setOpeningRecipe] = useState(null); // name being generated/opened
 
   // ── Spending calcs ───────────────────────────────────────────────────────
   const { pantryValue, missingSpend, purchasedSpend, totalListCost, stockEfficiency, budgetLimit, budgetPercent, isOverBudget } = useMemo(() => {
@@ -82,7 +83,9 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
         : `increasing ${macroKey} intake`;
 
       const pct = (v) => Math.round((v / totalMacros) * 100);
-      const prompt = `User's pantry macro distribution: Protein ${metrics.protein || 0}g (${pct(metrics.protein)}%), Carbs ${metrics.carbs || 0}g (${pct(metrics.carbs)}%), Fat ${metrics.fat || 0}g (${pct(metrics.fat)}%). User wants help with ${focus}. Suggest 3 specific ingredients to add to their shopping list and 2 recipe ideas. Return ONLY valid JSON: {"ingredients":[{"name":"...","amount":"...","reason":"under 25 words"}],"recipes":[{"name":"...","reason":"under 25 words"}]}`;
+      // Include a random seed so the AI varies suggestions on each request
+      const seed = Math.floor(Math.random() * 9999);
+      const prompt = `[Seed:${seed}] User's pantry macro distribution: Protein ${metrics.protein || 0}g (${pct(metrics.protein)}%), Carbs ${metrics.carbs || 0}g (${pct(metrics.carbs)}%), Fat ${metrics.fat || 0}g (${pct(metrics.fat)}%). User wants help with ${focus}. Suggest 3 DIFFERENT specific ingredients to add to their shopping list and 2 DIFFERENT recipe ideas (do NOT repeat previous suggestions). Return ONLY valid JSON: {"ingredients":[{"name":"...","amount":"...","reason":"under 25 words"}],"recipes":[{"name":"...","reason":"under 25 words"}]}`;
 
       const res = await fetch('/.netlify/functions/scan-receipt', {
         method: 'POST',
@@ -109,18 +112,42 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
     setAddedIngredients(prev => new Set([...prev, name]));
   };
 
-  const handleOpenRecipe = (recipeName) => {
-    const match = processedRecipes.find(r => r.name.toLowerCase() === recipeName.toLowerCase());
-    if (match) setActiveModalRecipe(match);
+  const handleOpenRecipe = async (recipeName) => {
+    if (openingRecipe === recipeName) return;
+    // Try exact match in processed recipes first
+    const match = findRecipeByName ? findRecipeByName(recipeName) : processedRecipes.find(r => r.name.toLowerCase() === recipeName.toLowerCase());
+    if (match) { setActiveModalRecipe(match); return; }
+    // Generate full recipe via AI if not in DB
+    if (generateRecipeByName) {
+      setOpeningRecipe(recipeName);
+      try {
+        const generated = await generateRecipeByName(recipeName);
+        setActiveModalRecipe(generated);
+      } catch {}
+      setOpeningRecipe(null);
+    }
   };
 
-  const handleToggleStar = (recipeName) => {
+  const handleToggleStar = async (recipeName) => {
     const alreadySaved = savedRecipes?.find(sr => sr.recipe_name?.toLowerCase() === recipeName.toLowerCase());
     if (alreadySaved) {
       onRemoveSavedRecipe(alreadySaved.id);
-    } else {
-      const match = processedRecipes.find(r => r.name.toLowerCase() === recipeName.toLowerCase());
-      if (match) onSaveRecipe(match);
+      setStarredRecipes(prev => { const s = new Set(prev); s.delete(recipeName); return s; });
+      return;
+    }
+    const match = findRecipeByName ? findRecipeByName(recipeName) : processedRecipes.find(r => r.name.toLowerCase() === recipeName.toLowerCase());
+    if (match) {
+      onSaveRecipe(match);
+      setStarredRecipes(prev => new Set([...prev, recipeName]));
+      return;
+    }
+    // Generate and save
+    if (generateRecipeByName) {
+      try {
+        const generated = await generateRecipeByName(recipeName);
+        onSaveRecipe(generated);
+        setStarredRecipes(prev => new Set([...prev, recipeName]));
+      } catch {}
     }
   };
 
@@ -265,16 +292,19 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
                 <div className="space-y-2">
                   {aiResult.recipes.map((rec, i) => {
                     const savedEntry = savedRecipes?.find(sr => sr.recipe_name?.toLowerCase() === rec.name?.toLowerCase());
-                    const isSaved = !!savedEntry;
-                    const canOpen = processedRecipes.some(r => r.name.toLowerCase() === rec.name?.toLowerCase());
+                    const isSaved = !!savedEntry || starredRecipes.has(rec.name);
+                    const isOpening = openingRecipe === rec.name;
                     return (
                       <div key={i} className="flex items-start justify-between gap-3 bg-sky-50 border border-sky-100 rounded-2xl px-4 py-3">
                         <button
                           className="flex-1 min-w-0 text-left"
                           onClick={() => handleOpenRecipe(rec.name)}
-                          disabled={!canOpen}
+                          disabled={isOpening}
                         >
-                          <p className={`text-xs font-black ${canOpen ? 'text-[#6BAEE0] hover:underline' : 'text-slate-700'}`}>{rec.name}</p>
+                          <p className="text-xs font-black text-[#6BAEE0] hover:underline flex items-center gap-1.5">
+                            {isOpening && <Loader2 size={10} className="animate-spin shrink-0" />}
+                            {rec.name}
+                          </p>
                           <p className="text-[11px] text-slate-400 leading-snug mt-0.5">{rec.reason}</p>
                         </button>
                         <button
@@ -506,7 +536,9 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
         <div className="flex items-center gap-4 mb-4">
           <div className="flex-1 bg-blue-50 rounded-2xl border border-blue-100 p-4">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">My Budget</p>
-            <p className="text-2xl font-black text-[#6BAEE0]">${personalBudget.toFixed(2)}<span className="text-sm font-bold text-slate-400">/mo</span></p>
+            {personalBudget > 0
+              ? <p className="text-2xl font-black text-[#6BAEE0]">${personalBudget.toFixed(2)}<span className="text-sm font-bold text-slate-400">/mo</span></p>
+              : <p className="text-sm font-bold text-slate-300 italic">Not set</p>}
           </div>
           <div className="flex-1 bg-blue-50 rounded-2xl border border-blue-100 p-4 relative">
             <button
@@ -516,7 +548,9 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
               <Edit2 size={12} />
             </button>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Household Budget</p>
-            <p className="text-2xl font-black text-slate-700">${(household?.budget_limit || 0).toFixed(2)}<span className="text-sm font-bold text-slate-400">/mo</span></p>
+            {(household?.budget_limit > 0)
+              ? <p className="text-2xl font-black text-slate-700">${Number(household.budget_limit).toFixed(2)}<span className="text-sm font-bold text-slate-400">/mo</span></p>
+              : <p className="text-sm font-bold text-slate-300 italic">Not set</p>}
           </div>
         </div>
 

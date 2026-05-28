@@ -242,7 +242,29 @@ IMPLEMENTED (session 2026-05-28):
 - Voice input now parses numeric quantities (e.g. "2 bananas, 4 tomatoes") and shows x badge
 - "Mark Cooked" button added to recipe modal -- subtracts ingredients from pantry
 - Chef History feature added to Saved tab -- view cooked recipes, add notes, add photos
+- Voice quantities now persist to localStorage (hungry_quantities) -- temp ID migrated to real DB ID on save
+- Category regexes updated to match plural forms (bananas, apples, tomatoes, onions, etc.)
+- Ingredient grouping fixed -- entries containing newlines or comma+number patterns are split into separate items; MealDB cache bumped to v5
+- Chef History moved to its own dedicated tab (Clock icon in bottom nav)
+- Mark Cooked button moved to its own full-width row at bottom of recipe card
+IMPLEMENTED (session 2026-05-28 v2):
+BUGS:
+- Mic now explicitly stops (rec.stop()) as soon as onresult fires -- mic turns off instantly when speech ends
+- Lifted quantities state into useInventory so voice-added items correctly write to localStorage and reactive state
+- _normalizeIngredients now splits on semicolons, " + ", and comma/colon before measurement patterns; cache bumped to v6
+- Dietary auto-conversion replaced useEffect with useMemo -- computes synchronously on render, no async race
+- AI Nutrition coach: random seed per request for variety; recipes open via generateRecipeByName fallback; star uses generate fallback too
+
+FEATURES:
+- Budget shows "Not set" instead of 0.00 for both personal and household budgets
+- Search bar now auto-applies filter when exact filter keyword is typed (Breakfast, Vegetarian, Indian, etc.)
+- Add Recipe modal added to Saved tab -- supports manual form (name/type/cuisine/ingredients/steps) and URL paste (AI parses recipe from URL)
+- Bottom nav replaced with left slide-out panel (Menu hamburger at top-left, glass panel slides in from left, shows page name next to icon)
+- Chef History: public/private toggle per entry (Globe = Public, Lock = Private)
 
 
 TESTED
 ------
+
+IMPLEMENTED (session 2026-05-28 v3 - syntax fix):
+- Removed stray )} in App.jsx shopping alerts block -- build now 0 errors

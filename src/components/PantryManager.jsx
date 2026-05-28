@@ -312,7 +312,8 @@ export default function PantryManager({
   handleAddManualItem, handleUpdateItem, handleRemoveItem, handleToggleItemHousehold,
   receiptLoading, receiptMessage, handleFileUpload,
   barcodeInput, setBarcodeInput, handleBarcodeLookup,
-  barcodeLoading, barcodeResult, isScanningBarcode, setIsScanningBarcode
+  barcodeLoading, barcodeResult, isScanningBarcode, setIsScanningBarcode,
+  quantities = {}, adjustQuantity, setQuantityForItem,
 }) {
   const [manualItem, setManualItem] = useState('');
   const [selectedHouseholdId, setSelectedHouseholdId] = useState(null);
@@ -320,9 +321,6 @@ export default function PantryManager({
   const [activeIngredient, setActiveIngredient] = useState(null);
   const [categoryOverrides, setCategoryOverrides] = useState(() => {
     try { return JSON.parse(localStorage.getItem('hungry_cat_overrides') || '{}'); } catch { return {}; }
-  });
-  const [quantities, setQuantities] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('hungry_quantities') || '{}'); } catch { return {}; }
   });
   const hasScannedRef = useRef(false);
 
@@ -427,6 +425,8 @@ export default function PantryManager({
 
     rec.onresult = async (e) => {
       const transcript = e.results[0][0].transcript;
+      // Stop mic immediately — user has stopped speaking, parsing is starting
+      try { rec.stop(); } catch {}
       setVoiceListening(false);
       setVoiceLoading(true);
       try {
@@ -496,10 +496,8 @@ export default function PantryManager({
       localStorage.setItem('hungry_cat_overrides', JSON.stringify(newOverrides));
       setCategoryOverrides(newOverrides);
     }
-    if (updates.quantity !== undefined) {
-      const newQtys = { ...quantities, [id]: updates.quantity };
-      localStorage.setItem('hungry_quantities', JSON.stringify(newQtys));
-      setQuantities(newQtys);
+    if (updates.quantity !== undefined && setQuantityForItem) {
+      setQuantityForItem(id, updates.quantity);
     }
     const { categoryOverride, quantity: _qty, ...dbUpdates } = updates;
     if (Object.keys(dbUpdates).length > 0) {
@@ -507,18 +505,10 @@ export default function PantryManager({
     }
   };
 
-  const adjustQuantity = (id, delta) => {
-    const current = quantities[id] || 1;
-    const next = Math.max(1, current + delta);
-    const newQtys = { ...quantities, [id]: next };
-    localStorage.setItem('hungry_quantities', JSON.stringify(newQtys));
-    setQuantities(newQtys);
-  };
-
-  // Enrich fridge items with local-only fields
+  // Enrich fridge items with category overrides and quantities from inventory
   const enrichedFridge = useMemo(() => fridge.map(item => ({
     ...item,
-    quantity: quantities[item.id] || 1,
+    quantity: quantities[item.id] || item.quantity || 1,
     categoryOverride: categoryOverrides[item.id] || null,
   })), [fridge, quantities, categoryOverrides]);
 

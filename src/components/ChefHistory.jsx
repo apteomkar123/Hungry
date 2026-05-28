@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChefHat, Camera, Star, Trash2, Plus, Edit3, Check } from 'lucide-react';
+import { X, ChefHat, Camera, Star, Trash2, Plus, Edit3, Check, Lock, Globe } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 
-function HistoryCard({ entry, onUpdateNotes, onAddPhoto, onDelete, onOpenRecipe }) {
+function HistoryCard({ entry, onUpdateNotes, onAddPhoto, onDelete, onOpenRecipe, onTogglePrivacy }) {
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState(entry.notes || '');
   const fileRef = useRef(null);
@@ -80,7 +80,7 @@ function HistoryCard({ entry, onUpdateNotes, onAddPhoto, onDelete, onOpenRecipe 
       )}
 
       {/* Actions */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => fileRef.current?.click()}
           className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 bg-violet-50 text-violet-600 border border-violet-100 rounded-xl hover:bg-violet-100 transition-all"
@@ -93,6 +93,12 @@ function HistoryCard({ entry, onUpdateNotes, onAddPhoto, onDelete, onOpenRecipe 
           className="flex items-center gap-1.5 text-[10px] font-black px-3 py-2 bg-sky-50 text-[#6BAEE0] border border-sky-100 rounded-xl hover:bg-sky-100 transition-all"
         >
           <Star size={12} /> View Recipe
+        </button>
+        <button
+          onClick={() => onTogglePrivacy(entry.id)}
+          className={`flex items-center gap-1.5 text-[10px] font-black px-3 py-2 rounded-xl transition-all ${entry.isPrivate ? 'bg-slate-100 text-slate-500 border border-slate-200' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}
+        >
+          {entry.isPrivate ? <><Lock size={12} /> Private</> : <><Globe size={12} /> Public</>}
         </button>
       </div>
     </div>
@@ -126,6 +132,10 @@ export default function ChefHistory() {
 
   const handleDelete = (id) => {
     persist(history.filter(e => e.id !== id));
+  };
+
+  const handleTogglePrivacy = (id) => {
+    persist(history.map(e => e.id === id ? { ...e, isPrivate: !e.isPrivate } : e));
   };
 
   const handleOpenRecipe = (entry) => {
@@ -167,6 +177,7 @@ export default function ChefHistory() {
             onAddPhoto={handleAddPhoto}
             onDelete={handleDelete}
             onOpenRecipe={handleOpenRecipe}
+            onTogglePrivacy={handleTogglePrivacy}
           />
         ))}
       </div>

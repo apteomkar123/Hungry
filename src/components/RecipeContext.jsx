@@ -13,20 +13,25 @@ import { STATIC_RECIPES } from './staticRecipes';
 
 const RecipeContext = createContext();
 
-const MEALDB_CACHE_KEY = 'hungry_mealdb_v5'; // bumped: ingredient split normalization
+const MEALDB_CACHE_KEY = 'hungry_mealdb_v6'; // bumped: broader ingredient split patterns
 
-// Split ingredients that accidentally contain multiple items in one string
-// (newline-joined or comma-then-measurement patterns)
+// Split ingredients that accidentally contain multiple items in one string.
+// Handles newlines, semicolons, " + " separators, and comma/colon before a measurement.
 const _normalizeIngredients = (ings) =>
   (ings || []).flatMap(ing => {
     const s = String(ing || '').trim();
     if (!s) return [];
-    // Split on newlines first
+    // 1. Split on newlines
     const lines = s.split(/\n+/).map(l => l.trim()).filter(Boolean);
     if (lines.length > 1) return lines;
-    // Split on ", " followed immediately by a digit/fraction — signals a new measurement
-    const parts = s.split(/,\s*(?=[\d½⅓¼¾⅛])/);
-    return parts.length > 1 ? parts.map(p => p.trim()).filter(Boolean) : [s];
+    // 2. Split on semicolons (almost always a list separator)
+    if (/;\s*\w/.test(s)) return s.split(/;\s*/).map(p => p.trim()).filter(Boolean);
+    // 3. Split on " + " with spaces (explicit list join)
+    if (/ \+ /.test(s)) return s.split(/ \+ /).map(p => p.trim()).filter(Boolean);
+    // 4. Split on comma or colon immediately before a digit/fraction — new measurement
+    const parts = s.split(/[,:\s]*(?=[\d½⅓¼¾⅛]\s*(?:cup|tbsp|tsp|oz|g|kg|lb|lbs|ml|l|piece|slice|bunch|head|clove|can|jar|\w))/i);
+    if (parts.length > 1) return parts.map(p => p.trim()).filter(Boolean);
+    return [s];
   });
 const MEALDB_CACHE_TTL = 24 * 60 * 60 * 1000;
 

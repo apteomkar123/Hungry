@@ -6,6 +6,9 @@ import { put, getAll, remove, OBJECT_STORES } from '../dbUtils';
 export const useInventory = (user, household) => {
   const [fridge, setFridge] = useState([]);
   const [shoppingList, setShoppingList] = useState([]);
+  const [quantities, setQuantities] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('hungry_quantities') || '{}'); } catch { return {}; }
+  });
   const [nutritionMetrics, setNutritionMetrics] = useState({ protein: 0, carbs: 0, fat: 0 });
   const [loading, setLoading] = useState(true);
   const [receiptLoading, setReceiptLoading] = useState(false);
@@ -200,13 +203,13 @@ export const useInventory = (user, household) => {
     }]);
     triggerHaptic(50);
 
-    // Persist quantity to localStorage immediately under tempId
+    // Update reactive quantities state + localStorage immediately under tempId
     if (qty > 1) {
-      try {
-        const qtys = JSON.parse(localStorage.getItem('hungry_quantities') || '{}');
-        qtys[tempId] = qty;
-        localStorage.setItem('hungry_quantities', JSON.stringify(qtys));
-      } catch {}
+      setQuantities(prev => {
+        const next = { ...prev, [tempId]: qty };
+        try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+        return next;
+      });
     }
 
     const newItem = {
@@ -220,14 +223,14 @@ export const useInventory = (user, household) => {
     const savedData = await performMutation('fridge_inventory', 'INSERT', newItem);
     if (savedData && savedData.id) {
       setFridge(prev => prev.map(item => item.id === tempId ? { ...item, id: savedData.id } : item));
-      // Migrate tempId quantity entry to real DB id
+      // Migrate tempId quantity to real DB id
       if (qty > 1) {
-        try {
-          const qtys = JSON.parse(localStorage.getItem('hungry_quantities') || '{}');
-          qtys[savedData.id] = qty;
-          delete qtys[tempId];
-          localStorage.setItem('hungry_quantities', JSON.stringify(qtys));
-        } catch {}
+        setQuantities(prev => {
+          const next = { ...prev, [savedData.id]: qty };
+          delete next[tempId];
+          try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+          return next;
+        });
       }
     }
   }, [user, resolveSanitizedTokenOnline, performMutation]);
@@ -415,14 +418,33 @@ export const useInventory = (user, household) => {
   // Subtract pantry items when a recipe is marked as cooked.
   // Each recipe ingredient is matched against fridge items; quantity is decremented.
   // Items reaching 0 are removed from the pantry.
+  const adjustQuantity = useCallback((id, delta) => {
+    setQuantities(prev => {
+      const current = prev[id] || 1;
+      const next = { ...prev, [id]: Math.max(1, current + delta) };
+      try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+      return next;
+    });
+    setFridge(prev => prev.map(item => item.id === id
+      ? { ...item, quantity: Math.max(1, (item.quantity || 1) + delta) }
+      : item));
+  }, []);
+
+  const setQuantityForItem = useCallback((id, qty) => {
+    const v = Math.max(1, qty);
+    setQuantities(prev => {
+      const next = { ...prev, [id]: v };
+      try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+      return next;
+    });
+    setFridge(prev => prev.map(item => item.id === id ? { ...item, quantity: v } : item));
+  }, []);
+
   const handleMarkCooked = useCallback(async (recipe) => {
     if (!recipe) return;
     const ingredients = (recipe.cleanedIngredients || []);
     const toRemove = [];
     const toUpdate = [];
-
-    let storedQtys = {};
-    try { storedQtys = JSON.parse(localStorage.getItem('hungry_quantities') || '{}'); } catch {}
 
     fridge.forEach(item => {
       const match = ingredients.some(ing => {
@@ -431,22 +453,27 @@ export const useInventory = (user, household) => {
         return a.includes(b) || b.includes(a);
       });
       if (!match) return;
-      const currentQty = storedQtys[item.id] || item.quantity || 1;
+      const currentQty = quantities[item.id] || item.quantity || 1;
       if (currentQty <= 1) {
         toRemove.push(item.id);
-        delete storedQtys[item.id];
       } else {
-        storedQtys[item.id] = currentQty - 1;
         toUpdate.push({ id: item.id, qty: currentQty - 1 });
       }
     });
 
-    localStorage.setItem('hungry_quantities', JSON.stringify(storedQtys));
+    // Update reactive quantities state
+    setQuantities(prev => {
+      const next = { ...prev };
+      toRemove.forEach(id => delete next[id]);
+      toUpdate.forEach(({ id, qty }) => { next[id] = qty; });
+      try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+      return next;
+    });
 
     // Remove fully depleted items
     for (const id of toRemove) await handleRemoveItem(id);
 
-    // Update quantities on fridge state
+    // Update fridge state quantities
     setFridge(prev => prev.map(item => {
       const u = toUpdate.find(x => x.id === item.id);
       return u ? { ...item, quantity: u.qty } : item;
@@ -468,10 +495,13 @@ export const useInventory = (user, household) => {
       });
       localStorage.setItem('hungry_chef_history', JSON.stringify(history.slice(0, 100)));
     } catch {}
-  }, [fridge, handleRemoveItem]);
+  }, [fridge, quantities, handleRemoveItem]);
 
   return {
     fridge,
+    quantities,
+    adjustQuantity,
+    setQuantityForItem,
     shoppingList,
     nutritionMetrics,
     loading,

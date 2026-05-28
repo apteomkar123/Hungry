@@ -25,6 +25,28 @@ export default function RecipeExplorer() {
   const toggleFilter = (setter) => (f) =>
     setter(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
 
+  // If the search text exactly matches a known filter keyword, apply the filter
+  // instead of passing it through as a text search
+  const handleSearchChange = (value) => {
+    const lower = value.toLowerCase().trim();
+    if (mealTypeOptions.includes(lower)) {
+      setCategoryFilters(prev => prev.includes(lower) ? prev : [...prev, lower]);
+      setRecipeSearch('');
+      return;
+    }
+    if (dietOptions.includes(lower)) {
+      setDietFilters(prev => prev.includes(lower) ? prev : [...prev, lower]);
+      setRecipeSearch('');
+      return;
+    }
+    if (cuisineOptions.includes(lower)) {
+      setCuisineFilters(prev => prev.includes(lower) ? prev : [...prev, lower]);
+      setRecipeSearch('');
+      return;
+    }
+    setRecipeSearch(value);
+  };
+
   // Map<recipe_id_string → saved_record_pk_id> built once when savedRecipes changes
   const savedRecipesMap = useMemo(
     () => new Map((savedRecipes || []).map(sr => [sr.recipe_id, sr.id])),
@@ -39,9 +61,9 @@ export default function RecipeExplorer() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input 
             type="text" 
-            placeholder="Search ingredients or recipes..." 
+            placeholder="Search recipes, ingredients, or filter names (e.g. Breakfast)..."
             value={recipeSearch}
-            onChange={(e) => setRecipeSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full bg-blue-50/50 border border-blue-100 pl-12 pr-6 py-4 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none transition-all"
           />
         </div>
