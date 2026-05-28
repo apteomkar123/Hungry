@@ -1,10 +1,25 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw, Dumbbell } from 'lucide-react';
+import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw, Dumbbell, ChefHat } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
-import { parseRecipeIngredientMeasurements, cleanIngredientLocally, estimateNutrition, isRecipeMeat, isRecipeFish, isRecipeVegan, matchesRecipeFilter } from './recipeUtils';
+import { parseRecipeIngredientMeasurements, cleanIngredientLocally, estimateNutrition, isRecipeMeat, isRecipeFish, isRecipeVegan, matchesRecipeFilter, locallyAdaptRecipe } from './recipeUtils';
 
-export default function RecipeModal({ onStartCooking, addedItems, onAddIngredient, onAddToPantry }) {
+// Returns true if pantryQty (count) satisfies the needed amount from a recipe ingredient string
+const _pantryHasEnough = (ingredient, pantryQty) => {
+  if (!ingredient) return false;
+  const match = ingredient.match(/^([0-9\/\.\s\-½⅓¼¾⅛]+)/);
+  if (!match) return pantryQty >= 1;
+  let needed = parseFloat(match[1]);
+  if (isNaN(needed)) {
+    if (match[1].includes('½')) needed = 0.5;
+    else if (match[1].includes('¼')) needed = 0.25;
+    else if (match[1].includes('¾')) needed = 0.75;
+    else needed = 1;
+  }
+  return pantryQty >= Math.ceil(needed);
+};
+
+export default function RecipeModal({ onStartCooking, addedItems, onAddIngredient, onAddToPantry, onMarkCooked }) {
   const {
     activeModalRecipe: recipe,
     multiplier,
@@ -28,6 +43,8 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   const [loadingSub, setLoadingSub] = useState(null);
   const [proteinResult, setProteinResult] = useState(null); // {updatedRecipe, proteinIngredient, proteinAdded}
   const [proteinizing, setProteinizing] = useState(false);
+  const [cooked, setCooked] = useState(false);
+  const autoAdaptedKeyRef = React.useRef(null);
 
   useEffect(() => {
     setAdaptedRecipe(null);
@@ -35,6 +52,8 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     setPantryAdded(new Set());
     setSubstitutes({});
     setProteinResult(null);
+    setCooked(false);
+    autoAdaptedKeyRef.current = null;
   }, [recipe?.id]);
 
   const violatedRestrictions = useMemo(() => {
@@ -42,24 +61,22 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     return restrictions.filter(r => !matchesRecipeFilter(recipe, r.toLowerCase()));
   }, [recipe, userSettings]);
 
-  // Auto-convert when recipe conflicts with user's dietary restrictions
+  // Auto-convert when recipe conflicts with user's dietary restrictions (instant, local)
   useEffect(() => {
     if (!recipe?.id || violatedRestrictions.length === 0) return;
     const restriction = violatedRestrictions[0].toLowerCase();
+    const key = `${recipe.id}:${restriction}`;
+    if (autoAdaptedKeyRef.current === key) return; // already adapted this combo
+    autoAdaptedKeyRef.current = key;
     const cacheKey = `_adapted_${recipe.id}_${restriction}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       try { setAdaptedRecipe(JSON.parse(cached)); return; } catch {}
     }
-    setAdapting(`auto_${restriction}`);
-    adaptRecipe(recipe, restriction)
-      .then(adapted => {
-        setAdaptedRecipe(adapted);
-        try { sessionStorage.setItem(cacheKey, JSON.stringify(adapted)); } catch {}
-      })
-      .catch(() => {})
-      .finally(() => setAdapting(null));
-  }, [recipe?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    const adapted = locallyAdaptRecipe(recipe, restriction);
+    setAdaptedRecipe(adapted);
+    try { sessionStorage.setItem(cacheKey, JSON.stringify(adapted)); } catch {}
+  }, [recipe?.id, violatedRestrictions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const displayRecipe = proteinResult?.updatedRecipe || adaptedRecipe || recipe;
 
@@ -71,9 +88,17 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     setAdapting(targetDiet);
     try {
       const cacheKey = `_adapted_${recipe.id}_${targetDiet}`;
-      const adapted = await adaptRecipe(recipe, targetDiet);
-      setAdaptedRecipe(adapted);
-      try { sessionStorage.setItem(cacheKey, JSON.stringify(adapted)); } catch {}
+      // Apply local substitution immediately for instant feedback
+      const localResult = locallyAdaptRecipe(recipe, targetDiet);
+      setAdaptedRecipe(localResult);
+      // Then try AI for a richer, more contextual adaptation in the background
+      adaptRecipe(recipe, targetDiet).then(aiResult => {
+        setAdaptedRecipe(aiResult);
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(aiResult)); } catch {}
+      }).catch(() => {
+        // AI failed — keep the local result, save it
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(localResult)); } catch {}
+      });
     } catch (e) {
       alert('Could not adapt recipe. Please try again.');
     } finally {
@@ -267,33 +292,50 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           <section className="space-y-4">
             <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Ingredients</h4>
             <div className="space-y-3">
-              {(displayRecipe.ingredients || []).map((ing, idx) => (
-                <div key={idx} className="flex flex-col border-b border-blue-50 pb-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-700">{substitutes[ing] || parseRecipeIngredientMeasurements(ing, multiplier)}</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => getSubstitution(ing)}
-                        className="text-[10px] text-sky-400 hover:text-[#6BAEE0]"
-                        disabled={loadingSub === ing}
-                      >
-                        <RefreshCw size={12} className={loadingSub === ing ? 'animate-spin' : ''} />
-                      </button>
-                      {!addedItems?.has(cleanIngredientLocally(ing)) && (
-                        <button onClick={() => onAddIngredient(cleanIngredientLocally(ing))} className="bg-sky-50 text-[#6BAEE0] p-1 rounded-md" title="Add to shopping list"><Plus size={12} /></button>
-                      )}
-                      {onAddToPantry && (
-                        pantryAdded.has(ing) || pantryItemsSet.has(cleanIngredientLocally(ing)) ? (
-                          <span className="bg-emerald-50 text-emerald-400 p-1 rounded-md"><Check size={12} /></span>
-                        ) : (
-                          <button onClick={() => handleAddToPantry(ing)} className="bg-emerald-50 text-emerald-500 p-1 rounded-md hover:bg-emerald-100 transition-colors" title="Add to pantry"><Refrigerator size={12} /></button>
-                        )
-                      )}
+              {(displayRecipe.ingredients || []).map((ing, idx) => {
+                const cleaned = cleanIngredientLocally(ing);
+                const inPantry = pantryItemsSet.has(cleaned);
+                // Look up this ingredient's pantry quantity from the fridge list
+                const fridgeItem = inPantry
+                  ? (fridge || []).find(f => cleanIngredientLocally(f.raw_name || f.item_name || '') === cleaned)
+                  : null;
+                const qty = fridgeItem?.quantity || (inPantry ? 1 : 0);
+                const hasEnough = inPantry && _pantryHasEnough(ing, qty * multiplier);
+                return (
+                  <div key={idx} className="flex flex-col border-b border-blue-50 pb-2">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {inPantry && (
+                          <span className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${hasEnough ? 'bg-emerald-100 text-emerald-500' : 'bg-amber-100 text-amber-500'}`} title={hasEnough ? `Have ${qty}` : `Have ${qty} — may need more`}>
+                            <Check size={9} />
+                          </span>
+                        )}
+                        <span className="text-xs font-bold text-slate-700">{substitutes[ing] || parseRecipeIngredientMeasurements(ing, multiplier)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => getSubstitution(ing)}
+                          className="text-[10px] text-sky-400 hover:text-[#6BAEE0]"
+                          disabled={loadingSub === ing}
+                        >
+                          <RefreshCw size={12} className={loadingSub === ing ? 'animate-spin' : ''} />
+                        </button>
+                        {!addedItems?.has(cleaned) && (
+                          <button onClick={() => onAddIngredient(cleaned)} className="bg-sky-50 text-[#6BAEE0] p-1 rounded-md" title="Add to shopping list"><Plus size={12} /></button>
+                        )}
+                        {onAddToPantry && (
+                          pantryAdded.has(ing) || inPantry ? (
+                            <span className="bg-emerald-50 text-emerald-400 p-1 rounded-md"><Check size={12} /></span>
+                          ) : (
+                            <button onClick={() => handleAddToPantry(ing)} className="bg-emerald-50 text-emerald-500 p-1 rounded-md hover:bg-emerald-100 transition-colors" title="Add to pantry"><Refrigerator size={12} /></button>
+                          )
+                        )}
+                      </div>
                     </div>
+                    {substitutes[ing] && <span className="text-[10px] text-[#6BAEE0] italic">Swapped for {ing}</span>}
                   </div>
-                  {substitutes[ing] && <span className="text-[10px] text-[#6BAEE0] italic">Swapped for {ing}</span>}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
 
@@ -361,18 +403,29 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           )}
         </div>
 
-        <div className="mt-6 pt-6 border-t border-blue-50 flex justify-between items-center">
+        <div className="mt-6 pt-6 border-t border-blue-50 flex justify-between items-center gap-2">
           <div className="flex gap-1 bg-blue-50/50 p-1 rounded-2xl border border-blue-100">
             {[1, 2, 4].map(n => (
               <button key={n} onClick={() => setMultiplier(n)} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${multiplier === n ? 'bg-white text-[#6BAEE0] shadow-sm' : 'text-slate-400'}`}>{n}x</button>
             ))}
           </div>
-          <button
-            onClick={onStartCooking}
-            className="bg-[#6BAEE0] text-white px-8 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-all"
-          >
-            <Play size={18} fill="currentColor" /> Start Cooking
-          </button>
+          <div className="flex gap-2">
+            {onMarkCooked && (
+              <button
+                onClick={() => { if (!cooked) { onMarkCooked(displayRecipe); setCooked(true); } }}
+                disabled={cooked}
+                className={`flex items-center gap-1.5 px-5 py-3 rounded-2xl font-bold text-xs transition-all ${cooked ? 'bg-emerald-100 text-emerald-500 cursor-default' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 active:scale-95'}`}
+              >
+                <ChefHat size={16} /> {cooked ? 'Cooked!' : 'Mark Cooked'}
+              </button>
+            )}
+            <button
+              onClick={onStartCooking}
+              className="bg-[#6BAEE0] text-white px-8 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-all"
+            >
+              <Play size={18} fill="currentColor" /> Start Cooking
+            </button>
+          </div>
         </div>
       </div>
     </div>

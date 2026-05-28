@@ -14,6 +14,137 @@ export const vegetarianBlocklist = [
   'chicken', 'beef', 'pork', 'fish', 'shrimp', 'salmon', 'ham', 'bacon', 'anchovy', 'turkey', 'lamb', 'duck', 'mutton', 'veal', 'crab', 'lobster', 'sausage', 'pepperoni'
 ];
 
+// ─── Local dietary substitution ───────────────────────────────────────────────
+
+// Cuisine-aware meat substitutes: Indian → paneer, Asian → tofu, Latin/other → legumes
+const _meatSub = (cuisine) => {
+  const c = (cuisine || '').toLowerCase();
+  if (/indian|pakistan|bangladeshi|sri lan/.test(c)) return 'paneer';
+  if (/chinese|japanese|korean|thai|vietnamese|asian/.test(c)) return 'firm tofu';
+  if (/mexican|latin|caribbean/.test(c)) return 'black beans';
+  if (/italian|french|spanish|greek|mediterranean/.test(c)) return 'mushrooms';
+  return 'tofu';
+};
+
+// Each entry: [searchPattern, getDietSub(cuisine)]
+const _SUB_RULES = {
+  vegetarian: [
+    [/\b(chicken|poultry)\b/gi,  (c) => _meatSub(c)],
+    [/\b(beef|steak|brisket)\b/gi, (c) => _meatSub(c)],
+    [/\b(pork belly|pork)\b/gi,  (c) => ['italian','french'].some(x => (c||'').includes(x)) ? 'mushrooms' : 'jackfruit'],
+    [/\b(lamb|mutton|veal|venison)\b/gi, (c) => _meatSub(c)],
+    [/\b(turkey|duck)\b/gi,      () => 'tofu'],
+    [/\b(mince|ground meat|ground beef)\b/gi, (c) => /indian|pak/.test(c||'') ? 'soya mince' : 'lentils'],
+    [/\b(bacon|pancetta|lardons?|lard)\b/gi, () => 'smoked paprika tofu strips'],
+    [/\b(ham|prosciutto|salami|pepperoni|chorizo|sausage)\b/gi, () => 'vegetarian sausage'],
+    [/\b(anchov(y|ies))\b/gi,    () => 'capers'],
+    [/\b(fish fillets?|white fish|cod|tilapia|sea bass)\b/gi, () => 'firm tofu'],
+    [/\b(salmon|tuna|trout|mackerel|haddock)\b/gi, () => 'smoked tofu'],
+    [/\b(shrimp|prawn|scallop|mussel|clam|oyster|crab|lobster|seafood)\b/gi, () => 'tofu cubes'],
+  ],
+  vegan: [
+    [/\b(butter|ghee)\b/gi,      () => 'vegan butter'],
+    [/\b(milk)\b/gi,             () => 'oat milk'],
+    [/\b(heavy cream|double cream|whipping cream)\b/gi, () => 'coconut cream'],
+    [/\b(sour cream)\b/gi,       () => 'coconut yogurt'],
+    [/\b(cream cheese)\b/gi,     () => 'vegan cream cheese'],
+    [/\b(cream)\b/gi,            () => 'coconut cream'],
+    [/\b(yogurt|yoghurt)\b/gi,   () => 'coconut yogurt'],
+    [/\b(parmesan|pecorino)\b/gi,() => 'nutritional yeast'],
+    [/\b(mozzarella|cheddar|brie|ricotta|feta|cheese)\b/gi, () => 'vegan cheese'],
+    [/\b(paneer)\b/gi,           () => 'firm tofu'],
+    [/\b(eggs?)\b/gi,            () => 'flax egg (1 tbsp ground flax + 3 tbsp water)'],
+    [/\b(honey)\b/gi,            () => 'maple syrup'],
+    [/\b(gelatin)\b/gi,          () => 'agar agar'],
+  ],
+  'gluten-free': [
+    [/\b(all.purpose flour|plain flour|wheat flour|flour)\b/gi, () => 'rice flour'],
+    [/\b(pasta|spaghetti|penne|rigatoni|linguine|tagliatelle)\b/gi, () => 'gluten-free pasta'],
+    [/\b(noodles?|ramen noodles|egg noodles)\b/gi, () => 'rice noodles'],
+    [/\b(soy sauce)\b/gi,        () => 'tamari (gluten-free soy sauce)'],
+    [/\b(bread crumbs?|panko|breadcrumbs?)\b/gi, () => 'gluten-free breadcrumbs'],
+    [/\b(barley|rye|spelt|bulgur|couscous|semolina)\b/gi, () => 'quinoa'],
+  ],
+  'dairy-free': [
+    [/\b(butter|ghee)\b/gi,      () => 'vegan butter'],
+    [/\b(milk)\b/gi,             () => 'oat milk'],
+    [/\b(heavy cream|double cream|whipping cream)\b/gi, () => 'coconut cream'],
+    [/\b(sour cream)\b/gi,       () => 'coconut yogurt'],
+    [/\b(cream cheese)\b/gi,     () => 'dairy-free cream cheese'],
+    [/\b(cream)\b/gi,            () => 'coconut cream'],
+    [/\b(yogurt|yoghurt)\b/gi,   () => 'coconut yogurt'],
+    [/\b(parmesan|pecorino)\b/gi,() => 'nutritional yeast'],
+    [/\b(mozzarella|cheddar|brie|ricotta|feta|cheese)\b/gi, () => 'dairy-free cheese'],
+    [/\b(paneer)\b/gi,           () => 'firm tofu'],
+  ],
+  halal: [
+    [/\b(pork belly|pork)\b/gi,  () => 'chicken'],
+    [/\b(bacon|pancetta|lardons?|lard)\b/gi, () => 'turkey bacon'],
+    [/\b(ham|prosciutto|salami|pepperoni|chorizo)\b/gi, () => 'halal beef sausage'],
+    [/\b(wine)\b/gi,             () => 'grape juice'],
+    [/\b(beer|ale|stout)\b/gi,   () => 'broth'],
+  ],
+  kosher: [
+    [/\b(pork belly|pork)\b/gi,  () => 'beef'],
+    [/\b(bacon|pancetta|lard)\b/gi, () => 'beef facon strips'],
+    [/\b(ham|prosciutto)\b/gi,   () => 'turkey breast'],
+    [/\b(shrimp|prawn|lobster|crab|scallop|mussel|oyster|clam|shellfish)\b/gi, () => 'white fish'],
+    [/\b(butter)\b/gi,           () => 'olive oil'], // meat + dairy separation
+  ],
+};
+
+export const locallyAdaptRecipe = (recipe, targetDiet) => {
+  const diet = targetDiet.toLowerCase();
+  // Vegan includes all vegetarian subs too
+  const rules = diet === 'vegan'
+    ? [...(_SUB_RULES.vegetarian || []), ...(_SUB_RULES.vegan || [])]
+    : (_SUB_RULES[diet] || []);
+
+  if (!rules.length) return recipe;
+
+  const cuisine = recipe.cuisine || recipe.meal_type || '';
+  const substitutionLog = [];
+
+  const adaptIngredient = (ing) => {
+    let result = ing;
+    for (const [pattern, getSub] of rules) {
+      const sub = getSub(cuisine);
+      const newIng = result.replace(pattern, sub);
+      if (newIng !== result) {
+        substitutionLog.push({ from: ing, to: newIng });
+        result = newIng;
+        break; // one substitution per ingredient
+      }
+    }
+    return result;
+  };
+
+  const updatedIngredients = (recipe.ingredients || []).map(adaptIngredient);
+
+  // Update step text to reference new ingredient names
+  const updatedSteps = (recipe.steps || []).map(step => {
+    let s = step;
+    for (const [pattern, getSub] of rules) {
+      s = s.replace(pattern, getSub(cuisine));
+    }
+    return s;
+  });
+
+  const adapted = {
+    ...recipe,
+    id: `adapted-local-${recipe.id}`,
+    name: `${recipe.name} (${targetDiet})`,
+    ingredients: updatedIngredients,
+    cleanedIngredients: updatedIngredients.map(cleanIngredientLocally).filter(Boolean),
+    steps: updatedSteps,
+    _adapted: true,
+    _adaptedFor: targetDiet,
+    _substitutions: substitutionLog,
+  };
+
+  return adapted;
+};
+
 export const isVegetarianIngredient = (value) => {
   if (!value) return true;
   const normalized = String(value).toLowerCase();
@@ -52,16 +183,54 @@ export const formatIngredientMeasurement = (ingredientString, multiplier) => {
   return `${1 * multiplier} each ${nameOnly}`;
 };
 
+const _cleanStep = (s) => String(s || '')
+  .replace(/\r\n?/g, '\n')
+  .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // strip control chars
+  .replace(/[■▪▶►→•·□▪� ]/g, '')
+  .trim();
+
+// Strip leading "Step N:" / "1." / "1)" prefixes from a step string
+const _stripStepPrefix = (s) =>
+  s.replace(/^(?:step\s*)?\d+[\.\:\)]\s*/i, '').trim();
+
+const _isValidStep = (s) => {
+  if (!s || s.length < 8) return false;
+  if (/^step\s*\d+[\.\:]?\s*$/i.test(s)) return false; // "Step 1" / "Step 1:" alone
+  if (/^[\d\s\.\:\-\(\)■•·]+$/.test(s)) return false;   // just numbers/punctuation
+  return true;
+};
+
+// Split a long paragraph into sentence-sized steps
+const _splitLongStep = (s) => {
+  if (s.length <= 350) return [s];
+  // Split on ". " followed by a capital letter, or on numbered sub-steps
+  const parts = s.split(/(?<=\.)\s+(?=[A-Z])|(?=\d+\.\s+[A-Z])/g)
+    .map(p => p.trim())
+    .filter(p => p.length >= 8);
+  return parts.length > 1 ? parts : [s];
+};
+
 export const getStaticRecipeSteps = (recipe) => {
   if (!recipe) return ['Follow the ingredient list to create the dish.'];
   const rawSteps = recipe.steps || recipe.instructions || recipe.step || [];
   let steps = [];
   if (Array.isArray(rawSteps)) {
-    steps = rawSteps.map(step => String(step || '').trim()).filter(Boolean);
+    steps = rawSteps
+      .map(_cleanStep)
+      .map(_stripStepPrefix)
+      .filter(_isValidStep)
+      .flatMap(_splitLongStep);
   } else {
-    const textSteps = String(rawSteps || '').trim();
-    if (textSteps.includes('\n')) steps = textSteps.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-    else if (textSteps) steps = [textSteps];
+    const textSteps = _cleanStep(String(rawSteps || ''));
+    if (textSteps.includes('\n')) {
+      steps = textSteps.split(/\n+/)
+        .map(_cleanStep)
+        .map(_stripStepPrefix)
+        .filter(_isValidStep)
+        .flatMap(_splitLongStep);
+    } else if (textSteps && _isValidStep(textSteps)) {
+      steps = _splitLongStep(textSteps);
+    }
   }
   if (steps && steps.length) return steps;
   const ingList = (recipe.cleanedIngredients || []).slice(0, 8).map(i => i.replace(/^[0-9\/\.\s\-½⅓¼¾⅛]+/, '').trim());

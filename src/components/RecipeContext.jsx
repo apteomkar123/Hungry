@@ -13,7 +13,7 @@ import { STATIC_RECIPES } from './staticRecipes';
 
 const RecipeContext = createContext();
 
-const MEALDB_CACHE_KEY = 'hungry_mealdb_v1';
+const MEALDB_CACHE_KEY = 'hungry_mealdb_v4'; // bumped: better step parsing
 const MEALDB_CACHE_TTL = 24 * 60 * 60 * 1000;
 
 export const useRecipes = () => {
@@ -96,7 +96,11 @@ export const RecipeProvider = ({ children, fridge }) => {
         meal_type: m.strCategory || 'General',
         cuisine: m.strArea || '',
         ingredients: ings.map(i => toTitleCase(i)),
-        steps: String(m.strInstructions || '').split(/\r?\n+/).filter(Boolean)
+        steps: String(m.strInstructions || '')
+          .replace(/\r\n?/g, '\n')
+          .split(/\n+/)
+          .map(s => s.trim().replace(/^(?:step\s*)?\d+[\.\:\)]\s*/i, '').trim())
+          .filter(s => s.length >= 8 && !/^step\s*\d+[\.\:]?\s*$/i.test(s) && !/^[\d\s\.\:\-\(\)■•·]+$/.test(s))
       };
     });
     try { localStorage.setItem(MEALDB_CACHE_KEY, JSON.stringify({ data: processed, ts: Date.now() })); } catch {}

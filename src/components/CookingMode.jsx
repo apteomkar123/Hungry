@@ -124,7 +124,7 @@ export default function CookingMode({ steps, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-blue-900/90 backdrop-blur-xl flex flex-col items-center justify-center p-4 z-50 text-white">
+    <div className="fixed inset-0 bg-blue-900/90 backdrop-blur-xl flex flex-col items-center justify-center p-4 z-[100] text-white">
       <div className="w-full max-w-3xl bg-white/10 rounded-[2.5rem] border border-white/20 shadow-2xl p-6 flex flex-col h-full max-h-[90vh]">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-black text-white">Cooking Mode</h2>

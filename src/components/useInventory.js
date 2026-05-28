@@ -143,10 +143,13 @@ export const useInventory = (user, household) => {
       }
 
       const inventory = [...(personal || []), ...shared];
+      let storedQtys = {};
+      try { storedQtys = JSON.parse(localStorage.getItem('hungry_quantities') || '{}'); } catch {}
       const normalizedFridge = inventory.map(row => ({
         id: row.id,
         raw_name: row.item_name,
         item_name: cleanIngredientLocally(row.item_name),
+        quantity: storedQtys[row.id] || 1,
         expiry_date: row.expiry_date,
         price: row.price || 0,
         household_id: row.household_id || null,
@@ -189,6 +192,7 @@ export const useInventory = (user, household) => {
       id: tempId,
       raw_name: displayName,
       item_name: sanitized,
+      quantity: extraData.quantity || 1,
       household_id: targetHouseholdId,
       nutrition: extraData.nutrition || null,
       price: extraData.price || 0,
@@ -390,6 +394,64 @@ export const useInventory = (user, household) => {
     }
   }, [performMutation]);
 
+  // Subtract pantry items when a recipe is marked as cooked.
+  // Each recipe ingredient is matched against fridge items; quantity is decremented.
+  // Items reaching 0 are removed from the pantry.
+  const handleMarkCooked = useCallback(async (recipe) => {
+    if (!recipe) return;
+    const ingredients = (recipe.cleanedIngredients || []);
+    const toRemove = [];
+    const toUpdate = [];
+
+    let storedQtys = {};
+    try { storedQtys = JSON.parse(localStorage.getItem('hungry_quantities') || '{}'); } catch {}
+
+    fridge.forEach(item => {
+      const match = ingredients.some(ing => {
+        const a = (item.item_name || '').toLowerCase();
+        const b = (ing || '').toLowerCase();
+        return a.includes(b) || b.includes(a);
+      });
+      if (!match) return;
+      const currentQty = storedQtys[item.id] || item.quantity || 1;
+      if (currentQty <= 1) {
+        toRemove.push(item.id);
+        delete storedQtys[item.id];
+      } else {
+        storedQtys[item.id] = currentQty - 1;
+        toUpdate.push({ id: item.id, qty: currentQty - 1 });
+      }
+    });
+
+    localStorage.setItem('hungry_quantities', JSON.stringify(storedQtys));
+
+    // Remove fully depleted items
+    for (const id of toRemove) await handleRemoveItem(id);
+
+    // Update quantities on fridge state
+    setFridge(prev => prev.map(item => {
+      const u = toUpdate.find(x => x.id === item.id);
+      return u ? { ...item, quantity: u.qty } : item;
+    }));
+
+    // Log to Chef History in localStorage
+    try {
+      const history = JSON.parse(localStorage.getItem('hungry_chef_history') || '[]');
+      history.unshift({
+        id: `cooked-${Date.now()}`,
+        recipeId: String(recipe.id),
+        recipeName: recipe.name,
+        meal_type: recipe.meal_type || '',
+        ingredients: recipe.ingredients || [],
+        steps: recipe.steps || [],
+        cookedAt: new Date().toISOString(),
+        notes: '',
+        photos: []
+      });
+      localStorage.setItem('hungry_chef_history', JSON.stringify(history.slice(0, 100)));
+    } catch {}
+  }, [fridge, handleRemoveItem]);
+
   return {
     fridge,
     shoppingList,
@@ -414,6 +476,7 @@ export const useInventory = (user, household) => {
     handleBarcodeLookup,
     handleFileUpload,
     handleUpdateInlineItem,
-    handleUpdateItem
+    handleUpdateItem,
+    handleMarkCooked
   };
 };

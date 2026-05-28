@@ -16,6 +16,7 @@ import AuthManager from './components/AuthManager';
 import { useUser } from './components/UserContext';
 import { RecipeProvider, useRecipes } from './components/RecipeContext';
 import { useInventory } from './components/useInventory';
+import ChefHistory from './components/ChefHistory';
 
 function AppContent({ inventory }) {
   const { household: activeHousehold, households } = useUser();
@@ -39,7 +40,8 @@ function AppContent({ inventory }) {
     handleClearShoppingItem,
     handleBarcodeLookup,
     handleFileUpload,
-    handleUpdateItem
+    handleUpdateItem,
+    handleMarkCooked
   } = inventory;
 
   const {
@@ -128,6 +130,9 @@ function AppContent({ inventory }) {
             {activeTab === 'settings' && <SettingsPage />}
             {activeTab === 'saved' && (
               <div className="space-y-6">
+                {/* ── Chef History ── */}
+                <ChefHistory />
+
                 {/* ── Meal Plans ── */}
                 {savedMealPlans.length > 0 && (
                   <div className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
@@ -250,6 +255,7 @@ function AppContent({ inventory }) {
           addedItems={addedItems}
           onAddIngredient={handleAddShoppingItem}
           onAddToPantry={handleAddManualItem}
+          onMarkCooked={handleMarkCooked}
         />
       )}
 

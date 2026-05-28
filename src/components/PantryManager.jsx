@@ -29,7 +29,7 @@ const isExpiringSoon = (date) => {
 function IngredientCardModal({ item, onClose, onSave, onDelete, households }) {
   const [name, setName] = useState(item.raw_name || '');
   const [expiry, setExpiry] = useState(item.expiry_date ? item.expiry_date.split('T')[0] : '');
-  const [amount, setAmount] = useState(item.amount || '');
+  const [quantity, setQuantity] = useState(item.quantity > 0 ? item.quantity : 1);
   const [price, setPrice] = useState(item.price > 0 ? String(Number(item.price).toFixed(2)) : '');
   const [category, setCategory] = useState(item.categoryOverride || categorizeItem(item.raw_name || ''));
   const [splitCount, setSplitCount] = useState(2);
@@ -45,7 +45,7 @@ function IngredientCardModal({ item, onClose, onSave, onDelete, households }) {
     onSave(item.id, {
       raw_name: name,
       expiry_date: expiry || null,
-      amount,
+      quantity: Math.max(1, quantity),
       price: parseFloat(price) || 0,
       categoryOverride: category !== autoCategory ? category : null,
     });
@@ -71,12 +71,18 @@ function IngredientCardModal({ item, onClose, onSave, onDelete, households }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</label>
-              <input
-                type="text" value={amount} onChange={(e) => setAmount(e.target.value)}
-                placeholder="e.g. 2 cups, 500g…"
-                className="w-full mt-1 bg-blue-50/50 border border-blue-100 px-4 py-3 rounded-2xl text-sm text-slate-800 focus:border-sky-400 focus:outline-none placeholder:text-slate-300"
-              />
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Quantity</label>
+              <div className="flex items-center gap-2 mt-1">
+                <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  className="w-10 h-10 bg-blue-50 border border-blue-100 rounded-xl text-lg font-bold text-slate-600 flex items-center justify-center hover:border-sky-300 transition-colors shrink-0">−</button>
+                <input
+                  type="number" min="1" value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full bg-blue-50/50 border border-blue-100 px-3 py-2.5 rounded-2xl text-sm font-bold text-slate-800 text-center focus:border-sky-400 focus:outline-none"
+                />
+                <button type="button" onClick={() => setQuantity(q => q + 1)}
+                  className="w-10 h-10 bg-blue-50 border border-blue-100 rounded-xl text-lg font-bold text-slate-600 flex items-center justify-center hover:border-sky-300 transition-colors shrink-0">+</button>
+              </div>
             </div>
             <div>
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Price ($)</label>
@@ -184,7 +190,7 @@ function IngredientCardModal({ item, onClose, onSave, onDelete, households }) {
 }
 
 // ─── Category Bottom Sheet ────────────────────────────────────────────────────
-function CategorySheet({ category, items, onClose, onItemTap, onRemove, households, getHouseholdLabel, cycleItemHousehold, setCategoryOverrides }) {
+function CategorySheet({ category, items, onClose, onItemTap, onRemove, households, getHouseholdLabel, cycleItemHousehold, setCategoryOverrides, onAdjustQty }) {
   const [dragOverCat, setDragOverCat] = useState(null);
   const colorCls = CATEGORY_COLORS[category];
   const otherCats = CATEGORIES.filter(c => c !== category);
@@ -253,7 +259,6 @@ function CategorySheet({ category, items, onClose, onItemTap, onRemove, househol
                     {expiring && <AlertCircle size={10} className="text-orange-400 animate-pulse shrink-0" />}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    {item.amount && <span className="text-[9px] font-mono text-slate-400">{item.amount}</span>}
                     {item.expiry_date && (
                       <span className={`text-[9px] font-mono font-black ${expiring ? 'text-orange-400' : 'text-slate-300'}`}>
                         Exp {new Date(item.expiry_date).toLocaleDateString()}
@@ -267,6 +272,15 @@ function CategorySheet({ category, items, onClose, onItemTap, onRemove, househol
                     )}
                   </div>
                 </button>
+
+                {/* Inline quantity stepper */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); onAdjustQty(item.id, -1); }}
+                    className="w-6 h-6 bg-blue-50 border border-blue-100 rounded-lg text-sm font-bold text-slate-500 flex items-center justify-center hover:border-sky-300 transition-colors">−</button>
+                  <span className="w-5 text-center text-[11px] font-black text-slate-700">{item.quantity || 1}</span>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); onAdjustQty(item.id, 1); }}
+                    className="w-6 h-6 bg-blue-50 border border-blue-100 rounded-lg text-sm font-bold text-slate-500 flex items-center justify-center hover:border-sky-300 transition-colors">+</button>
+                </div>
 
                 {households.length > 0 && (
                   <button
@@ -307,8 +321,8 @@ export default function PantryManager({
   const [categoryOverrides, setCategoryOverrides] = useState(() => {
     try { return JSON.parse(localStorage.getItem('hungry_cat_overrides') || '{}'); } catch { return {}; }
   });
-  const [amounts, setAmounts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('hungry_amounts') || '{}'); } catch { return {}; }
+  const [quantities, setQuantities] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('hungry_quantities') || '{}'); } catch { return {}; }
   });
   const hasScannedRef = useRef(false);
 
@@ -416,7 +430,7 @@ export default function PantryManager({
       setVoiceListening(false);
       setVoiceLoading(true);
       try {
-        const prompt = `Parse this spoken grocery list into individual items with amounts. Speech: "${transcript}". Return ONLY valid JSON with no markdown: {"items":[{"name":"string","amount":"string or empty"}]}. Include every food item mentioned.`;
+        const prompt = `Parse this spoken grocery list. Speech: "${transcript}". For each food item extract the name and numeric quantity (how many of that item). Return ONLY valid JSON with no markdown: {"items":[{"name":"string","quantity":number_or_1}]}. Examples: "2 bananas" → quantity 2, "a dozen eggs" → quantity 12, "some milk" → quantity 1. Include every food item mentioned.`;
         const res = await fetch('/.netlify/functions/scan-receipt', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -424,7 +438,7 @@ export default function PantryManager({
         });
         const text = await res.text();
         const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
-        setVoiceItems(Array.isArray(parsed.items) ? parsed.items.filter(i => i.name) : []);
+        setVoiceItems(Array.isArray(parsed.items) ? parsed.items.filter(i => i.name).map(i => ({ ...i, quantity: parseInt(i.quantity) || 1 })) : []);
       } catch {
         setVoiceItems([]);
       } finally {
@@ -454,7 +468,7 @@ export default function PantryManager({
     const items = [...voiceItems];
     dismissVoicePanel(async () => {
       for (const item of items) {
-        if (item.name) await handleAddManualItem(item.name, null, { amount: item.amount || '' });
+        if (item.name) await handleAddManualItem(item.name, null, { quantity: item.quantity || 1 });
       }
     });
   };
@@ -475,7 +489,6 @@ export default function PantryManager({
     categoryOverrides[item.id] || categorizeItem(item.raw_name || item.item_name || '');
 
   const handleSaveIngredient = (id, updates) => {
-    // Handle category override
     if ('categoryOverride' in updates) {
       const newOverrides = { ...categoryOverrides };
       if (updates.categoryOverride === null) delete newOverrides[id];
@@ -483,25 +496,31 @@ export default function PantryManager({
       localStorage.setItem('hungry_cat_overrides', JSON.stringify(newOverrides));
       setCategoryOverrides(newOverrides);
     }
-    // Handle amount (local only)
-    if (updates.amount !== undefined) {
-      const newAmounts = { ...amounts, [id]: updates.amount };
-      localStorage.setItem('hungry_amounts', JSON.stringify(newAmounts));
-      setAmounts(newAmounts);
+    if (updates.quantity !== undefined) {
+      const newQtys = { ...quantities, [id]: updates.quantity };
+      localStorage.setItem('hungry_quantities', JSON.stringify(newQtys));
+      setQuantities(newQtys);
     }
-    // Persist name / expiry / household to DB
-    const { categoryOverride, amount, ...dbUpdates } = updates;
+    const { categoryOverride, quantity: _qty, ...dbUpdates } = updates;
     if (Object.keys(dbUpdates).length > 0) {
       handleUpdateItem(id, dbUpdates);
     }
   };
 
+  const adjustQuantity = (id, delta) => {
+    const current = quantities[id] || 1;
+    const next = Math.max(1, current + delta);
+    const newQtys = { ...quantities, [id]: next };
+    localStorage.setItem('hungry_quantities', JSON.stringify(newQtys));
+    setQuantities(newQtys);
+  };
+
   // Enrich fridge items with local-only fields
   const enrichedFridge = useMemo(() => fridge.map(item => ({
     ...item,
-    amount: amounts[item.id] || '',
+    quantity: quantities[item.id] || 1,
     categoryOverride: categoryOverrides[item.id] || null,
-  })), [fridge, amounts, categoryOverrides]);
+  })), [fridge, quantities, categoryOverrides]);
 
   const groupedFridge = useMemo(() => CATEGORIES.reduce((acc, cat) => {
     acc[cat] = enrichedFridge.filter(item =>
@@ -628,7 +647,7 @@ export default function PantryManager({
                   {voiceItems.map((item, i) => (
                     <div key={i} className="flex items-center gap-2 bg-white rounded-xl px-3 py-2">
                       <span className="text-xs font-bold text-slate-700">{item.name}</span>
-                      {item.amount && <span className="text-[10px] text-slate-400">· {item.amount}</span>}
+                      {item.quantity > 1 && <span className="text-[10px] font-black text-[#6BAEE0] bg-sky-50 px-2 py-0.5 rounded-full">× {item.quantity}</span>}
                     </div>
                   ))}
                 </div>
@@ -733,6 +752,7 @@ export default function PantryManager({
           getHouseholdLabel={getHouseholdLabel}
           cycleItemHousehold={cycleItemHousehold}
           setCategoryOverrides={setCategoryOverrides}
+          onAdjustQty={adjustQuantity}
         />
       )}
 
