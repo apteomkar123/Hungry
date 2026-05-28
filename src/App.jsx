@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings } from 'lucide-react';
+import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings, Clock } from 'lucide-react';
 import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic, matchesRecipeFilter } from './components/recipeUtils';
 import Header from './components/Header';
 import PantryManager from './components/PantryManager';
@@ -118,6 +118,7 @@ function AppContent({ inventory }) {
                 onClear={handleClearShoppingItem}
               />
             )}
+            {activeTab === 'chefHistory' && <ChefHistory />}
             {activeTab === 'analytics' && (
               <AnalyticsDashboard
                 metrics={nutritionMetrics}
@@ -130,9 +131,6 @@ function AppContent({ inventory }) {
             {activeTab === 'settings' && <SettingsPage />}
             {activeTab === 'saved' && (
               <div className="space-y-6">
-                {/* ── Chef History ── */}
-                <ChefHistory />
-
                 {/* ── Meal Plans ── */}
                 {savedMealPlans.length > 0 && (
                   <div className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
@@ -240,6 +238,7 @@ function AppContent({ inventory }) {
           <button onClick={() => { triggerHaptic(); setActiveTab('recipes'); }} className={`p-2 rounded-full transition-all ${activeTab === 'recipes' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><ChefHat size={24} /></button>
           <button onClick={() => { triggerHaptic(); setActiveTab('shopping'); }} className={`p-2 rounded-full transition-all ${activeTab === 'shopping' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><ShoppingCart size={24} /></button>
           <button onClick={() => { triggerHaptic(); setActiveTab('saved'); }} className={`p-2 rounded-full transition-all ${activeTab === 'saved' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Star size={24} /></button>
+          <button onClick={() => { triggerHaptic(); setActiveTab('chefHistory'); }} className={`p-2 rounded-full transition-all ${activeTab === 'chefHistory' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Clock size={22} /></button>
           <button onClick={() => { triggerHaptic(); setActiveTab('household'); }} className={`p-2 rounded-full transition-all ${activeTab === 'household' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Users size={24} /></button>
           <button onClick={() => { triggerHaptic(); setActiveTab('analytics'); }} className={`p-2 rounded-full transition-all ${activeTab === 'analytics' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><BarChart3 size={24} /></button>
           <button onClick={() => { triggerHaptic(); setActiveTab('settings'); }} className={`p-2 rounded-full transition-all ${activeTab === 'settings' ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-400'}`}><Settings size={22} /></button>

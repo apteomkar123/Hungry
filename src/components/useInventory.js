@@ -186,19 +186,28 @@ export const useInventory = (user, household) => {
     const estimatedExpiry = extraData.expiry_date || getEstimatedExpiry(itemName);
 
     const tempId = `temp-${Date.now()}`;
-    const amount = extraData.amount || '';
-    const displayName = amount ? `${amount} ${toTitleCase(itemName)}` : toTitleCase(itemName);
+    const qty = Math.max(1, parseInt(extraData.quantity) || 1);
+    const displayName = toTitleCase(itemName);
     setFridge(prev => [...prev, {
       id: tempId,
       raw_name: displayName,
       item_name: sanitized,
-      quantity: extraData.quantity || 1,
+      quantity: qty,
       household_id: targetHouseholdId,
       nutrition: extraData.nutrition || null,
       price: extraData.price || 0,
       expiry_date: estimatedExpiry
     }]);
     triggerHaptic(50);
+
+    // Persist quantity to localStorage immediately under tempId
+    if (qty > 1) {
+      try {
+        const qtys = JSON.parse(localStorage.getItem('hungry_quantities') || '{}');
+        qtys[tempId] = qty;
+        localStorage.setItem('hungry_quantities', JSON.stringify(qtys));
+      } catch {}
+    }
 
     const newItem = {
       item_name: sanitized,
@@ -211,6 +220,15 @@ export const useInventory = (user, household) => {
     const savedData = await performMutation('fridge_inventory', 'INSERT', newItem);
     if (savedData && savedData.id) {
       setFridge(prev => prev.map(item => item.id === tempId ? { ...item, id: savedData.id } : item));
+      // Migrate tempId quantity entry to real DB id
+      if (qty > 1) {
+        try {
+          const qtys = JSON.parse(localStorage.getItem('hungry_quantities') || '{}');
+          qtys[savedData.id] = qty;
+          delete qtys[tempId];
+          localStorage.setItem('hungry_quantities', JSON.stringify(qtys));
+        } catch {}
+      }
     }
   }, [user, resolveSanitizedTokenOnline, performMutation]);
 

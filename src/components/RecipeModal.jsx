@@ -403,22 +403,13 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           )}
         </div>
 
-        <div className="mt-6 pt-6 border-t border-blue-50 flex justify-between items-center gap-2">
-          <div className="flex gap-1 bg-blue-50/50 p-1 rounded-2xl border border-blue-100">
-            {[1, 2, 4].map(n => (
-              <button key={n} onClick={() => setMultiplier(n)} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${multiplier === n ? 'bg-white text-[#6BAEE0] shadow-sm' : 'text-slate-400'}`}>{n}x</button>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            {onMarkCooked && (
-              <button
-                onClick={() => { if (!cooked) { onMarkCooked(displayRecipe); setCooked(true); } }}
-                disabled={cooked}
-                className={`flex items-center gap-1.5 px-5 py-3 rounded-2xl font-bold text-xs transition-all ${cooked ? 'bg-emerald-100 text-emerald-500 cursor-default' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 active:scale-95'}`}
-              >
-                <ChefHat size={16} /> {cooked ? 'Cooked!' : 'Mark Cooked'}
-              </button>
-            )}
+        <div className="mt-6 pt-6 border-t border-blue-50 space-y-3">
+          <div className="flex justify-between items-center">
+            <div className="flex gap-1 bg-blue-50/50 p-1 rounded-2xl border border-blue-100">
+              {[1, 2, 4].map(n => (
+                <button key={n} onClick={() => setMultiplier(n)} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all ${multiplier === n ? 'bg-white text-[#6BAEE0] shadow-sm' : 'text-slate-400'}`}>{n}x</button>
+              ))}
+            </div>
             <button
               onClick={onStartCooking}
               className="bg-[#6BAEE0] text-white px-8 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-all"
@@ -426,6 +417,15 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
               <Play size={18} fill="currentColor" /> Start Cooking
             </button>
           </div>
+          {onMarkCooked && (
+            <button
+              onClick={() => { if (!cooked) { onMarkCooked(displayRecipe); setCooked(true); } }}
+              disabled={cooked}
+              className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm transition-all ${cooked ? 'bg-emerald-100 text-emerald-500 cursor-default' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 active:scale-95'}`}
+            >
+              <ChefHat size={17} /> {cooked ? 'Cooked! Ingredients subtracted from pantry' : 'Mark as Cooked'}
+            </button>
+          )}
         </div>
       </div>
     </div>

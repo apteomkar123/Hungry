@@ -13,7 +13,21 @@ import { STATIC_RECIPES } from './staticRecipes';
 
 const RecipeContext = createContext();
 
-const MEALDB_CACHE_KEY = 'hungry_mealdb_v4'; // bumped: better step parsing
+const MEALDB_CACHE_KEY = 'hungry_mealdb_v5'; // bumped: ingredient split normalization
+
+// Split ingredients that accidentally contain multiple items in one string
+// (newline-joined or comma-then-measurement patterns)
+const _normalizeIngredients = (ings) =>
+  (ings || []).flatMap(ing => {
+    const s = String(ing || '').trim();
+    if (!s) return [];
+    // Split on newlines first
+    const lines = s.split(/\n+/).map(l => l.trim()).filter(Boolean);
+    if (lines.length > 1) return lines;
+    // Split on ", " followed immediately by a digit/fraction — signals a new measurement
+    const parts = s.split(/,\s*(?=[\d½⅓¼¾⅛])/);
+    return parts.length > 1 ? parts.map(p => p.trim()).filter(Boolean) : [s];
+  });
 const MEALDB_CACHE_TTL = 24 * 60 * 60 * 1000;
 
 export const useRecipes = () => {
@@ -95,7 +109,7 @@ export const RecipeProvider = ({ children, fridge }) => {
         name: toTitleCase(m.strMeal || ''),
         meal_type: m.strCategory || 'General',
         cuisine: m.strArea || '',
-        ingredients: ings.map(i => toTitleCase(i)),
+        ingredients: _normalizeIngredients(ings).map(i => toTitleCase(i)),
         steps: String(m.strInstructions || '')
           .replace(/\r\n?/g, '\n')
           .split(/\n+/)
@@ -141,8 +155,8 @@ export const RecipeProvider = ({ children, fridge }) => {
         .map(r => ({
           ...r,
           name: toTitleCase(r.name || ''),
-          ingredients: (r.ingredients || []).map(i => toTitleCase(i)),
-          cleanedIngredients: (r.ingredients || []).map(cleanIngredientLocally).filter(Boolean),
+          ingredients: _normalizeIngredients(r.ingredients).map(i => toTitleCase(i)),
+          cleanedIngredients: _normalizeIngredients(r.ingredients).map(cleanIngredientLocally).filter(Boolean),
           steps: r.steps || []
         }));
       const combined = [...mealDb, ...uniqueSpoonacular, ...staticProcessed];
@@ -150,7 +164,7 @@ export const RecipeProvider = ({ children, fridge }) => {
       const normalized = combined.map(r => ({
         ...r,
         name: toTitleCase(r.name || ''),
-        ingredients: (r.ingredients || []).map(i => toTitleCase(i)),
+        ingredients: _normalizeIngredients(r.ingredients).map(i => toTitleCase(i)),
         cleanedIngredients: (r.ingredients || []).map(cleanIngredientLocally).filter(Boolean),
         steps: getStaticRecipeSteps(r)
       }));
