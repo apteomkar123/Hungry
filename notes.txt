@@ -1,0 +1,29 @@
+Swiping left on the fillers should not open nav
+
+Some ingredients are still messing up, when the recipe calls for cubed tofu it puts the tofu and the cubed part as separate ingredients
+
+Ingredients when being added from a recipe list are buggy at times, for example when it says 2 tbsp olive oil, it adds tbsp olive oil to the shopping list
+
+Ingredient names in the shopping list should be editable
+
+Photos added to meals in the chefs history should be delete able (x at the top right corner)
+
+AI nutrition coach not working
+
+Title of the first meal plan in the weekly meal prep is pushed to the left and doesn't show fully due to the box that says prep time
+
+Meal plans are disappearing from the saved recipes after some time
+
+No way to add shared recipes to a household
+
+The forgot password box at login just shows "Forgot"
+
+Adding a friend and making the connection is not working. If I am in a household, all the users in the household who are not my friends should have a little add friend icon on them to send a friend request. Set up friend requests as well, and add friend codes. Currently the friends page says "invite a friend" but that's just to invite a friend to join the app, the same button that's found in settings. The link on the friends page should not invite to join the app, but should invite to become friends.
+
+The animations are not working for the AI recipe generator
+
+Add a button that allows the user to add all the items from a recipe that they don't have to the shopping list
+
+Show members of a household
+
+Build an onboarding layout. Build this using [text](Onboarding.md)

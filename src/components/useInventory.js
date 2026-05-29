@@ -298,6 +298,12 @@ export const useInventory = (user, household) => {
     await performMutation('shopping_list', 'DELETE', null, id);
   }, [performMutation]);
 
+  const handleRenameShoppingItem = useCallback(async (id, newName) => {
+    if (!newName.trim()) return;
+    setShoppingList(prev => prev.map(item => item.id === id ? { ...item, item_name: newName.trim() } : item));
+    await performMutation('shopping_list', 'UPDATE', { item_name: newName.trim() }, id);
+  }, [performMutation]);
+
   const handleBarcodeLookup = useCallback(async (barcode) => {
     if (!barcode) return;
     setBarcodeLoading(true);
@@ -558,6 +564,7 @@ export const useInventory = (user, household) => {
     handleAddShoppingItem,
     handleToggleShoppingCompleted,
     handleClearShoppingItem,
+    handleRenameShoppingItem,
     handleMoveShoppingItem,
     handleBarcodeLookup,
     handleFileUpload,

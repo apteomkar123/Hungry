@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw, Dumbbell, ChefHat } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw, Dumbbell, ChefHat, ShoppingCart, Users, ChevronDown } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
 import { parseRecipeIngredientMeasurements, cleanIngredientLocally, normalizeIngredientTokens, fuzzyTokenMatch, stripIngredientNotes, estimateNutrition, isRecipeMeat, isRecipeFish, isRecipeVegan, matchesRecipeFilter, locallyAdaptRecipe } from './recipeUtils';
@@ -33,7 +33,9 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     fridge,
   } = useRecipes();
 
-  const { userSettings } = useUser();
+  const { userSettings, households } = useUser();
+  const [showHouseholdMenu, setShowHouseholdMenu] = useState(false);
+  const starBtnRef = useRef(null);
 
   // Reset all local state when a new recipe is opened
   const [pantryAdded, setPantryAdded] = useState(new Set());
@@ -153,9 +155,23 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     e.stopPropagation();
     if (savedEntry) {
       onRemoveSavedRecipe(savedEntry.id);
+    } else if (households?.length > 0) {
+      setShowHouseholdMenu(prev => !prev);
     } else {
       onSaveRecipe(recipe);
     }
+  };
+
+  const handleAddAllMissing = () => {
+    const missing = (displayRecipe.ingredients || []).filter((ing, idx) => {
+      const overrideKey = `${idx}:${ing}`;
+      const cleaned = cleanIngredientLocally(stripIngredientNotes(ing));
+      return !isInPantry(cleaned, overrideKey);
+    });
+    missing.forEach(ing => {
+      const cleaned = cleanIngredientLocally(stripIngredientNotes(ing));
+      if (cleaned && !addedItems?.has(cleaned)) onAddIngredient(cleaned);
+    });
   };
 
   // Estimate total nutrition for the recipe (per serving, ~4 servings assumed)
@@ -295,13 +311,34 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
             <span className="bg-sky-50 text-[#6BAEE0] font-mono text-[9px] px-3 py-1 rounded-full uppercase font-black tracking-widest border border-sky-100">{displayRecipe.meal_type}</span>
             <h3 className="text-2xl font-black text-slate-800 tracking-tighter mt-2">{displayRecipe.name}</h3>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleToggleStar}
-              className={`p-3 border rounded-2xl transition-colors ${savedEntry ? 'bg-amber-50 border-amber-200 text-amber-400' : 'bg-white border-blue-100 text-slate-300 hover:text-amber-400 hover:border-amber-200'}`}
-            >
-              <Star size={20} fill={savedEntry ? 'currentColor' : 'none'} />
-            </button>
+          <div className="flex gap-2 items-start">
+            <div className="relative" ref={starBtnRef}>
+              <button
+                onClick={handleToggleStar}
+                className={`p-3 border rounded-2xl transition-colors ${savedEntry ? 'bg-amber-50 border-amber-200 text-amber-400' : 'bg-white border-blue-100 text-slate-300 hover:text-amber-400 hover:border-amber-200'}`}
+              >
+                <Star size={20} fill={savedEntry ? 'currentColor' : 'none'} />
+              </button>
+              {showHouseholdMenu && !savedEntry && (
+                <div className="absolute right-0 top-14 bg-white border border-blue-100 rounded-2xl shadow-xl z-20 min-w-[180px] p-2 space-y-1">
+                  <button
+                    onClick={() => { onSaveRecipe(recipe); setShowHouseholdMenu(false); }}
+                    className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-[#6BAEE0] transition-all flex items-center gap-2"
+                  >
+                    <Star size={12} /> My Saved Recipes
+                  </button>
+                  {households.map(h => (
+                    <button
+                      key={h.id}
+                      onClick={() => { onSaveRecipe(recipe, h.id); setShowHouseholdMenu(false); }}
+                      className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-[#6BAEE0] transition-all flex items-center gap-2"
+                    >
+                      <Users size={12} /> {h.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button onClick={handleShare} className="p-3 bg-white border border-blue-100 rounded-2xl text-[#6BAEE0] hover:bg-sky-50 transition-colors"><Share2 size={20} /></button>
             <button onClick={() => setModal(null)} className="p-3 bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button>
           </div>
@@ -447,6 +484,14 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
               <Play size={18} fill="currentColor" /> Start Cooking
             </button>
           </div>
+          {onAddIngredient && (
+            <button
+              onClick={handleAddAllMissing}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm bg-sky-50 text-[#6BAEE0] border border-sky-200 hover:bg-sky-100 active:scale-95 transition-all"
+            >
+              <ShoppingCart size={16} /> Add All Missing to Shopping List
+            </button>
+          )}
           {onMarkCooked && (
             <button
               onClick={() => { if (!cooked) { onMarkCooked(displayRecipe); setCooked(true); } }}

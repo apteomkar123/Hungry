@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings, Clock, PlusCircle, X, UserRound } from 'lucide-react';
 import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic, matchesRecipeFilter } from './components/recipeUtils';
 import Header from './components/Header';
@@ -16,6 +16,7 @@ import SettingsPage from './components/SettingsPage';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import MealPrepModal from './components/MealPrepModal';
 import AuthManager from './components/AuthManager';
+import Onboarding from './components/Onboarding';
 import { useUser } from './components/UserContext';
 import { RecipeProvider, useRecipes } from './components/RecipeContext';
 import { useInventory } from './components/useInventory';
@@ -42,6 +43,7 @@ function AppContent({ inventory }) {
     handleAddShoppingItem,
     handleToggleShoppingCompleted,
     handleClearShoppingItem,
+    handleRenameShoppingItem,
     handleMoveShoppingItem,
     handleBarcodeLookup,
     handleFileUpload,
@@ -85,14 +87,16 @@ function AppContent({ inventory }) {
   const mainRef = useRef(null);
   const touchStartX = useRef(null);
 
-  // Swipe right anywhere → open nav; swipe left anywhere when open → close nav
+  // Swipe right from left edge → open nav; swipe left when open → close nav
   const handleTouchStart = useCallback((e) => {
     touchStartX.current = e.touches[0].clientX;
   }, []);
   const handleTouchEnd = useCallback((e) => {
     if (touchStartX.current === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-    if (deltaX > 60 && !navOpen) setNavOpen(true);
+    const startX = touchStartX.current;
+    const deltaX = e.changedTouches[0].clientX - startX;
+    // Only open nav when swipe starts within 30px of left edge
+    if (deltaX > 60 && !navOpen && startX < 30) setNavOpen(true);
     else if (deltaX < -60 && navOpen) setNavOpen(false);
     touchStartX.current = null;
   }, [navOpen]);
@@ -212,6 +216,7 @@ function AppContent({ inventory }) {
                   onAdd={handleAddShoppingItem}
                   onToggle={handleToggleShoppingCompleted}
                   onClear={handleClearShoppingItem}
+                  onRename={handleRenameShoppingItem}
                   households={households}
                   onMoveToHousehold={(itemId, hhId) => handleMoveShoppingItem(itemId, hhId)}
                 />
@@ -455,6 +460,16 @@ function AppContent({ inventory }) {
 function MainApp() {
   const { user, household, loading: authLoading } = useUser();
   const inventory = useInventory(user, household);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Show onboarding for users who haven't completed it
+  useEffect(() => {
+    if (user && !user.user_metadata?.onboarding_completed) {
+      setShowOnboarding(true);
+    } else {
+      setShowOnboarding(false);
+    }
+  }, [user]);
 
   if (authLoading) {
     return (
@@ -470,6 +485,10 @@ function MainApp() {
         <AuthManager />
       </div>
     );
+  }
+
+  if (showOnboarding) {
+    return <Onboarding user={user} onComplete={() => setShowOnboarding(false)} />;
   }
 
   return (

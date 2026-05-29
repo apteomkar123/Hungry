@@ -58,9 +58,7 @@ export default function AiIngredientPickerModal() {
     generateMealPlan(ingredients);
   };
 
-  if (!isAiPickerOpen) return null;
-
-  // Full-screen loading animation while AI generates
+  // Full-screen loading animation while AI generates (must show even when picker is closed)
   if (aiGenerating || prepLoading) {
     return (
       <div className="fixed inset-0 bg-white/90 backdrop-blur-2xl flex items-center justify-center z-50">
@@ -68,6 +66,8 @@ export default function AiIngredientPickerModal() {
       </div>
     );
   }
+
+  if (!isAiPickerOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-end justify-center z-50">

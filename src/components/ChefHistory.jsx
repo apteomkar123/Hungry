@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, ChefHat, Camera, Star, Trash2, Plus, Edit3, Check, Lock, Globe } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 
-function HistoryCard({ entry, onUpdateNotes, onAddPhoto, onDelete, onOpenRecipe, onTogglePrivacy }) {
+function HistoryCard({ entry, onUpdateNotes, onAddPhoto, onDeletePhoto, onDelete, onOpenRecipe, onTogglePrivacy }) {
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState(entry.notes || '');
   const fileRef = useRef(null);
@@ -45,12 +45,19 @@ function HistoryCard({ entry, onUpdateNotes, onAddPhoto, onDelete, onOpenRecipe,
       {entry.photos && entry.photos.length > 0 && (
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
           {entry.photos.map((photo, i) => (
-            <img
-              key={i}
-              src={photo}
-              alt="cooked"
-              className="w-20 h-20 rounded-2xl object-cover shrink-0 border border-blue-50"
-            />
+            <div key={i} className="relative shrink-0">
+              <img
+                src={photo}
+                alt="cooked"
+                className="w-20 h-20 rounded-2xl object-cover border border-blue-50"
+              />
+              <button
+                onClick={() => onDeletePhoto(entry.id, i)}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-400 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-500 transition-colors"
+              >
+                <X size={10} strokeWidth={3} />
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -130,6 +137,10 @@ export default function ChefHistory() {
     persist(history.map(e => e.id === id ? { ...e, photos: [...(e.photos || []), dataUrl] } : e));
   };
 
+  const handleDeletePhoto = (id, index) => {
+    persist(history.map(e => e.id === id ? { ...e, photos: (e.photos || []).filter((_, i) => i !== index) } : e));
+  };
+
   const handleDelete = (id) => {
     persist(history.filter(e => e.id !== id));
   };
@@ -175,6 +186,7 @@ export default function ChefHistory() {
             entry={entry}
             onUpdateNotes={handleUpdateNotes}
             onAddPhoto={handleAddPhoto}
+            onDeletePhoto={handleDeletePhoto}
             onDelete={handleDelete}
             onOpenRecipe={handleOpenRecipe}
             onTogglePrivacy={handleTogglePrivacy}

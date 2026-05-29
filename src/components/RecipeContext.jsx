@@ -17,12 +17,12 @@ const RecipeContext = createContext();
 const MEALDB_CACHE_KEY = 'hungry_mealdb_v7'; // bumped: smarter comma-split with modifier detection
 
 // Words that appear BEFORE a comma as adjective/modifier — don't split here
-const _INGREDIENT_MODIFIERS = /^(boneless|skinless|fresh|dried|frozen|canned|large|small|medium|extra|lean|ground|minced|diced|chopped|sliced|shredded|peeled|halved|quartered|roughly|finely|coarsely|thinly|thickly|packed|heaping|level|softened|beaten|rinsed|drained|trimmed|deveined|pitted|seeded|lightly|plain|reduced|low|full|whole|room\s+temperature|fat-free|sugar-free|gluten-free)$/i;
+const _INGREDIENT_MODIFIERS = /^(boneless|skinless|fresh|dried|frozen|canned|large|small|medium|extra|lean|ground|minced|diced|chopped|sliced|shredded|peeled|halved|quartered|cubed|cube|julienned|roughly|finely|coarsely|thinly|thickly|packed|heaping|level|softened|beaten|rinsed|drained|trimmed|deveined|pitted|seeded|lightly|plain|reduced|low|full|whole|firm|extra-firm|room\s+temperature|fat-free|sugar-free|gluten-free)$/i;
 
 // Split ingredients that accidentally contain multiple items in one string.
 // Returns true if a split fragment looks like a cooking instruction, not a real ingredient
 const _isCookingMethod = (s) =>
-  /^(boiled?|mashed?|fried|baked|grilled?|steamed?|saut[eé]ed?|roasted?|cooked?|drained?|rinsed?|peeled?|sliced?|diced?|chopped?|minced?|grated?|shredded?|beaten?|softened?|melted?|toasted?)(\s+and\s+\w+)?$/i.test(s.trim());
+  /^(boiled?|mashed?|fried|baked|grilled?|steamed?|saut[eé]ed?|roasted?|cooked?|drained?|rinsed?|peeled?|sliced?|diced?|chopped?|minced?|grated?|shredded?|beaten?|softened?|melted?|toasted?|cubed?|julienned?)(\s+and\s+\w+)?$/i.test(s.trim());
 
 const _normalizeIngredients = (ings) =>
   (ings || []).flatMap(ing => {
@@ -192,7 +192,27 @@ export const RecipeProvider = ({ children, fridge }) => {
 
       if (user) {
         const { data } = await supabase.from('saved_recipes').select('*').eq('user_id', user.id);
-        setSavedRecipes(data || []);
+        const allRecords = data || [];
+        // Separate regular saved recipes from backed-up meal plans
+        setSavedRecipes(allRecords.filter(r => r.meal_type !== '__meal_plan__'));
+        // Restore meal plans from Supabase if localStorage is empty
+        const cloudPlans = allRecords
+          .filter(r => r.meal_type === '__meal_plan__')
+          .map(r => {
+            try {
+              const batches = JSON.parse(r.ingredients?.[0] || '[]');
+              return { id: r.recipe_id, batches, savedAt: new Date(r.created_at || Date.now()).getTime() };
+            } catch { return null; }
+          })
+          .filter(Boolean);
+        if (cloudPlans.length > 0) {
+          setSavedMealPlans(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const merged = [...prev, ...cloudPlans.filter(p => !existingIds.has(p.id))];
+            try { localStorage.setItem('hungry_meal_plans_v1', JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -418,21 +438,37 @@ export const RecipeProvider = ({ children, fridge }) => {
     }
   };
 
-  const saveMealPlan = (plan) => {
+  const saveMealPlan = async (plan) => {
     const newPlan = { ...plan, id: `plan-${Date.now()}`, savedAt: Date.now() };
     setSavedMealPlans(prev => {
       const next = [newPlan, ...prev];
       try { localStorage.setItem('hungry_meal_plans_v1', JSON.stringify(next)); } catch {}
       return next;
     });
+    // Backup to Supabase for persistence across devices/sessions
+    if (user) {
+      try {
+        await supabase.from('saved_recipes').insert([{
+          user_id: user.id,
+          recipe_id: newPlan.id,
+          recipe_name: `Meal Plan – ${new Date(newPlan.savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+          meal_type: '__meal_plan__',
+          ingredients: [JSON.stringify(newPlan.batches)],
+          steps: [],
+        }]);
+      } catch {}
+    }
   };
 
-  const removeMealPlan = (id) => {
+  const removeMealPlan = async (id) => {
     setSavedMealPlans(prev => {
       const next = prev.filter(p => p.id !== id);
       try { localStorage.setItem('hungry_meal_plans_v1', JSON.stringify(next)); } catch {}
       return next;
     });
+    if (user) {
+      try { await supabase.from('saved_recipes').delete().eq('recipe_id', id).eq('meal_type', '__meal_plan__'); } catch {}
+    }
   };
 
   const filteredSavedRecipes = useMemo(() => {

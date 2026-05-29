@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Check, Trash2, ShoppingCart, Users } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Plus, Check, Trash2, ShoppingCart, Users, Pencil } from 'lucide-react';
 import { useUser } from './UserContext';
 
 const AISLES = [
@@ -21,9 +21,12 @@ const getAisle = (itemName) => {
   return 'Pantry';
 };
 
-export default function ShoppingListManager({ list = [], onAdd, onToggle, onClear, households = [], onMoveToHousehold }) {
+export default function ShoppingListManager({ list = [], onAdd, onToggle, onClear, onRename, households = [], onMoveToHousehold }) {
   const [shoppingInput, setShoppingInput] = useState('');
   const [movingId, setMovingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState('');
+  const editRef = useRef(null);
 
   const handleAddSubmit = (e) => {
     e.preventDefault();
@@ -40,13 +43,39 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
     return acc;
   }, {}), [pending]);
 
+  const startEditing = (item) => {
+    setEditingId(item.id);
+    setEditingName(item.item_name);
+    setTimeout(() => editRef.current?.focus(), 0);
+  };
+  const commitEdit = (item) => {
+    const trimmed = editingName.trim();
+    if (trimmed && trimmed !== item.item_name && onRename) onRename(item.id, trimmed);
+    setEditingId(null);
+  };
+
   const renderItem = (item) => (
     <div key={item.id} className={`bg-white border p-4 rounded-2xl flex items-center justify-between gap-3 transition-all ${item.is_completed ? 'border-transparent opacity-50' : 'border-blue-50 shadow-sm'}`}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <button onClick={() => onToggle(item.id, item.is_completed)} className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${item.is_completed ? 'bg-sky-500 text-white' : 'bg-blue-50 text-transparent border border-blue-100'}`}>
           <Check size={14} strokeWidth={4} />
         </button>
-        <span className={`text-xs font-bold text-slate-700 truncate ${item.is_completed ? 'line-through text-slate-400' : ''}`}>{item.item_name}</span>
+        {editingId === item.id ? (
+          <input
+            ref={editRef}
+            value={editingName}
+            onChange={e => setEditingName(e.target.value)}
+            onBlur={() => commitEdit(item)}
+            onKeyDown={e => { if (e.key === 'Enter') commitEdit(item); if (e.key === 'Escape') setEditingId(null); }}
+            className="flex-1 text-xs font-bold text-slate-700 bg-blue-50 border border-sky-300 rounded-lg px-2 py-1 focus:outline-none"
+            style={{ fontSize: '16px' }}
+          />
+        ) : (
+          <span
+            className={`text-xs font-bold text-slate-700 truncate flex-1 ${item.is_completed ? 'line-through text-slate-400' : ''}`}
+            onDoubleClick={() => !item.is_completed && startEditing(item)}
+          >{item.item_name}</span>
+        )}
       </div>
       <div className="flex items-center gap-1 shrink-0">
         {/* Move between personal ↔ household */}
@@ -81,6 +110,9 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
               </div>
             )}
           </div>
+        )}
+        {!item.is_completed && onRename && (
+          <button onClick={() => startEditing(item)} className="text-slate-200 hover:text-sky-400 transition-colors p-1.5"><Pencil size={14} /></button>
         )}
         <button onClick={() => onClear(item.id)} className="text-slate-200 hover:text-red-400 transition-colors p-1.5"><Trash2 size={14} /></button>
       </div>

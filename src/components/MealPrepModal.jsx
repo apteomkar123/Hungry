@@ -151,16 +151,16 @@ export default function MealPrepModal() {
                       onClick={() => setExpandedBatch(isOpen ? null : i)}
                       className={`w-full flex items-center justify-between px-5 py-4 text-left ${c.header}`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
                         <div className={`w-3 h-3 rounded-full shrink-0 ${c.dot}`} />
-                        <div className="min-w-0">
+                        <div className="flex-1 min-w-0 overflow-hidden">
                           <p className={`text-sm font-black ${c.accent} truncate`}>{batch.title}</p>
                           <p className="text-[10px] text-slate-500 font-medium">{batch.recipes?.length || 0} recipes in batch</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
                         {batch.prepTime && (
-                          <span className={`flex items-center gap-1 text-[10px] font-bold ${c.accent} bg-white/60 px-2 py-1 rounded-lg`}>
+                          <span className={`flex items-center gap-1 text-[10px] font-bold ${c.accent} bg-white/60 px-2 py-1 rounded-lg whitespace-nowrap`}>
                             <Clock size={10} /> {batch.prepTime}
                           </span>
                         )}

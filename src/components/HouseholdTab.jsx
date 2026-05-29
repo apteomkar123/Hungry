@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Star, ShoppingCart, Plus, Trash2, Check, X, ChevronDown, DollarSign, Edit2 } from 'lucide-react';
+import { Users, Star, ShoppingCart, Plus, Trash2, Check, X, ChevronDown, DollarSign, Edit2, UserPlus, UserCheck } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
@@ -17,6 +17,9 @@ export default function HouseholdTab({ onAddShoppingItem }) {
   const [loadingShopping, setLoadingShopping] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
   const [editingBudget, setEditingBudget] = useState(false);
+  const [members, setMembers] = useState([]);
+  const [friends, setFriends] = useState([]);
+  const [sentRequests, setSentRequests] = useState(new Set());
 
   const selectedHH = households.find(h => h.id === selectedHHId) || activeHousehold;
 
@@ -61,6 +64,25 @@ export default function HouseholdTab({ onAddShoppingItem }) {
     loadHouseholdRecipes();
     loadHouseholdShopping();
   }, [loadHouseholdRecipes, loadHouseholdShopping]);
+
+  useEffect(() => {
+    if (!selectedHHId || !user) return;
+    // Load household members from profiles table
+    supabase.from('profiles').select('id, display_name')
+      .eq('active_household_id', selectedHHId)
+      .then(({ data }) => setMembers(data || []));
+    // Load current user's friends
+    supabase.from('friendships').select('friend_id')
+      .eq('user_id', user.id)
+      .then(({ data }) => setFriends((data || []).map(f => f.friend_id)));
+  }, [selectedHHId, user]);
+
+  const sendFriendRequest = async (targetId) => {
+    if (!user) return;
+    setSentRequests(prev => new Set([...prev, targetId]));
+    await supabase.from('friendships').upsert([{ user_id: user.id, friend_id: targetId }]);
+    setFriends(prev => [...prev, targetId]);
+  };
 
   const addShoppingItem = async () => {
     const name = cleanIngredientLocally(newShopItem);
@@ -150,6 +172,42 @@ export default function HouseholdTab({ onAddShoppingItem }) {
             )}
           </div>
         </div>
+      )}
+
+      {/* Household Members */}
+      {members.length > 0 && (
+        <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
+          <h2 className="text-[14px] font-bold text-slate-400 mb-4 flex items-center gap-2"><Users size={15} /> Members ({members.length})</h2>
+          <div className="space-y-2">
+            {members.map(m => {
+              const isSelf = m.id === user?.id;
+              const isFriend = friends.includes(m.id);
+              const isPending = sentRequests.has(m.id);
+              return (
+                <div key={m.id} className="flex items-center gap-3 px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-2xl">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6BAEE0] to-[#4d96d1] flex items-center justify-center text-white font-black text-sm shrink-0">
+                    {(m.display_name || '?')[0].toUpperCase()}
+                  </div>
+                  <p className="flex-1 text-sm font-bold text-slate-700 truncate">{m.display_name || 'Member'}{isSelf ? ' (You)' : ''}</p>
+                  {!isSelf && (
+                    isFriend || isPending ? (
+                      <span className="flex items-center gap-1 text-[10px] font-black text-emerald-500">
+                        <UserCheck size={12} /> {isFriend ? 'Friends' : 'Added'}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => sendFriendRequest(m.id)}
+                        className="flex items-center gap-1 text-[10px] font-black text-[#6BAEE0] bg-white border border-sky-200 px-2.5 py-1.5 rounded-xl hover:bg-sky-50 transition-all"
+                      >
+                        <UserPlus size={11} /> Add Friend
+                      </button>
+                    )
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* Shared Shopping List */}

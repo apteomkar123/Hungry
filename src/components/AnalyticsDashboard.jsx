@@ -93,9 +93,11 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
         body: JSON.stringify({ customPrompt: prompt, directMode: true })
       });
 
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
       const text = await res.text();
       const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsed = JSON.parse(cleaned);
+      if (!parsed.ingredients && !parsed.recipes) throw new Error('Unexpected response');
       setAiResult({
         ingredients: Array.isArray(parsed.ingredients) ? parsed.ingredients : [],
         recipes: Array.isArray(parsed.recipes) ? parsed.recipes : [],

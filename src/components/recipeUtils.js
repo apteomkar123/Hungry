@@ -164,6 +164,8 @@ export const cleanIngredientLocally = (rawName) => {
   name = name.replace(/[\u2013\u2014•]/g, ' ');
   name = name.replace(/\d+/g, ' ');
   name = name.replace(/\b(?:organic|fresh|large|small|medium|extra|reduced fat|low fat|low-sodium|low sodium|unsalted|sliced|diced|chopped|shredded|minced|ground|boneless|skinless|prepared|peeled|packaged|package|pack|can|canned|jar|bottle|tube|stick|slice|pieces|piece|cup|cups|tablespoon|tablespoons|tbsp|teaspoon|teaspoons|tsp|grams|gram|g|kg|pounds|pound|lb|lbs|oz|ounces|fluid|fl oz|ml|ltr|liter|litre|pkg|ct|count)\b/g, ' ');
+  // Strip any leading unit words that may remain after digit removal (e.g. "tbsp olive oil")
+  name = name.replace(/^(?:tbsp|tsp|tablespoon|tablespoons|teaspoon|teaspoons|cup|cups|oz|g|kg|lb|lbs|ml|fl)\s+/, '');
   name = name.replace(/[^a-z0-9\s]/g, ' ');
   name = name.replace(/\s+/g, ' ').trim();
   return name;

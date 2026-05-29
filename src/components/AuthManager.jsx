@@ -64,7 +64,7 @@ export default function AuthManager() {
               <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="flex-1 bg-white border border-blue-100 font-black py-3 rounded-xl text-xs uppercase tracking-widest text-slate-400 hover:text-sky-500 shadow-sm transition-all">
                 {isSignUp ? "Sign In Instead" : "Create Account"}
               </button>
-              {!isSignUp && <button type="button" onClick={() => setIsForgotPasswordView(true)} className="flex-1 bg-white border border-blue-100 font-black py-3 rounded-xl text-xs uppercase tracking-widest text-slate-400 hover:text-sky-500 shadow-sm transition-all">Forgot</button>}
+              {!isSignUp && <button type="button" onClick={() => setIsForgotPasswordView(true)} className="flex-1 bg-white border border-blue-100 font-black py-3 rounded-xl text-xs uppercase tracking-widest text-slate-400 hover:text-sky-500 shadow-sm transition-all">Forgot Password</button>}
             </>
           )}
         </div>
