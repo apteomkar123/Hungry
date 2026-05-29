@@ -17,9 +17,11 @@ create table if not exists public.households (
   name         text not null,
   invite_code  text unique not null default upper(substring(md5(random()::text), 1, 8)),
   budget_limit numeric(10,2) not null default 0,
-  created_by   uuid references auth.users(id) on delete set null,
   created_at   timestamptz not null default now()
 );
+-- Patch: created_by may not exist in older installs
+alter table public.households
+  add column if not exists created_by uuid references auth.users(id) on delete set null;
 
 -- ── profiles ─────────────────────────────────────────────────
 create table if not exists public.profiles (
