@@ -85,7 +85,9 @@ function AppContent({ inventory }) {
   const [isAddRecipeOpen, setIsAddRecipeOpen] = useState(false);
   const [isShopperOpen, setIsShopperOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
-  const [hhShoppingRefreshKey, setHhShoppingRefreshKey] = useState(0);
+
+  // Derive household shopping items directly from main state — no async fetch needed
+  const hhShoppingItems = shoppingList.filter(i => i.household_id === activeHousehold?.id);
   const [savedShareMenuId, setSavedShareMenuId] = useState(null);
   const savedShareMenuRef = useRef(null);
 
@@ -232,7 +234,7 @@ function AppContent({ inventory }) {
                   onClear={handleClearShoppingItem}
                   onRename={handleRenameShoppingItem}
                   households={households}
-                  onMoveToHousehold={(itemId, hhId) => { handleMoveShoppingItem(itemId, hhId); setHhShoppingRefreshKey(k => k + 1); }}
+                  onMoveToHousehold={(itemId, hhId) => handleMoveShoppingItem(itemId, hhId)}
                 />
               </>
             )}
@@ -245,7 +247,14 @@ function AppContent({ inventory }) {
                 onAddShoppingItem={handleAddShoppingItem}
               />
             )}
-            {activeTab === 'household' && <HouseholdTab onAddShoppingItem={handleAddShoppingItem} shoppingRefreshKey={hhShoppingRefreshKey} />}
+            {activeTab === 'household' && (
+              <HouseholdTab
+                onAddShoppingItem={handleAddShoppingItem}
+                hhShoppingItems={hhShoppingItems}
+                onToggleHhItem={handleToggleShoppingCompleted}
+                onDeleteHhItem={handleClearShoppingItem}
+              />
+            )}
             {activeTab === 'friends' && <FriendsPage />}
             {activeTab === 'settings' && <SettingsPage onNavigateFriends={() => switchTab('friends')} />}
             {activeTab === 'saved' && (

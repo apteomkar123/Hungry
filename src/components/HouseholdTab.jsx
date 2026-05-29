@@ -5,16 +5,14 @@ import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
 import { cleanIngredientLocally } from './recipeUtils';
 
-export default function HouseholdTab({ onAddShoppingItem, shoppingRefreshKey }) {
+export default function HouseholdTab({ onAddShoppingItem, hhShoppingItems = [], onToggleHhItem, onDeleteHhItem }) {
   const { households, household: activeHousehold, handleUpdateBudgetLimit, user } = useUser();
   const { savedRecipes, setActiveModalRecipe, onSaveRecipe, onRemoveSavedRecipe, masterRecipes } = useRecipes();
 
   const [selectedHHId, setSelectedHHId] = useState(activeHousehold?.id || null);
   const [hhRecipes, setHhRecipes] = useState([]);
-  const [hhShopping, setHhShopping] = useState([]);
   const [newShopItem, setNewShopItem] = useState('');
   const [loadingRecipes, setLoadingRecipes] = useState(false);
-  const [loadingShopping, setLoadingShopping] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
   const [editingBudget, setEditingBudget] = useState(false);
   const [members, setMembers] = useState([]);
@@ -46,42 +44,9 @@ export default function HouseholdTab({ onAddShoppingItem, shoppingRefreshKey }) 
     setLoadingRecipes(false);
   }, [selectedHHId]);
 
-  const loadHouseholdShopping = useCallback(async () => {
-    if (!selectedHHId) return;
-    setLoadingShopping(true);
-    try {
-      const { data } = await supabase
-        .from('shopping_list')
-        .select('*')
-        .eq('household_id', selectedHHId)
-        .order('created_at', { ascending: true });
-      setHhShopping(data || []);
-    } catch {}
-    setLoadingShopping(false);
-  }, [selectedHHId]);
-
   useEffect(() => {
     loadHouseholdRecipes();
-    loadHouseholdShopping();
-  }, [loadHouseholdRecipes, loadHouseholdShopping]);
-
-  // Refresh shopping when an item is moved from the main list into this household
-  useEffect(() => {
-    if (shoppingRefreshKey > 0) loadHouseholdShopping();
-  }, [shoppingRefreshKey, loadHouseholdShopping]);
-
-  // Real-time subscription: refresh household shopping list on any shopping_list change.
-  // No filter — catches rows being moved INTO this household (household_id updated from null).
-  useEffect(() => {
-    if (!selectedHHId) return;
-    const channel = supabase
-      .channel(`hh-shopping-${selectedHHId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list' },
-        () => loadHouseholdShopping()
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [selectedHHId, loadHouseholdShopping]);
+  }, [loadHouseholdRecipes]);
 
   useEffect(() => {
     if (!selectedHHId || !user) return;
@@ -102,23 +67,27 @@ export default function HouseholdTab({ onAddShoppingItem, shoppingRefreshKey }) 
     setFriends(prev => [...prev, targetId]);
   };
 
+  // Add directly with this household's id via the main hook so the item
+  // appears immediately in hhShoppingItems (which is derived from shoppingList).
   const addShoppingItem = async () => {
     const name = cleanIngredientLocally(newShopItem);
     if (!name || !selectedHHId || !user) return;
-    const item = { item_name: name, user_id: user.id, household_id: selectedHHId, is_completed: false, price: 0 };
-    const { data } = await supabase.from('shopping_list').insert([item]).select().single();
-    if (data) setHhShopping(prev => [...prev, data]);
     setNewShopItem('');
+    // Temporarily override localStorage preference for this one add
+    const prev = localStorage.getItem('hungry_default_shopping_dest');
+    localStorage.setItem('hungry_default_shopping_dest', selectedHHId);
+    await onAddShoppingItem(name);
+    // Restore original preference
+    if (prev !== null) localStorage.setItem('hungry_default_shopping_dest', prev);
+    else localStorage.removeItem('hungry_default_shopping_dest');
   };
 
-  const toggleShopItem = async (id, current) => {
-    await supabase.from('shopping_list').update({ is_completed: !current }).eq('id', id);
-    setHhShopping(prev => prev.map(i => i.id === id ? { ...i, is_completed: !current } : i));
+  const toggleShopItem = (id, current) => {
+    if (onToggleHhItem) onToggleHhItem(id, current);
   };
 
-  const removeShopItem = async (id) => {
-    await supabase.from('shopping_list').delete().eq('id', id);
-    setHhShopping(prev => prev.filter(i => i.id !== id));
+  const removeShopItem = (id) => {
+    if (onDeleteHhItem) onDeleteHhItem(id);
   };
 
   const removeHhRecipe = async (id) => {
@@ -241,13 +210,11 @@ export default function HouseholdTab({ onAddShoppingItem, shoppingRefreshKey }) 
           <button type="submit" className="bg-[#6BAEE0] text-white p-3 rounded-2xl shadow-md"><Plus size={18} /></button>
         </form>
 
-        {loadingShopping ? (
-          <p className="text-xs text-slate-300 text-center py-4">Loading…</p>
-        ) : hhShopping.length === 0 ? (
+        {hhShoppingItems.length === 0 ? (
           <p className="text-xs text-slate-300 italic text-center py-4">No items yet</p>
         ) : (
           <div className="space-y-2">
-            {hhShopping.map(item => (
+            {hhShoppingItems.map(item => (
               <div key={item.id} className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all ${item.is_completed ? 'bg-emerald-50 border-emerald-100' : 'bg-blue-50/50 border-blue-100'}`}>
                 <button onClick={() => toggleShopItem(item.id, item.is_completed)}
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${item.is_completed ? 'bg-emerald-400 border-emerald-400' : 'border-blue-200'}`}>
