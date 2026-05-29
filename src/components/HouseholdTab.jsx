@@ -65,12 +65,13 @@ export default function HouseholdTab({ onAddShoppingItem }) {
     loadHouseholdShopping();
   }, [loadHouseholdRecipes, loadHouseholdShopping]);
 
-  // Real-time subscription: refresh household shopping list when any row changes
+  // Real-time subscription: refresh household shopping list on any shopping_list change.
+  // No filter — catches rows being moved INTO this household (household_id updated from null).
   useEffect(() => {
     if (!selectedHHId) return;
     const channel = supabase
       .channel(`hh-shopping-${selectedHHId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list', filter: `household_id=eq.${selectedHHId}` },
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list' },
         () => loadHouseholdShopping()
       )
       .subscribe();

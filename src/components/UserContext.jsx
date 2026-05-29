@@ -64,6 +64,12 @@ export const UserProvider = ({ children }) => {
     const ids = meta.household_ids || (meta.household_id ? [meta.household_id] : []);
     const activeId = meta.active_household_id || ids[0] || null;
     await fetchHouseholds(ids, activeId);
+
+    // Ensure profile row exists with display_name + active_household_id for member discovery
+    if (authUser.id && activeId) {
+      const displayName = meta.name || authUser.email?.split('@')[0] || 'Chef';
+      supabase.from('profiles').upsert([{ id: authUser.id, display_name: displayName, active_household_id: activeId }]).then(() => {});
+    }
   };
 
   useEffect(() => {
@@ -102,8 +108,9 @@ export const UserProvider = ({ children }) => {
         data: { household_ids: [...currentIds, hh.id], active_household_id: hh.id }
       });
       if (metaError) return alert(`Household created but not linked: ${metaError.message}`);
-      // Also write to profiles table so HouseholdTab can query members
-      await supabase.from('profiles').upsert([{ id: user.id, active_household_id: hh.id }]);
+      // Write to profiles so HouseholdTab can query members by active_household_id
+      const displayName = user.user_metadata?.name || user.email?.split('@')[0] || 'Chef';
+      await supabase.from('profiles').upsert([{ id: user.id, display_name: displayName, active_household_id: hh.id }]);
       setHouseholds(prev => [...prev, hh]);
       setActiveHousehold(hh);
     }
@@ -124,8 +131,8 @@ export const UserProvider = ({ children }) => {
       data: { household_ids: [...currentIds, hh.id], active_household_id: hh.id }
     });
     if (!metaError) {
-      // Also write to profiles table so HouseholdTab can query members
-      await supabase.from('profiles').upsert([{ id: user.id, active_household_id: hh.id }]);
+      const displayName = user.user_metadata?.name || user.email?.split('@')[0] || 'Chef';
+      await supabase.from('profiles').upsert([{ id: user.id, display_name: displayName, active_household_id: hh.id }]);
       setHouseholds(prev => [...prev, hh]);
       setActiveHousehold(hh);
     }

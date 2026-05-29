@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { cleanIngredientLocally, triggerHaptic, getEstimatedExpiry, toTitleCase } from './recipeUtils';
 import { put, getAll, remove, OBJECT_STORES } from '../dbUtils';
@@ -6,6 +6,7 @@ import { put, getAll, remove, OBJECT_STORES } from '../dbUtils';
 export const useInventory = (user, household) => {
   const [fridge, setFridge] = useState([]);
   const [shoppingList, setShoppingList] = useState([]);
+  const shoppingListRef = useRef([]);
   const [quantities, setQuantities] = useState(() => {
     try { return JSON.parse(localStorage.getItem('hungry_quantities') || '{}'); } catch { return {}; }
   });
@@ -47,6 +48,7 @@ export const useInventory = (user, household) => {
   }, [fridge]);
 
   useEffect(() => {
+    shoppingListRef.current = shoppingList;
     localStorage.setItem('hungry_shopping_v1', JSON.stringify(shoppingList));
   }, [shoppingList]);
 
@@ -178,11 +180,15 @@ export const useInventory = (user, household) => {
         shopItems = [...shopItems, ...(hhShop || [])];
       }
 
-      // Deduplicate by ID to prevent any double-rendering
-      const seen = new Set();
-      shopItems = shopItems.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; });
-
-      setShoppingList(shopItems);
+      // Merge server data with any temp items not yet saved (avoids wiping optimistic adds)
+      setShoppingList(prev => {
+        const serverIds = new Set(shopItems.map(i => i.id));
+        const tempItems = prev.filter(i => String(i.id).startsWith('temp-') && !serverIds.has(i.id));
+        const merged = [...shopItems, ...tempItems];
+        // Deduplicate by ID
+        const seen = new Set();
+        return merged.filter(i => { if (seen.has(i.id)) return false; seen.add(i.id); return true; });
+      });
     } catch (err) {
       console.error('Inventory sync error:', err);
       setError(err.message);
@@ -270,17 +276,15 @@ export const useInventory = (user, household) => {
     const sanitized = cleanIngredientLocally(itemName);
     if (!sanitized) return;
 
-    const alreadyLocal = shoppingList.some(i => i.item_name?.toLowerCase() === sanitized.toLowerCase());
-    if (alreadyLocal) {
-      alert('Already in your shopping list');
-      return;
-    }
+    // Use ref so concurrent adds (from handleAddAllMissing) see the latest state
+    const alreadyLocal = shoppingListRef.current.some(i => i.item_name?.toLowerCase() === sanitized.toLowerCase());
+    if (alreadyLocal) return; // silent skip — batch adds shouldn't alert
 
     // Respect user's default destination preference
     const defaultDest = localStorage.getItem('hungry_default_shopping_dest') || 'personal';
     const householdId = defaultDest === 'personal' ? null : defaultDest;
 
-    const tempId = `temp-${Date.now()}`;
+    const tempId = `temp-${Date.now()}-${Math.random()}`;
     const newItem = {
       user_id: user.id,
       household_id: householdId,
@@ -289,6 +293,8 @@ export const useInventory = (user, household) => {
       price
     };
 
+    // Update ref immediately so concurrent batch adds see this item and skip duplicates
+    shoppingListRef.current = [...shoppingListRef.current, { ...newItem, id: tempId }];
     setShoppingList(prev => [...prev, { ...newItem, id: tempId }]);
 
     const savedData = await performMutation('shopping_list', 'INSERT', newItem);

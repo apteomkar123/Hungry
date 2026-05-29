@@ -114,18 +114,18 @@ export default function RecipeExplorer() {
                 <div className="h-full bg-[#6BAEE0]/60 rounded-full transition-all duration-1000" style={{ width: `${recipe.matchPercentage}%` }} />
               </div>
               <div className="flex items-center gap-2">
-                {/* Share to household — only shown when user has households */}
+                {/* Household share — dropdown anchored above the button */}
                 {households?.length > 0 && (
                   <div className="relative">
                     <button
                       onClick={(e) => { e.stopPropagation(); setShareMenuId(shareMenuId === recipe.id ? null : recipe.id); }}
-                      className="text-slate-300 hover:text-[#6BAEE0] transition-colors"
+                      className="flex items-center gap-1 text-[9px] font-black text-slate-400 hover:text-[#6BAEE0] border border-slate-200 hover:border-sky-200 px-2 py-1.5 rounded-xl transition-all"
                       title="Share to household"
                     >
-                      <Users size={15} />
+                      <Users size={11} /> Share
                     </button>
                     {shareMenuId === recipe.id && (
-                      <div className="absolute right-0 bottom-7 bg-white border border-blue-100 rounded-2xl shadow-xl z-20 min-w-[160px] p-2 space-y-1">
+                      <div className="absolute right-0 bottom-9 bg-white border border-blue-100 rounded-2xl shadow-xl z-30 min-w-[160px] p-2 space-y-1">
                         {households.map(h => (
                           <button
                             key={h.id}

@@ -49,3 +49,19 @@ Shopping list disappears everytime the web app is reloaded.
 When an item is added to a household from the main shopping list, the item should also show up in the shared shopping list for the household.
 
 Allow the user to select whether they want their default for shopping list to be a particular household, or personal. Same goes for saved recipes.
+
+Change the Send button in the Add friends box to a "+" button
+
+The chef's hat in the AI recipe generator is really ugly, fix it with something that actually looks like a chef's hat
+
+Once the animation is ran for the AI recipe generator, the screen just goes blank and nothing happens.
+
+Shopping list still disappears when the app is closed and reopened.
+
+Household members still don't show in the household tab
+
+Shopping items added to the main shopping list and then switched to a household don't show up in the household shared shopping list.
+
+Fix the shopping list logic. Random things are happenning. When I check off one item, multiple items are getting checked off, when I uncheck one item multiple items are getting unchecked, items are getting duplicated, etc. This is especially happenning when the items are added from the recipe card's "add all missing items" feature
+
+The share recipe from explorer feature you claimed to add does not show up. Do better.

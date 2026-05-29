@@ -301,9 +301,11 @@ export const RecipeProvider = ({ children, fridge }) => {
         steps: steps.length > 0 ? steps : ['Follow the ingredient list to prepare this dish.']
       });
       setMultiplier(1);
+      setIsAiPickerOpen(false); // close picker only on success
     } catch (err) {
       console.error(err);
       alert(err.message || 'Could not generate recipe. Please try again.');
+      // Leave picker open so user can retry — do NOT blank the screen
     } finally {
       setAiGenerating(false);
     }

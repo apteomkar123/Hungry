@@ -47,14 +47,14 @@ export default function AiIngredientPickerModal() {
 
   const handleGenerate = () => {
     const ingredients = allItems.filter(i => selected.has(i.raw_name)).map(i => i.raw_name);
-    setIsAiPickerOpen(false);
+    // Picker stays "open" in state — the animation overlay covers it.
+    // RecipeContext will close it on success, or leave it open on failure.
     handleGenerateAiRecipe(ingredients);
   };
 
   const handleMealPrep = () => {
     const ingredients = allItems.filter(i => selected.has(i.raw_name)).map(i => i.raw_name);
     if (ingredients.length === 0) return;
-    setIsAiPickerOpen(false);
     generateMealPlan(ingredients);
   };
 
