@@ -42,6 +42,7 @@ function AppContent({ inventory }) {
     handleAddShoppingItem,
     handleToggleShoppingCompleted,
     handleClearShoppingItem,
+    handleMoveShoppingItem,
     handleBarcodeLookup,
     handleFileUpload,
     handleUpdateItem,
@@ -128,30 +129,30 @@ function AppContent({ inventory }) {
   return (
     <div className="h-[100dvh] flex bg-blue-50/50 text-slate-800 font-sans antialiased selection:bg-[#6BAEE0] selection:text-white overflow-hidden">
 
-      {/* ── Left Nav Backdrop ─────────────────────────────────────────────── */}
+      {/* ── Nav Backdrop ───────────────────────────────────────────────────── */}
       {navOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[50]"
+          className="fixed inset-0 z-[50]"
           onClick={() => setNavOpen(false)}
         />
       )}
 
-      {/* ── Left Slide-out Nav ─────────────────────────────────────────────── */}
-      <nav className={`fixed left-0 top-0 bottom-0 z-[55] flex flex-col bg-white/40 backdrop-blur-3xl border-r border-white/30 shadow-2xl shadow-blue-900/20 transition-transform duration-300 ease-out w-64 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between px-5 pt-8 pb-6 border-b border-blue-50">
-          <span className="text-lg font-black text-[#6BAEE0] tracking-tight">Hungry</span>
-          <button onClick={() => setNavOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors">
-            <X size={18} />
+      {/* ── Floating Bubble Nav ────────────────────────────────────────────── */}
+      <nav className={`fixed left-3 top-3 z-[55] flex flex-col bg-white/30 backdrop-blur-3xl border border-white/50 shadow-2xl shadow-blue-900/20 rounded-[2rem] w-56 max-h-[92dvh] overflow-y-auto transition-all duration-300 ease-out ${navOpen ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 -translate-x-4 scale-95 pointer-events-none'}`}>
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/30">
+          <span className="text-base font-black text-[#6BAEE0] tracking-tight">Hungry</span>
+          <button onClick={() => setNavOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
+            <X size={16} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto py-3 space-y-0.5 px-2">
+        <div className="py-2 space-y-0.5 px-2">
           {NAV_ITEMS.map(({ tab, icon, label }) => (
             <button
               key={tab}
               onClick={() => switchTab(tab)}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all text-left ${activeTab === tab ? 'bg-sky-50 text-[#6BAEE0]' : 'text-slate-500 hover:bg-blue-50/50 hover:text-slate-700'}`}
+              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold transition-all text-left ${activeTab === tab ? 'bg-[#6BAEE0]/20 text-[#6BAEE0]' : 'text-slate-600 hover:bg-white/40'}`}
             >
-              <span className={activeTab === tab ? 'text-[#6BAEE0]' : 'text-slate-400'}>{icon}</span>
+              <span className={`shrink-0 ${activeTab === tab ? 'text-[#6BAEE0]' : 'text-slate-400'}`}>{icon}</span>
               {label}
             </button>
           ))}
@@ -212,7 +213,7 @@ function AppContent({ inventory }) {
                   onToggle={handleToggleShoppingCompleted}
                   onClear={handleClearShoppingItem}
                   households={households}
-                  onMoveToHousehold={(itemId, hhId) => handleUpdateItem(itemId, { household_id: hhId })}
+                  onMoveToHousehold={(itemId, hhId) => handleMoveShoppingItem(itemId, hhId)}
                 />
               </>
             )}
@@ -344,6 +345,7 @@ function AppContent({ inventory }) {
       {isShopperOpen && (
         <PersonalShopper
           shoppingList={shoppingList}
+          onToggle={handleToggleShoppingCompleted}
           onClose={() => setIsShopperOpen(false)}
         />
       )}

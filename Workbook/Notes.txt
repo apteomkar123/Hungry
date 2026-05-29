@@ -300,3 +300,17 @@ FEATURES IMPLEMENTED:
 - Friends page redesigned: blue gradient header, compact share button, search bar, friend cards that expand to show cooking feed
 - SearchWithHistory component: last 4 searches shown as dropdown on any search bar (namespace-keyed localStorage)
 - Recipe search uses SearchWithHistory with history dropdown
+
+IMPLEMENTED (session 2026-05-28 v6):
+BUGS:
+- Shopping list items default to personal (null household_id); handleMoveShoppingItem added for bidirectional moves; ShoppingListManager shows "My Personal List" + household options in move menu
+- Nav redesigned as floating bubble card: bg-white/30 backdrop-blur-3xl, rounded-2rem, top-left position, scale+opacity transition
+- Placeholder text global CSS rule: font-size 11px opacity 0.6 across all inputs/textareas
+- Ingredient matching: isInPantry now requires ALL significant tokens (len>2) to match -- prevents garlic clove / garlic powder false positive; single-token uses fuzzy match; user can click dot to manually override any ingredient check
+- Plus button: uses stripIngredientNotes(ing) for consistent cleaned key; hidden when item is in pantry
+- Personal Shopper: native full-screen layout, sticky category headers with store aisle info, progress bar, checked state persists in localStorage (hungry_shopper_checked), checking an item calls onToggle to sync to shopping list
+- Pantry subtraction: parses numeric quantity from recipe ingredient string (e.g. 2 mushrooms -> subtract 2); uses neededQty map per ingredient
+- 'Mark as Cooked' -> 'Cooked!' button label
+
+FEATURES:
+- AI loading animation: 3 rotating frames (book writing, chef hat tilting, pot stirring) with SVG animations; shown full-screen while AI generates recipe or meal plan

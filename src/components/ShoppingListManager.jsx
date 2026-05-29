@@ -49,25 +49,33 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
         <span className={`text-xs font-bold text-slate-700 truncate ${item.is_completed ? 'line-through text-slate-400' : ''}`}>{item.item_name}</span>
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        {/* Move to household */}
+        {/* Move between personal ↔ household */}
         {households.length > 0 && onMoveToHousehold && !item.is_completed && (
           <div className="relative">
             <button
-              onClick={() => setMovingId(movingId === item.id ? null : item.id)}
+              onClick={(e) => { e.stopPropagation(); setMovingId(movingId === item.id ? null : item.id); }}
               className="p-1.5 text-slate-300 hover:text-[#6BAEE0] transition-colors"
-              title="Move to household list"
+              title="Move to list"
             >
               <Users size={14} />
             </button>
             {movingId === item.id && (
-              <div className="absolute right-0 top-8 bg-white border border-blue-100 rounded-2xl shadow-xl z-20 min-w-[140px] p-2 space-y-1">
+              <div className="absolute right-0 top-8 bg-white border border-blue-100 rounded-2xl shadow-xl z-20 min-w-[150px] p-2 space-y-1">
+                {item.household_id && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onMoveToHousehold(item.id, null); setMovingId(null); }}
+                    className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-[#6BAEE0] transition-all flex items-center gap-2"
+                  >
+                    <span className="text-[10px]">👤</span> My Personal List
+                  </button>
+                )}
                 {households.map(h => (
                   <button
                     key={h.id}
-                    onClick={() => { onMoveToHousehold(item.id, h.id); setMovingId(null); }}
-                    className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-[#6BAEE0] transition-all"
+                    onClick={(e) => { e.stopPropagation(); onMoveToHousehold(item.id, h.id); setMovingId(null); }}
+                    className={`w-full text-left text-xs font-bold px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${item.household_id === h.id ? 'text-[#6BAEE0] bg-sky-50' : 'text-slate-600 hover:bg-sky-50 hover:text-[#6BAEE0]'}`}
                   >
-                    {h.name}
+                    <span className="text-[10px]">👥</span> {h.name}
                   </button>
                 ))}
               </div>

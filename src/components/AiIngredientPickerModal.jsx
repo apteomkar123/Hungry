@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { X, Sparkles, Loader2, CalendarDays } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { categorizeItem, CATEGORY_ICONS, CATEGORY_ORDER } from './recipeUtils';
+import AiLoadingAnimation from './AiLoadingAnimation';
 
 export default function AiIngredientPickerModal() {
   const { isAiPickerOpen, setIsAiPickerOpen, fridge, handleGenerateAiRecipe, aiGenerating, generateMealPlan, prepLoading } = useRecipes();
@@ -58,6 +59,15 @@ export default function AiIngredientPickerModal() {
   };
 
   if (!isAiPickerOpen) return null;
+
+  // Full-screen loading animation while AI generates
+  if (aiGenerating || prepLoading) {
+    return (
+      <div className="fixed inset-0 bg-white/90 backdrop-blur-2xl flex items-center justify-center z-50">
+        <AiLoadingAnimation />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-end justify-center z-50">

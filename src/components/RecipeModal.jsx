@@ -44,6 +44,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   const [proteinResult, setProteinResult] = useState(null); // {updatedRecipe, proteinIngredient, proteinAdded}
   const [proteinizing, setProteinizing] = useState(false);
   const [cooked, setCooked] = useState(false);
+  const [pantryOverrides, setPantryOverrides] = useState({}); // {ingredientKey: true|false} user manual overrides
   useEffect(() => {
     setAdaptedRecipe(null);
     setAdapting(null);
@@ -51,6 +52,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     setSubstitutes({});
     setProteinResult(null);
     setCooked(false);
+    setPantryOverrides({});
   }, [recipe?.id]);
 
   const violatedRestrictions = useMemo(() => {
@@ -122,9 +124,19 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     () => new Set((fridge || []).flatMap(f => normalizeIngredientTokens(f.raw_name || f.item_name || ''))),
     [fridge]
   );
-  const isInPantry = (cleaned) =>
-    pantryItemsSet.has(cleaned) ||
-    normalizeIngredientTokens(cleaned).some(t => fuzzyTokenMatch(t, pantryTokenSet));
+  // Require ALL significant tokens (len>2) to match pantry — prevents "garlic clove" matching "garlic powder"
+  const _baseIsInPantry = (cleaned) => {
+    if (!cleaned) return false;
+    if (pantryItemsSet.has(cleaned)) return true;
+    const tokens = normalizeIngredientTokens(cleaned).filter(t => t.length > 2);
+    if (!tokens.length) return false;
+    if (tokens.length === 1) return fuzzyTokenMatch(tokens[0], pantryTokenSet);
+    return tokens.every(t => fuzzyTokenMatch(t, pantryTokenSet));
+  };
+  const isInPantry = (cleaned, overrideKey) => {
+    if (pantryOverrides[overrideKey] !== undefined) return pantryOverrides[overrideKey];
+    return _baseIsInPantry(cleaned);
+  };
 
   const handleAddToPantry = (ing) => {
     const cleaned = cleanIngredientLocally(ing);
@@ -300,23 +312,34 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
             <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Ingredients</h4>
             <div className="space-y-3">
               {(displayRecipe.ingredients || []).map((ing, idx) => {
-                const cleaned = cleanIngredientLocally(ing);
-                const inPantry = isInPantry(cleaned);
-                // Look up this ingredient's pantry quantity from the fridge list
-                const fridgeItem = inPantry
-                  ? (fridge || []).find(f => cleanIngredientLocally(f.raw_name || f.item_name || '') === cleaned)
+                const overrideKey = `${idx}:${ing}`;
+                const cleaned = cleanIngredientLocally(stripIngredientNotes(ing));
+                const inPantry = isInPantry(cleaned, overrideKey);
+                const fridgeItem = inPantry && pantryOverrides[overrideKey] !== false
+                  ? (fridge || []).find(f => {
+                      const fc = cleanIngredientLocally(f.raw_name || f.item_name || '');
+                      return fc === cleaned || normalizeIngredientTokens(fc).some(t => fuzzyTokenMatch(t, new Set(normalizeIngredientTokens(cleaned))));
+                    })
                   : null;
                 const qty = fridgeItem?.quantity || (inPantry ? 1 : 0);
                 const hasEnough = inPantry && _pantryHasEnough(ing, qty * multiplier);
+                // Fix plus button: use cleaned+stripped name for addedItems check
+                const cleanedForShop = cleanIngredientLocally(stripIngredientNotes(ing));
                 return (
                   <div key={idx} className="flex flex-col border-b border-blue-50 pb-2">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        {inPantry && (
-                          <span className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${hasEnough ? 'bg-emerald-100 text-emerald-500' : 'bg-amber-100 text-amber-500'}`} title={hasEnough ? `Have ${qty}` : `Have ${qty} — may need more`}>
-                            <Check size={9} />
-                          </span>
-                        )}
+                        {/* Pantry check dot — clickable to toggle */}
+                        <button
+                          onClick={() => setPantryOverrides(prev => ({
+                            ...prev,
+                            [overrideKey]: prev[overrideKey] !== undefined ? undefined : !inPantry
+                          }))}
+                          className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all ${inPantry ? (hasEnough ? 'bg-emerald-100 text-emerald-500' : 'bg-amber-100 text-amber-500') : 'bg-slate-100 text-slate-300'}`}
+                          title={inPantry ? (pantryOverrides[overrideKey] !== undefined ? 'Click to reset' : 'Click to uncheck') : 'Not in pantry — click to mark as available'}
+                        >
+                          {inPantry && <Check size={9} />}
+                        </button>
                         <span className="text-xs font-bold text-slate-700">{substitutes[ing] || parseRecipeIngredientMeasurements(ing, multiplier)}</span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -327,11 +350,11 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
                         >
                           <RefreshCw size={12} className={loadingSub === ing ? 'animate-spin' : ''} />
                         </button>
-                        {!addedItems?.has(cleaned) && (
-                          <button onClick={() => onAddIngredient(cleanIngredientLocally(stripIngredientNotes(ing)))} className="bg-sky-50 text-[#6BAEE0] p-1 rounded-md" title="Add to shopping list"><Plus size={12} /></button>
+                        {!addedItems?.has(cleanedForShop) && !inPantry && (
+                          <button onClick={() => onAddIngredient(cleanedForShop)} className="bg-sky-50 text-[#6BAEE0] p-1 rounded-md" title="Add to shopping list"><Plus size={12} /></button>
                         )}
                         {onAddToPantry && (
-                          pantryAdded.has(ing) || isInPantry(cleaned) ? (
+                          pantryAdded.has(ing) || inPantry ? (
                             <span className="bg-emerald-50 text-emerald-400 p-1 rounded-md"><Check size={12} /></span>
                           ) : (
                             <button onClick={() => handleAddToPantry(ing)} className="bg-emerald-50 text-emerald-500 p-1 rounded-md hover:bg-emerald-100 transition-colors" title="Add to pantry"><Refrigerator size={12} /></button>
@@ -430,7 +453,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
               disabled={cooked}
               className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm transition-all ${cooked ? 'bg-emerald-100 text-emerald-500 cursor-default' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 active:scale-95'}`}
             >
-              <ChefHat size={17} /> {cooked ? 'Cooked! Ingredients subtracted from pantry' : 'Mark as Cooked'}
+              <ChefHat size={17} /> {cooked ? '✓ Cooked! Pantry updated' : 'Cooked!'}
             </button>
           )}
         </div>

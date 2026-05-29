@@ -269,7 +269,7 @@ export const useInventory = (user, household) => {
     const tempId = `temp-${Date.now()}`;
     const newItem = {
       user_id: user.id,
-      household_id: household?.id || null,
+      household_id: null, // always personal by default; user can move to household
       item_name: sanitized,
       is_completed: false,
       price
@@ -281,7 +281,12 @@ export const useInventory = (user, household) => {
     if (savedData && savedData.id) {
       setShoppingList(prev => prev.map(item => item.id === tempId ? { ...item, id: savedData.id } : item));
     }
-  }, [user, household, performMutation, shoppingList]);
+  }, [user, performMutation, shoppingList]);
+
+  const handleMoveShoppingItem = useCallback(async (id, newHouseholdId) => {
+    setShoppingList(prev => prev.map(item => item.id === id ? { ...item, household_id: newHouseholdId } : item));
+    await performMutation('shopping_list', 'UPDATE', { household_id: newHouseholdId }, id);
+  }, [performMutation]);
 
   const handleToggleShoppingCompleted = useCallback(async (id, currentStatus) => {
     setShoppingList(prev => prev.map(item => item.id === id ? { ...item, is_completed: !currentStatus } : item));
@@ -452,22 +457,44 @@ export const useInventory = (user, household) => {
 
   const handleMarkCooked = useCallback(async (recipe) => {
     if (!recipe) return;
-    const ingredients = (recipe.cleanedIngredients || []);
     const toRemove = [];
     const toUpdate = [];
 
+    // Build a map of cleaned ingredient name → required quantity from the recipe
+    const _parseQty = (ingStr) => {
+      const m = String(ingStr || '').match(/^([\d\/\.\s\-½⅓¼¾⅛]+)/);
+      if (!m) return 1;
+      let v = parseFloat(m[1]);
+      if (isNaN(v)) {
+        const s = m[1];
+        if (s.includes('½')) v = 0.5;
+        else if (s.includes('¼')) v = 0.25;
+        else if (s.includes('¾')) v = 0.75;
+        else v = 1;
+      }
+      return Math.max(1, Math.ceil(v));
+    };
+
+    // Map: cleanedIngredient → qty needed (from original ingredient strings for number parsing)
+    const neededQty = {};
+    (recipe.ingredients || []).forEach((ingStr, i) => {
+      const cleaned = (recipe.cleanedIngredients || [])[i] || cleanIngredientLocally(ingStr);
+      const qty = _parseQty(ingStr);
+      neededQty[cleaned] = (neededQty[cleaned] || 0) + qty;
+    });
+
     fridge.forEach(item => {
-      const match = ingredients.some(ing => {
-        const a = (item.item_name || '').toLowerCase();
-        const b = (ing || '').toLowerCase();
-        return a.includes(b) || b.includes(a);
-      });
-      if (!match) return;
+      const a = (item.item_name || '').toLowerCase();
+      // Find the matched ingredient key
+      const matchedKey = Object.keys(neededQty).find(b => a.includes(b) || b.includes(a));
+      if (!matchedKey) return;
+      const requiredQty = neededQty[matchedKey] || 1;
       const currentQty = quantities[item.id] || item.quantity || 1;
-      if (currentQty <= 1) {
+      const remaining = currentQty - requiredQty;
+      if (remaining <= 0) {
         toRemove.push(item.id);
       } else {
-        toUpdate.push({ id: item.id, qty: currentQty - 1 });
+        toUpdate.push({ id: item.id, qty: remaining });
       }
     });
 
@@ -531,6 +558,7 @@ export const useInventory = (user, household) => {
     handleAddShoppingItem,
     handleToggleShoppingCompleted,
     handleClearShoppingItem,
+    handleMoveShoppingItem,
     handleBarcodeLookup,
     handleFileUpload,
     handleUpdateInlineItem,
