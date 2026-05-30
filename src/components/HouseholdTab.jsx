@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Star, ShoppingCart, Plus, Trash2, Check, X, ChevronDown, DollarSign, Edit2, UserPlus, UserCheck, CreditCard, ExternalLink, PartyPopper, HandHeart, Sparkles, MapPin } from 'lucide-react';
+import { Users, Star, ShoppingCart, Plus, Trash2, Check, X, ChevronDown, DollarSign, Edit2, UserPlus, UserCheck, CreditCard, ExternalLink, PartyPopper, HandHeart, Sparkles, MapPin, ChevronRight } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
 import { cleanIngredientLocally } from './recipeUtils';
+import UserProfileModal from './UserProfileModal';
 
 // Common potluck item suggestions by dietary category
 const POTLUCK_SUGGESTIONS = {
@@ -68,6 +69,7 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
   const [budgetInput, setBudgetInput] = useState('');
   const [editingBudget, setEditingBudget] = useState(false);
   const [members, setMembers] = useState([]);
+  const [activeProfile, setActiveProfile] = useState(null);
   const [friends, setFriends] = useState([]);
   const [sentRequests, setSentRequests] = useState(new Set());
   const [memberPresence, setMemberPresence] = useState({}); // profileId → {status, custom_text}
@@ -115,7 +117,7 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
     // Load members from the household_members junction table
     supabase
       .from('household_members')
-      .select('profile_id, profiles:profile_id(id, display_name)')
+      .select('profile_id, profiles:profile_id(id, display_name, hungry_settings, friend_code)')
       .eq('household_id', selectedHHId)
       .then(({ data }) => {
         const loaded = (data || []).map(m => m.profiles).filter(Boolean);
@@ -320,27 +322,44 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
               const isSelf = m.id === user?.id;
               const isFriend = friends.includes(m.id);
               const isPending = sentRequests.has(m.id);
+              const restrictions = m.hungry_settings?.dietary_restrictions || [];
+              const presence = memberPresence[m.id];
               return (
-                <div key={m.id} className="flex items-center gap-3 px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-2xl">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6BAEE0] to-[#4d96d1] flex items-center justify-center text-white font-black text-sm shrink-0">
+                <button
+                  key={m.id}
+                  onClick={() => !isSelf && setActiveProfile(m)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-2xl text-left transition-all ${!isSelf ? 'hover:border-sky-300 hover:bg-sky-50/50 active:scale-[0.99]' : ''}`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#6BAEE0] to-[#4d96d1] flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm">
                     {(m.display_name || '?')[0].toUpperCase()}
                   </div>
-                  <p className="flex-1 text-sm font-bold text-slate-700 truncate">{m.display_name || 'Member'}{isSelf ? ' (You)' : ''}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-700 truncate">{m.display_name || 'Member'}{isSelf ? ' (You)' : ''}</p>
+                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                      {presence?.custom_text && (
+                        <span className="text-[9px] font-bold text-amber-600">{presence.custom_text}</span>
+                      )}
+                      {restrictions.slice(0, 2).map(r => (
+                        <span key={r} className="text-[8px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-full">{r}</span>
+                      ))}
+                    </div>
+                  </div>
                   {!isSelf && (
                     isFriend || isPending ? (
-                      <span className="flex items-center gap-1 text-[10px] font-black text-emerald-500">
+                      <span className="flex items-center gap-1 text-[10px] font-black text-emerald-500 shrink-0">
                         <UserCheck size={12} /> {isFriend ? 'Friends' : 'Added'}
                       </span>
                     ) : (
                       <button
-                        onClick={() => sendFriendRequest(m.id)}
-                        className="flex items-center gap-1 text-[10px] font-black text-[#6BAEE0] bg-white border border-sky-200 px-2.5 py-1.5 rounded-xl hover:bg-sky-50 transition-all"
+                        onClick={(e) => { e.stopPropagation(); sendFriendRequest(m.id); }}
+                        className="flex items-center gap-1 text-[10px] font-black text-[#6BAEE0] bg-white border border-sky-200 px-2.5 py-1.5 rounded-xl hover:bg-sky-50 transition-all shrink-0"
                       >
-                        <UserPlus size={11} /> Add Friend
+                        <UserPlus size={11} /> Add
                       </button>
                     )
                   )}
-                </div>
+                  {!isSelf && <ChevronRight size={14} className="text-slate-300 shrink-0" />}
+                </button>
               );
             })}
           </div>
@@ -570,6 +589,10 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
             </div>
           )}
         </section>
+      )}
+
+      {activeProfile && (
+        <UserProfileModal user={activeProfile} onClose={() => setActiveProfile(null)} />
       )}
     </div>
   );

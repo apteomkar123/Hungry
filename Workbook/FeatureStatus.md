@@ -139,6 +139,13 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - Readiness progress bar; backed by `potluck_events` + `potluck_items` Supabase tables
 - View Full Details card shows each attendee's dietary restrictions (pulled from their profile settings)
 - RSVP view shows who's bringing what, unclaimed items, and the user's own dietary restrictions
+- **Tappable claimer profiles**: claimed_by names in both the item list and the detail card open the claimer's full Hungry profile (UserProfileModal) when tapped; profile is fetched from Supabase and cached
+
+### Household Members
+- Member cards now tappable (non-self) — opens UserProfileModal showing their saved recipes and chef history
+- Shows dietary restrictions badges from hungry_settings inline on the card
+- Shows presence status (e.g. "🛒 At the Store") inline
+- Member query fetches hungry_settings and friend_code in addition to display_name
 
 ### Cooking Mode (Virtual Sous Chef)
 - Voice navigation: "Next", "Back", "Repeat", "Stop", "Ingredients"
@@ -236,5 +243,16 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - If the user's dietary restrictions would require substitutions on a recipe, the card shows a green ✅ badge (e.g. "Vegan substitution made") instead of the photo
 - RecipeModal hides the recipe image and shows a green substitution tag when the recipe has been adapted (auto or manual) for a dietary restriction
 - Recipe explorer now shows up to 100 recipes (increased from 48)
+
+---
+
+## 🔗 Deferred — External Dependency Required
+
+| Feature | Dependency | Notes |
+|---|---|---|
+| **Kroger / Harris Teeter product availability check** | Kroger Developer API key (free — sign up at `developer.kroger.com`) | Once Client ID + Secret provided, can check stock + price per item at the user's nearest store. Harris Teeter is a Kroger banner and uses the same API. |
+| **Kroger store locator** | Same Kroger API key | Find the nearest Kroger-banner store by zip code. |
+| **Per-aisle item location for any store** | No public API exists for any chain | All grocery chains (Walmart, Whole Foods, Trader Joe's, Costco, etc.) keep in-store map data proprietary. The current aisle guide (hardcoded per store) is the best possible without a private data agreement. |
+| **Target in-store navigation** | Target API not available to third parties | Target's Redsky API is internal only. No developer program exists. |
 
 *Last updated: 2026-05-30 (session 9)*

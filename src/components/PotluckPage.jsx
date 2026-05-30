@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PartyPopper, Plus, Trash2, Check, Share2, HandHeart, X, Loader2, Link, ChevronDown, ChevronUp, Calendar, Clock, MapPin, Users, UserCheck } from 'lucide-react';
+import { PartyPopper, Plus, Trash2, Check, Share2, HandHeart, X, Loader2, Link, ChevronDown, ChevronUp, Calendar, Clock, MapPin, Users, UserCheck, ChevronRight } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
+import UserProfileModal from './UserProfileModal';
 
 function genCode() {
   return Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -10,6 +11,8 @@ function genCode() {
 export default function PotluckPage() {
   const { user, userSettings } = useUser();
   const [events, setEvents] = useState([]);
+  const [profileCache, setProfileCache] = useState({}); // id → {id, display_name, hungry_settings}
+  const [activeProfile, setActiveProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [newEventName, setNewEventName] = useState('');
@@ -34,6 +37,15 @@ export default function PotluckPage() {
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, []);
+
+  const openClaimer = useCallback(async (claimerId, claimerName) => {
+    if (!claimerId || claimerId === user?.id) return;
+    if (profileCache[claimerId]) { setActiveProfile(profileCache[claimerId]); return; }
+    const { data } = await supabase.from('profiles').select('id, display_name, hungry_settings, friend_code').eq('id', claimerId).single();
+    const profile = data || { id: claimerId, display_name: claimerName };
+    setProfileCache(prev => ({ ...prev, [claimerId]: profile }));
+    setActiveProfile(profile);
+  }, [profileCache, user?.id]);
 
   const fetchEvents = useCallback(async () => {
     if (!user) return;
@@ -385,7 +397,13 @@ export default function PotluckPage() {
                           <div key={i.id} className="flex items-center gap-2">
                             <Check size={10} className="text-emerald-500 shrink-0" />
                             <span className="text-xs text-slate-600 flex-1">{i.name}</span>
-                            <span className="text-[9px] font-black text-emerald-500">{i.claimed_by_id === user.id ? 'You' : i.claimed_by_name}</span>
+                            {i.claimed_by_id === user.id ? (
+                              <span className="text-[9px] font-black text-emerald-500">You</span>
+                            ) : (
+                              <button onClick={() => openClaimer(i.claimed_by_id, i.claimed_by_name)} className="flex items-center gap-0.5 text-[9px] font-black text-[#6BAEE0] hover:underline">
+                                {i.claimed_by_name} <ChevronRight size={9} />
+                              </button>
+                            )}
                           </div>
                         ))}
                         {items.filter(i => !i.claimed_by_id).map(i => (
@@ -448,7 +466,12 @@ export default function PotluckPage() {
                               </span>
                               {item.claimed_by_name && (
                                 <p className="text-[9px] text-emerald-500 font-black flex items-center gap-1 mt-0.5">
-                                  <HandHeart size={9} /> {mine ? 'You' : item.claimed_by_name} will bring this
+                                  <HandHeart size={9} />
+                                  {mine ? 'You' : (
+                                    <button onClick={e => { e.stopPropagation(); openClaimer(item.claimed_by_id, item.claimed_by_name); }} className="underline hover:text-emerald-700">
+                                      {item.claimed_by_name}
+                                    </button>
+                                  )} will bring this
                                 </p>
                               )}
                             </div>
@@ -467,6 +490,10 @@ export default function PotluckPage() {
             </div>
           );
         })
+      )}
+
+      {activeProfile && (
+        <UserProfileModal user={activeProfile} onClose={() => setActiveProfile(null)} />
       )}
     </div>
   );
