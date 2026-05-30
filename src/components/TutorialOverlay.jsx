@@ -101,7 +101,7 @@ export default function TutorialOverlay({ onComplete, onSkip }) {
         confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 }, colors: ['#6BAEE0', '#1F6FB8', '#ffffff'] });
       }).catch(() => {});
       if (user) {
-        await supabase.from('profiles').update({ has_completed_tutorial: true }).eq('id', user.id);
+        await supabase.from('profiles').update({ hungry_tutorial_done: true }).eq('id', user.id);
       }
     } catch {}
     onComplete();
@@ -110,7 +110,7 @@ export default function TutorialOverlay({ onComplete, onSkip }) {
   const handleSkip = async () => {
     try {
       if (user) {
-        await supabase.from('profiles').update({ has_completed_tutorial: true }).eq('id', user.id);
+        await supabase.from('profiles').update({ hungry_tutorial_done: true }).eq('id', user.id);
       }
     } catch {}
     onSkip();

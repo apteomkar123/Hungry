@@ -33,7 +33,7 @@ create table if not exists public.profiles (
 
 -- Patch: tutorial completion tracking
 alter table public.profiles
-  add column if not exists has_completed_tutorial boolean default false;
+  add column if not exists hungry_tutorial_done boolean default false;
 
 -- Patch: add active_household_id if the table pre-dates this schema
 alter table public.profiles

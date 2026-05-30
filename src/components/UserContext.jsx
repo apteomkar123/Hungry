@@ -75,10 +75,10 @@ export const UserProvider = ({ children }) => {
     }
 
     // Check if tutorial has been completed
-    supabase.from('profiles').select('has_completed_tutorial').eq('id', authUser.id).single()
+    supabase.from('profiles').select('hungry_tutorial_done').eq('id', authUser.id).single()
       .then(({ data }) => {
-        if (data && data.has_completed_tutorial === false) setShowTutorial(true);
-        else if (data && data.has_completed_tutorial == null) setShowTutorial(true);
+        if (data && data.hungry_tutorial_done === false) setShowTutorial(true);
+        else if (data && data.hungry_tutorial_done == null) setShowTutorial(true);
       }).catch(() => {});
   };
 
@@ -223,7 +223,7 @@ export const UserProvider = ({ children }) => {
 
   const dismissTutorial = () => setShowTutorial(false);
   const rerunTutorial = async () => {
-    if (user) await supabase.from('profiles').update({ has_completed_tutorial: false }).eq('id', user.id);
+    if (user) await supabase.from('profiles').update({ hungry_tutorial_done: false }).eq('id', user.id);
     setShowTutorial(true);
   };
 
