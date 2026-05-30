@@ -268,17 +268,33 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   return (
     <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-[60] overflow-y-auto">
       <div className="bg-white/90 backdrop-blur-2xl rounded-[3rem] shadow-2xl border border-white/50 w-full max-w-2xl relative max-h-[90vh] flex flex-col overflow-hidden">
-        {/* ── Recipe image ──────────────────────────────────────────────────── */}
-        {displayRecipe.image && (
-          <div className="shrink-0 w-full h-48 overflow-hidden rounded-t-[3rem]">
-            <img
-              src={displayRecipe.image}
-              alt={displayRecipe.name}
-              className="w-full h-full object-cover"
-              onError={e => { e.target.style.display = 'none'; }}
-            />
-          </div>
-        )}
+        {/* ── Recipe image or substitution tag ──────────────────────────────── */}
+        {(() => {
+          const substitutionMade = displayRecipe._adapted && displayRecipe._substitutions?.length > 0;
+          const restriction = displayRecipe._adaptedFor;
+          if (substitutionMade) {
+            return (
+              <div className="shrink-0 w-full h-20 bg-emerald-50 border-b border-emerald-100 rounded-t-[3rem] flex items-center justify-center px-6">
+                <span className="text-[11px] font-black text-emerald-600 bg-emerald-100 px-4 py-2 rounded-full">
+                  ✅ {restriction ? `${restriction.charAt(0).toUpperCase() + restriction.slice(1)} substitution made` : 'Dietary substitution made'}
+                </span>
+              </div>
+            );
+          }
+          if (displayRecipe.image) {
+            return (
+              <div className="shrink-0 w-full h-48 overflow-hidden rounded-t-[3rem]">
+                <img
+                  src={displayRecipe.image}
+                  alt={displayRecipe.name}
+                  className="w-full h-full object-cover"
+                  onError={e => { e.target.style.display = 'none'; }}
+                />
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         {/* ── Sticky header ─────────────────────────────────────────────────── */}
         <div className={`shrink-0 px-8 pt-8 bg-white/90 backdrop-blur-2xl ${!displayRecipe.image ? 'rounded-t-[3rem]' : ''}`}>

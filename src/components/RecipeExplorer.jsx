@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Filter, Star, Users } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
+import { matchesRecipeFilter } from './recipeUtils';
 import SearchWithHistory from './SearchWithHistory';
 
 const MOODS = [
@@ -154,65 +155,84 @@ export default function RecipeExplorer({ initialMood = null }) {
           <div className="col-span-full bg-white/80 border border-blue-100 p-8 rounded-[2rem] text-center text-slate-500">
             No recipes found for this filter.
           </div>
-        ) : moodFilteredRecipes.slice(0, 48).map((recipe) => (
-          <div key={recipe.id} className="bg-white/80 backdrop-blur-md border border-white/40 p-5 rounded-[2rem] shadow-lg shadow-blue-900/5 group hover:scale-[1.02] transition-all cursor-pointer" onClick={() => onOpenRecipe(recipe)}>
-            <div className="flex justify-between items-start gap-4">
-              <div className="flex-1">
-                <div className="flex gap-1 flex-wrap">
-                  <span className="text-[8px] font-mono font-black text-slate-400 uppercase bg-blue-50/50 px-2 py-1 rounded-md">{recipe.meal_type}</span>
-                  {recipe.cuisine && <span className="text-[8px] font-mono font-black text-[#6BAEE0] uppercase bg-sky-50 px-2 py-1 rounded-md">{recipe.cuisine}</span>}
-                </div>
-                <h3 className="text-sm font-bold text-slate-700 mt-2 line-clamp-2 leading-tight group-hover:text-[#6BAEE0] transition-colors">{recipe.name}</h3>
+        ) : moodFilteredRecipes.slice(0, 100).map((recipe) => {
+          // Determine if user's dietary restrictions would require substitutions on this recipe
+          const userRestrictions = userSettings?.dietary_restrictions || [];
+          const violatedRestriction = userRestrictions.find(r => !matchesRecipeFilter(recipe, r.toLowerCase()));
+          const substitutionLabel = violatedRestriction ? `${violatedRestriction} substitution made` : null;
+          const showImage = recipe.image && !substitutionLabel;
+
+          return (
+          <div key={recipe.id} className="bg-white/80 backdrop-blur-md border border-white/40 rounded-4xl shadow-lg shadow-blue-900/5 group hover:scale-[1.02] transition-all cursor-pointer overflow-hidden" onClick={() => onOpenRecipe(recipe)}>
+            {/* Recipe image or substitution tag */}
+            {showImage ? (
+              <div className="w-full h-36 overflow-hidden">
+                <img src={recipe.image} alt={recipe.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
               </div>
-              <div className="bg-sky-50 text-[#6BAEE0] px-3 py-1.5 rounded-full text-[10px] font-black font-mono shadow-sm">
-                {recipe.matchPercentage}%
+            ) : substitutionLabel ? (
+              <div className="w-full h-16 bg-emerald-50 border-b border-emerald-100 flex items-center justify-center px-4">
+                <span className="text-[10px] font-black text-emerald-600 bg-emerald-100 px-3 py-1.5 rounded-full">✅ {substitutionLabel}</span>
               </div>
-            </div>
-            <div className="mt-6 flex justify-between items-center">
-              <div className="h-1.5 flex-1 bg-blue-50 rounded-full overflow-hidden mr-4">
-                <div className="h-full bg-[#6BAEE0]/60 rounded-full transition-all duration-1000" style={{ width: `${recipe.matchPercentage}%` }} />
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Household share — dropdown anchored above the button */}
-                {households?.length > 0 && (
-                  <div className="relative" ref={shareMenuId === recipe.id ? shareMenuRef : null}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setShareMenuId(shareMenuId === recipe.id ? null : recipe.id); }}
-                      className="flex items-center gap-1 text-[9px] font-black text-slate-400 hover:text-[#6BAEE0] border border-slate-200 hover:border-sky-200 px-2 py-1.5 rounded-xl transition-all"
-                      title="Share to household"
-                    >
-                      <Users size={11} /> Share
-                    </button>
-                    {shareMenuId === recipe.id && (
-                      <div className="absolute right-0 bottom-9 bg-white border border-blue-100 rounded-2xl shadow-xl z-30 min-w-[160px] p-2 space-y-1">
-                        {households.map(h => (
-                          <button
-                            key={h.id}
-                            onClick={(e) => { e.stopPropagation(); onSaveRecipe(recipe, h.id); setShareMenuId(null); }}
-                            className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-[#6BAEE0] transition-all flex items-center gap-2"
-                          >
-                            <Users size={11} /> {h.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+            ) : null}
+
+            <div className="p-5">
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1">
+                  <div className="flex gap-1 flex-wrap">
+                    <span className="text-[8px] font-mono font-black text-slate-400 uppercase bg-blue-50/50 px-2 py-1 rounded-md">{recipe.meal_type}</span>
+                    {recipe.cuisine && <span className="text-[8px] font-mono font-black text-[#6BAEE0] uppercase bg-sky-50 px-2 py-1 rounded-md">{recipe.cuisine}</span>}
                   </div>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const pkId = savedRecipesMap.get(String(recipe.id));
-                    if (pkId) onRemoveSavedRecipe(pkId);
-                    else onSaveRecipe(recipe);
-                  }}
-                  className={`transition-colors ${savedRecipesMap.has(String(recipe.id)) ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}`}
-                >
-                  <Star size={18} fill={savedRecipesMap.has(String(recipe.id)) ? "currentColor" : "none"} />
-                </button>
+                  <h3 className="text-sm font-bold text-slate-700 mt-2 line-clamp-2 leading-tight group-hover:text-[#6BAEE0] transition-colors">{recipe.name}</h3>
+                </div>
+                <div className="bg-sky-50 text-[#6BAEE0] px-3 py-1.5 rounded-full text-[10px] font-black font-mono shadow-sm shrink-0">
+                  {recipe.matchPercentage}%
+                </div>
+              </div>
+              <div className="mt-4 flex justify-between items-center">
+                <div className="h-1.5 flex-1 bg-blue-50 rounded-full overflow-hidden mr-4">
+                  <div className="h-full bg-[#6BAEE0]/60 rounded-full transition-all duration-1000" style={{ width: `${recipe.matchPercentage}%` }} />
+                </div>
+                <div className="flex items-center gap-2">
+                  {households?.length > 0 && (
+                    <div className="relative" ref={shareMenuId === recipe.id ? shareMenuRef : null}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShareMenuId(shareMenuId === recipe.id ? null : recipe.id); }}
+                        className="flex items-center gap-1 text-[9px] font-black text-slate-400 hover:text-[#6BAEE0] border border-slate-200 hover:border-sky-200 px-2 py-1.5 rounded-xl transition-all"
+                      >
+                        <Users size={11} /> Share
+                      </button>
+                      {shareMenuId === recipe.id && (
+                        <div className="absolute right-0 bottom-9 bg-white border border-blue-100 rounded-2xl shadow-xl z-30 min-w-40 p-2 space-y-1">
+                          {households.map(h => (
+                            <button
+                              key={h.id}
+                              onClick={(e) => { e.stopPropagation(); onSaveRecipe(recipe, h.id); setShareMenuId(null); }}
+                              className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-[#6BAEE0] transition-all flex items-center gap-2"
+                            >
+                              <Users size={11} /> {h.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const pkId = savedRecipesMap.get(String(recipe.id));
+                      if (pkId) onRemoveSavedRecipe(pkId);
+                      else onSaveRecipe(recipe);
+                    }}
+                    className={`transition-colors ${savedRecipesMap.has(String(recipe.id)) ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}`}
+                  >
+                    <Star size={18} fill={savedRecipesMap.has(String(recipe.id)) ? "currentColor" : "none"} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { X, ShoppingCart, Check, ChevronDown, MapPin, Store, Sparkles, Loader2 } from 'lucide-react';
+import { X, ShoppingCart, Check, ChevronDown, MapPin, Store, Sparkles, Loader2, Map, List } from 'lucide-react';
 import { categorizeItem } from './recipeUtils';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
@@ -120,6 +120,28 @@ const STORE_AISLES = {
 const getAisle = (store, category) =>
   STORE_AISLES[store]?.[category] || STORE_AISLES.default[category] || 'Center Store';
 
+// Store floor plan — rows × columns grid layout with sections
+// Each cell: { key: category key, label, emoji, col, row }
+// Route order (1-based) reflects efficient perimeter-first path
+const FLOOR_PLAN = [
+  // Row 0 — entrance / front
+  { key: 'Fruits',       label: 'Produce',      emoji: '🥦', col: 1, row: 0, route: 1 },
+  { key: 'Vegetables',   label: 'Produce',      emoji: '🥦', col: 2, row: 0, route: 1, merged: true },
+  { key: 'Bakery',       label: 'Bakery',       emoji: '🥐', col: 3, row: 0, route: 2 },
+  // Row 1 — center-top aisles
+  { key: 'Snacks',       label: 'Snacks',       emoji: '🍿', col: 1, row: 1, route: 7 },
+  { key: 'Beverages',    label: 'Beverages',    emoji: '☕', col: 2, row: 1, route: 6 },
+  { key: 'Sauces',       label: 'Condiments',   emoji: '🫙', col: 3, row: 1, route: 5 },
+  // Row 2 — center-bottom aisles
+  { key: 'Spices',       label: 'Spices',       emoji: '🌶️', col: 1, row: 2, route: 8 },
+  { key: 'General',      label: 'Pantry',       emoji: '📦', col: 2, row: 2, route: 9 },
+  { key: 'Frozen',       label: 'Frozen',       emoji: '🧊', col: 3, row: 2, route: 4 },
+  // Row 3 — back wall
+  { key: 'Proteins',     label: 'Meat',         emoji: '🥩', col: 1, row: 3, route: 10 },
+  { key: 'Dairy & Eggs', label: 'Dairy & Eggs', emoji: '🥛', col: 2, row: 3, route: 3 },
+  { key: '_checkout',    label: 'Checkout',     emoji: '🛒', col: 3, row: 3, route: 11 },
+];
+
 const CHECKED_KEY = 'hungry_shopper_checked';
 const loadChecked = () => { try { return new Set(JSON.parse(localStorage.getItem(CHECKED_KEY) || '[]')); } catch { return new Set(); } };
 const saveChecked = (set) => { try { localStorage.setItem(CHECKED_KEY, JSON.stringify([...set])); } catch {} };
@@ -129,6 +151,7 @@ export default function PersonalShopper({ shoppingList, onToggle, onClose }) {
   const [selectedStore, setSelectedStore] = useState(STORES[0]);
   const [listSource, setListSource] = useState('all');
   const [checked, setChecked] = useState(loadChecked);
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
   const [subLoadingId, setSubLoadingId] = useState(null);
   const [subResults, setSubResults] = useState({}); // itemId → suggestion
 
@@ -268,7 +291,7 @@ export default function PersonalShopper({ shoppingList, onToggle, onClose }) {
   return (
     <div className="fixed inset-0 bg-white z-[80] flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#6BAEE0] to-[#4d96d1] px-5 pt-10 pb-5 text-white shrink-0">
+      <div className="bg-linear-to-r from-[#6BAEE0] to-[#4d96d1] px-5 pt-10 pb-5 text-white shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <ShoppingCart size={20} />
@@ -297,18 +320,148 @@ export default function PersonalShopper({ shoppingList, onToggle, onClose }) {
           ))}
         </div>
 
-        <div className="text-center mt-3">
-          <div className="flex items-center justify-center gap-2 mb-1">
+        <div className="flex items-center gap-3 mt-3">
+          <div className="flex items-center gap-2 flex-1">
             <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
               <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${total > 0 ? (done / total) * 100 : 0}%` }} />
             </div>
             <span className="text-white/80 text-[10px] font-black shrink-0">{done}/{total}</span>
           </div>
+          {/* View mode toggle */}
+          <div className="flex bg-white/20 p-0.5 rounded-xl gap-0.5 shrink-0">
+            <button onClick={() => setViewMode('list')} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all ${viewMode === 'list' ? 'bg-white text-[#6BAEE0]' : 'text-white/70'}`}>
+              <List size={11} /> List
+            </button>
+            <button onClick={() => setViewMode('map')} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all ${viewMode === 'map' ? 'bg-white text-[#6BAEE0]' : 'text-white/70'}`}>
+              <Map size={11} /> Map
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* ── Map View ──────────────────────────────────────────────────────── */}
+      {viewMode === 'map' && (() => {
+        // Count unchecked items per category for the map
+        const catCounts = {};
+        const catDone = {};
+        grouped.forEach(({ category, items }) => {
+          catCounts[category] = items.filter(i => !checked.has(i.id)).length;
+          catDone[category] = items.filter(i => checked.has(i.id)).length;
+        });
+
+        // Deduplicate: Fruits & Vegetables share the Produce cell
+        const renderPlan = FLOOR_PLAN.filter(c => !c.merged);
+        const produceCell = renderPlan.find(c => c.key === 'Fruits');
+        if (produceCell) {
+          produceCell._count = (catCounts['Fruits'] || 0) + (catCounts['Vegetables'] || 0);
+          produceCell._done  = (catDone['Fruits'] || 0)  + (catDone['Vegetables'] || 0);
+        }
+        renderPlan.forEach(cell => {
+          if (cell.key !== 'Fruits' && cell.key !== '_checkout') {
+            cell._count = catCounts[cell.key] || 0;
+            cell._done  = catDone[cell.key] || 0;
+          }
+          if (cell.key === '_checkout') { cell._count = 0; cell._done = 0; }
+        });
+
+        // Sort cells into a 4-row × 3-col grid
+        const ROWS = 4; const COLS = 3;
+        const grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+        renderPlan.forEach(c => { grid[c.row][c.col - 1] = c; });
+
+        return (
+          <div className="flex-1 overflow-y-auto bg-slate-50 p-4 space-y-4">
+            {/* Legend */}
+            <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400">
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#6BAEE0] inline-block" /> Need to visit</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-400 inline-block" /> Done</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-slate-200 inline-block" /> Skip</span>
+            </div>
+
+            {/* ↑ ENTRANCE label */}
+            <div className="text-center text-[10px] font-black text-slate-400 tracking-widest uppercase">↑ Entrance</div>
+
+            {/* Floor plan grid */}
+            <div className="grid grid-cols-3 gap-2">
+              {grid.map((row, ri) => row.map((cell, ci) => {
+                if (!cell) return <div key={`${ri}-${ci}`} />;
+                const needed = cell._count > 0;
+                const allDone = needed === false && cell._done > 0;
+                const isCheckout = cell.key === '_checkout';
+                return (
+                  <div
+                    key={cell.key}
+                    className={`rounded-2xl border p-3 flex flex-col items-center justify-center gap-1 min-h-18 relative transition-all ${
+                      isCheckout ? 'bg-slate-50 border-slate-200' :
+                      needed ? 'bg-[#6BAEE0]/15 border-[#6BAEE0]/30 shadow-sm' :
+                      allDone ? 'bg-emerald-50 border-emerald-200' :
+                      'bg-white border-slate-100'
+                    }`}
+                  >
+                    {/* Route number badge */}
+                    {!isCheckout && (
+                      <span className={`absolute top-1.5 left-2 text-[8px] font-black ${needed ? 'text-[#6BAEE0]' : 'text-slate-300'}`}>
+                        {cell.route}
+                      </span>
+                    )}
+                    <span className="text-xl">{cell.emoji}</span>
+                    <span className={`text-[9px] font-black text-center leading-tight ${needed ? 'text-[#1F6FB8]' : allDone ? 'text-emerald-600' : 'text-slate-400'}`}>
+                      {cell.label}
+                    </span>
+                    {needed && (
+                      <span className="bg-[#6BAEE0] text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">
+                        {cell._count} item{cell._count !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {allDone && <span className="text-[9px] text-emerald-500 font-black">✓ Done</span>}
+                  </div>
+                );
+              }))}
+            </div>
+
+            {/* ↓ EXIT label */}
+            <div className="text-center text-[10px] font-black text-slate-400 tracking-widest uppercase">↓ Exit</div>
+
+            {/* Efficient route list */}
+            <div className="bg-white rounded-2xl border border-blue-50 p-4">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">⚡ Most Efficient Route</p>
+              <div className="space-y-1.5">
+                {renderPlan
+                  .filter(c => c.key !== '_checkout' && (c._count > 0 || c._done > 0))
+                  .sort((a, b) => a.route - b.route)
+                  .map((cell, i) => (
+                    <div key={cell.key} className="flex items-center gap-3">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 ${cell._count === 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-[#6BAEE0]/20 text-[#6BAEE0]'}`}>
+                        {i + 1}
+                      </span>
+                      <span className="text-xs font-bold text-slate-600 flex-1">{cell.emoji} {cell.label}</span>
+                      <span className={`text-[10px] font-black ${cell._count === 0 ? 'text-emerald-500' : 'text-[#6BAEE0]'}`}>
+                        {cell._count === 0 ? '✓' : `${cell._count} left`}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Aisle guide */}
+            <div className="bg-white rounded-2xl border border-blue-50 p-4">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">📍 Aisle Guide — {selectedStore}</p>
+              <div className="space-y-1.5">
+                {grouped.map(({ category, aisle }) => (
+                  <div key={category} className="flex items-center justify-between text-[10px]">
+                    <span className="font-bold text-slate-600">{category}</span>
+                    <span className="text-slate-400 font-mono">{aisle}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="h-6" />
+          </div>
+        );
+      })()}
+
       {/* Scrollable list */}
-      <div className="flex-1 overflow-y-auto bg-slate-50">
+      {viewMode === 'list' && <div className="flex-1 overflow-y-auto bg-slate-50">
         {grouped.length === 0 && (
           <div className="text-center py-16 text-slate-400 text-sm font-bold">List is empty</div>
         )}
@@ -362,7 +515,7 @@ export default function PersonalShopper({ shoppingList, onToggle, onClose }) {
           </div>
         )}
         <div className="h-8" />
-      </div>
+      </div>}
     </div>
   );
 }

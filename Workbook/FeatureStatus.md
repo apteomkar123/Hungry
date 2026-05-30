@@ -223,4 +223,18 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - AI suggests: (1) another store where the item is definitely available, (2) a specific substitution at the selected store
 - Result appears as a violet callout below the item row with dismiss ×
 
+### Personal Shopper — Store Map & Efficient Route
+- List/Map toggle in the Personal Shopper header
+- Map view shows a 4×3 grid floor-plan (Produce/Bakery at front, Dairy/Meat at back, center aisles in between)
+- Sections with items to pick up are highlighted in blue with an item count badge; completed sections show in green
+- Numbered route order (1–11) on each tile for the most efficient perimeter-first shopping path
+- Efficient Route list below the map shows which sections to visit in order with item counts
+- Aisle Guide section shows the exact aisle name for each category at the selected store
+
+### Recipes — Images + Dietary Substitution Tags
+- RecipeExplorer cards now show the recipe photo at the top (from MealDB/Spoonacular); static recipes without images show no image area
+- If the user's dietary restrictions would require substitutions on a recipe, the card shows a green ✅ badge (e.g. "Vegan substitution made") instead of the photo
+- RecipeModal hides the recipe image and shows a green substitution tag when the recipe has been adapted (auto or manual) for a dietary restriction
+- Recipe explorer now shows up to 100 recipes (increased from 48)
+
 *Last updated: 2026-05-30 (session 9)*
