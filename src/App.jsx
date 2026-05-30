@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings, Clock, PlusCircle, X, UserRound, Share2, PartyPopper } from 'lucide-react';
+import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings, Clock, PlusCircle, X, UserRound, Share2, PartyPopper, Globe } from 'lucide-react';
 import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic, matchesRecipeFilter } from './components/recipeUtils';
 import Header from './components/Header';
 import PantryManager from './components/PantryManager';
@@ -13,11 +13,13 @@ import HouseholdTab from './components/HouseholdTab';
 import PersonalShopper from './components/PersonalShopper';
 import FriendsPage from './components/FriendsPage';
 import PotluckPage from './components/PotluckPage';
+import CommunityRecipes from './components/CommunityRecipes';
 import SettingsPage from './components/SettingsPage';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import MealPrepModal from './components/MealPrepModal';
 import AuthManager from './components/AuthManager';
 import Onboarding from './components/Onboarding';
+import TutorialOverlay from './components/TutorialOverlay';
 import { useUser } from './components/UserContext';
 import { RecipeProvider, useRecipes } from './components/RecipeContext';
 import { useInventory } from './components/useInventory';
@@ -25,7 +27,7 @@ import ChefHistory from './components/ChefHistory';
 import AddRecipeModal from './components/AddRecipeModal';
 
 function AppContent({ inventory }) {
-  const { household: activeHousehold, households } = useUser();
+  const { household: activeHousehold, households, showTutorial, dismissTutorial } = useUser();
   const {
     fridge,
     shoppingList,
@@ -135,6 +137,7 @@ function AppContent({ inventory }) {
     { tab: 'analytics',   icon: <BarChart3 size={22} />,      label: 'Analytics' },
     { tab: 'household',   icon: <Users size={22} />,          label: 'Household' },
     { tab: 'potluck',     icon: <PartyPopper size={22} />,    label: 'Potluck' },
+    { tab: 'community',   icon: <Globe size={22} />,          label: 'Explore' },
     { tab: 'friends',     icon: <UserRound size={22} />,     label: 'Friends' },
     { tab: 'settings',    icon: <Settings size={22} />,      label: 'Settings' },
   ];
@@ -252,13 +255,13 @@ function AppContent({ inventory }) {
             {activeTab === 'household' && (
               <HouseholdTab
                 onAddShoppingItem={handleAddShoppingItem}
-                hhShoppingItems={hhShoppingItems}
                 onToggleHhItem={handleToggleShoppingCompleted}
                 onDeleteHhItem={handleClearShoppingItem}
               />
             )}
             {activeTab === 'friends' && <FriendsPage />}
             {activeTab === 'potluck' && <PotluckPage />}
+            {activeTab === 'community' && <CommunityRecipes />}
             {activeTab === 'settings' && <SettingsPage onNavigateFriends={() => switchTab('friends')} />}
             {activeTab === 'saved' && (
               <div className="space-y-6">
@@ -513,6 +516,13 @@ function AppContent({ inventory }) {
             </div>
           </div>
         </div>
+      )}
+
+      {showTutorial && (
+        <TutorialOverlay
+          onComplete={dismissTutorial}
+          onSkip={dismissTutorial}
+        />
       )}
     </div>
   );

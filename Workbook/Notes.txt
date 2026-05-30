@@ -366,3 +366,17 @@ FEATURES:
 - Potluck page: standalone top-level nav section; create events with invite codes, share via URL ?potluck=CODE, claim items, readiness bar; backed by potluck_events + potluck_items Supabase tables
 - appware-schema.sql: added household_members, potluck_events, potluck_items tables with RLS policies
 - Pantry item capitalization: toTitleCase already applied in handleAddManualItem (raw_name); Open Food Facts nutritional lookup already runs for barcode scans
+
+IMPLEMENTED (session 2026-05-30 session 8):
+BUGS:
+- HouseholdTab: hhShopItems state renamed to localShopItems to fix build error (duplicate identifier with prop)
+- AddRecipeModal: proper res.ok check + HTML response guard before JSON.parse; shows user-friendly error if URL is inaccessible
+- RecipeModal: shows recipe image (strMealThumb from MealDB, image from Spoonacular) as a banner above the sticky header
+- App icon: SVG icon created at public/icon.svg (blue gradient, Pacifico font, no black background); manifest updated to include SVG icon
+- Auth: "Sync your AppWare apps!" tagline added above Sign in with AppWare button
+- Settings: Invite Friends button now uses native share sheet / clipboard copy for the app URL instead of navigating to Friends page
+
+FEATURES:
+- TutorialOverlay: 8-step interactive tutorial auto-shown on first login; skip/complete writes has_completed_tutorial to profiles table; Re-run Tutorial button in Settings; confetti on final step; appware-schema.sql patched to add has_completed_tutorial column
+- CommunityRecipes: new "Explore" nav section with 14 category rows (Trending, Healthy, Comfort Food…), horizontal scroll, recipe photos, search; all backed by TheMealDB with 6h localStorage cache
+- UserProfileModal: tapping any friend or search result opens a full profile modal showing their avatar, cuisine mastery, public chef history feed, and saved favorites tab

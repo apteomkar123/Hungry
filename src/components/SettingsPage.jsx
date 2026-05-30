@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Users, UserRound, DollarSign, UserPlus, ShoppingCart, Star } from 'lucide-react';
+import { Settings, Users, UserRound, DollarSign, UserPlus, ShoppingCart, Star, BookOpen } from 'lucide-react';
 import { useUser } from './UserContext';
 import HouseholdSettings from './HouseholdSettings';
 
@@ -14,6 +14,7 @@ export default function SettingsPage({ onNavigateFriends }) {
     handleUpdateProfileName: onUpdateName,
     handleUpdateSettings,
     handleUpdatePersonalBudget,
+    rerunTutorial,
   } = useUser();
 
   const [tab, setTab] = useState('profile');
@@ -274,10 +275,24 @@ export default function SettingsPage({ onNavigateFriends }) {
 
       {/* Invite Friends */}
       <button
-        onClick={() => onNavigateFriends?.()}
+        onClick={async () => {
+          const msg = { title: 'Join me on Hungry!', text: 'I use Hungry to track my pantry, discover recipes, and plan meals. Join me!', url: import.meta.env.VITE_APP_URL || window.location.origin };
+          try {
+            if (navigator.share) await navigator.share(msg);
+            else { await navigator.clipboard.writeText(msg.url); alert('App link copied to clipboard!'); }
+          } catch {}
+        }}
         className="w-full flex items-center justify-center gap-2 bg-white/80 backdrop-blur-lg border border-white/20 shadow-xl shadow-blue-900/5 py-4 rounded-[2rem] text-sm font-black text-[#6BAEE0] hover:bg-sky-50 transition-all"
       >
-        <UserPlus size={18} /> Invite Friends
+        <UserPlus size={18} /> Invite Friends to Hungry
+      </button>
+
+      {/* Re-run Tutorial */}
+      <button
+        onClick={() => rerunTutorial?.()}
+        className="w-full flex items-center justify-center gap-2 bg-white/80 backdrop-blur-lg border border-white/20 shadow-xl shadow-blue-900/5 py-4 rounded-[2rem] text-sm font-black text-violet-500 hover:bg-violet-50 transition-all"
+      >
+        <BookOpen size={18} /> Re-run App Tutorial
       </button>
       </>}
 

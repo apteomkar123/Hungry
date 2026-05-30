@@ -14,7 +14,7 @@ import { STATIC_RECIPES } from './staticRecipes';
 
 const RecipeContext = createContext();
 
-const MEALDB_CACHE_KEY = 'hungry_mealdb_v7'; // bumped: smarter comma-split with modifier detection
+const MEALDB_CACHE_KEY = 'hungry_mealdb_v8'; // bumped: added image field from strMealThumb
 
 // Words that appear BEFORE a comma as adjective/modifier — don't split here
 const _INGREDIENT_MODIFIERS = /^(boneless|skinless|fresh|dried|frozen|canned|large|small|medium|extra|lean|ground|minced|diced|chopped|sliced|shredded|peeled|halved|quartered|cubed|cube|julienned|roughly|finely|coarsely|thinly|thickly|packed|heaping|level|softened|beaten|rinsed|drained|trimmed|deveined|pitted|seeded|lightly|plain|reduced|low|full|whole|firm|extra-firm|room\s+temperature|fat-free|sugar-free|gluten-free)$/i;
@@ -129,6 +129,7 @@ export const RecipeProvider = ({ children, fridge }) => {
         meal_type: m.strCategory || 'General',
         cuisine: m.strArea || '',
         ingredients: _normalizeIngredients(ings).map(i => toTitleCase(i)),
+        image: m.strMealThumb || '',
         steps: String(m.strInstructions || '')
           .replace(/\r\n?/g, '\n')
           .split(/\n+/)

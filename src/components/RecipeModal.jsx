@@ -268,8 +268,20 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   return (
     <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-[60] overflow-y-auto">
       <div className="bg-white/90 backdrop-blur-2xl rounded-[3rem] shadow-2xl border border-white/50 w-full max-w-2xl relative max-h-[90vh] flex flex-col overflow-hidden">
+        {/* ── Recipe image ──────────────────────────────────────────────────── */}
+        {displayRecipe.image && (
+          <div className="shrink-0 w-full h-48 overflow-hidden rounded-t-[3rem]">
+            <img
+              src={displayRecipe.image}
+              alt={displayRecipe.name}
+              className="w-full h-full object-cover"
+              onError={e => { e.target.style.display = 'none'; }}
+            />
+          </div>
+        )}
+
         {/* ── Sticky header ─────────────────────────────────────────────────── */}
-        <div className="shrink-0 px-8 pt-8 bg-white/90 backdrop-blur-2xl rounded-t-[3rem]">
+        <div className={`shrink-0 px-8 pt-8 bg-white/90 backdrop-blur-2xl ${!displayRecipe.image ? 'rounded-t-[3rem]' : ''}`}>
           {/* Auto-adapting spinner */}
           {adapting?.startsWith('auto_') && (
             <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3">

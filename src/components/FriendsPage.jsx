@@ -3,12 +3,14 @@ import { Users, UserPlus, Copy, ChefHat, Check, Loader2, Star, Globe, Lock, Sear
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
+import UserProfileModal from './UserProfileModal';
 
 export default function FriendsPage() {
   const { user, userName } = useUser();
   const { setActiveModalRecipe, masterRecipes } = useRecipes();
 
   const [friends, setFriends] = useState([]);
+  const [profileUser, setProfileUser] = useState(null); // user whose profile modal is open
   const [pendingReceived, setPendingReceived] = useState([]); // requests sent TO me
   const [searchQuery, setSearchQuery] = useState('');
   const [friendCode, setFriendCode] = useState('');
@@ -17,9 +19,13 @@ export default function FriendsPage() {
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [myFriendCode, setMyFriendCode] = useState('');
 
-  // The user's friend code is their profile ID (short display)
-  const myFriendCode = user?.id?.slice(0, 8).toUpperCase() || '';
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('friend_code').eq('id', user.id).single()
+      .then(({ data }) => { if (data?.friend_code) setMyFriendCode(data.friend_code); });
+  }, [user]);
 
   const copyCode = async () => {
     try { await navigator.clipboard.writeText(myFriendCode); } catch {}
@@ -33,9 +39,13 @@ export default function FriendsPage() {
     try {
       const { data } = await supabase
         .from('friendships')
-        .select('friend_id, profiles:friend_id(display_name, id)')
-        .eq('user_id', user.id);
-      setFriends((data || []).map(f => f.profiles).filter(Boolean));
+        .select('id, requester_id, addressee_id, requester:requester_id(id, display_name), addressee:addressee_id(id, display_name)')
+        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+        .eq('status', 'accepted');
+      setFriends((data || []).map(f => {
+        const profile = f.requester_id === user.id ? f.addressee : f.requester;
+        return profile ? { ...profile } : null;
+      }).filter(Boolean));
     } catch {}
     setLoading(false);
   }, [user]);
@@ -44,13 +54,16 @@ export default function FriendsPage() {
     if (!user) return;
     try {
       const { data } = await supabase
-        .from('friend_requests')
-        .select('id, sender_id, profiles:sender_id(display_name, id)')
-        .eq('receiver_id', user.id)
+        .from('friendships')
+        .select('id, requester_id, requester:requester_id(id, display_name)')
+        .eq('addressee_id', user.id)
         .eq('status', 'pending');
-      setPendingReceived((data || []).map(r => ({ requestId: r.id, ...r.profiles })).filter(r => r.id));
+      setPendingReceived((data || []).map(r => ({
+        requestId: r.id,
+        id: r.requester?.id,
+        display_name: r.requester?.display_name,
+      })).filter(r => r.id));
     } catch {
-      // friend_requests table may not exist yet — graceful no-op
       setPendingReceived([]);
     }
   }, [user]);
@@ -76,13 +89,12 @@ export default function FriendsPage() {
 
   const addFriendByCode = async () => {
     if (!friendCode.trim() || !user) return;
-    // Find profile whose ID starts with the entered code
     const code = friendCode.trim().toUpperCase();
     try {
       const { data } = await supabase
         .from('profiles')
         .select('id, display_name')
-        .ilike('id', `${code.toLowerCase()}%`)
+        .eq('friend_code', code)
         .neq('id', user.id)
         .limit(1);
       if (!data?.length) { alert('No user found with that code.'); return; }
@@ -94,33 +106,22 @@ export default function FriendsPage() {
   const sendFriendRequest = async (targetId) => {
     if (!user) return;
     try {
-      // Try friend_requests table first for proper request flow
-      const { error } = await supabase.from('friend_requests').insert([{
-        sender_id: user.id,
-        receiver_id: targetId,
-        status: 'pending'
+      await supabase.from('friendships').insert([{
+        requester_id: user.id,
+        addressee_id: targetId,
+        status: 'pending',
       }]);
-      if (error) {
-        // Fall back to direct friendship if table doesn't exist
-        await supabase.from('friendships').upsert([{ user_id: user.id, friend_id: targetId }]);
-        await loadFriends();
-      } else {
-        alert('Friend request sent!');
-      }
-    } catch {
-      await supabase.from('friendships').upsert([{ user_id: user.id, friend_id: targetId }]);
-      await loadFriends();
-    }
+      alert('Friend request sent!');
+    } catch {}
     setSearchResults(prev => prev.map(u => u.id === targetId ? { ...u, alreadyFriend: true } : u));
   };
 
   const acceptRequest = async (request) => {
     try {
-      await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', request.requestId);
-      await supabase.from('friendships').upsert([
-        { user_id: user.id, friend_id: request.id },
-        { user_id: request.id, friend_id: user.id },
-      ]);
+      await supabase
+        .from('friendships')
+        .update({ status: 'accepted' })
+        .eq('id', request.requestId);
       setPendingReceived(prev => prev.filter(r => r.requestId !== request.requestId));
       loadFriends();
     } catch {}
@@ -128,7 +129,10 @@ export default function FriendsPage() {
 
   const declineRequest = async (request) => {
     try {
-      await supabase.from('friend_requests').update({ status: 'declined' }).eq('id', request.requestId);
+      await supabase
+        .from('friendships')
+        .update({ status: 'blocked' })
+        .eq('id', request.requestId);
       setPendingReceived(prev => prev.filter(r => r.requestId !== request.requestId));
     } catch {}
   };
@@ -228,10 +232,10 @@ export default function FriendsPage() {
           <div className="mt-3 space-y-2">
             {searchResults.map(u => (
               <div key={u.id} className="flex items-center justify-between px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-2xl">
-                <div className="flex items-center gap-2">
+                <button onClick={() => setProfileUser(u)} className="flex items-center gap-2 flex-1 text-left">
                   <div className="w-8 h-8 rounded-full bg-[#6BAEE0] flex items-center justify-center text-white font-black text-sm">{(u.display_name || '?')[0].toUpperCase()}</div>
-                  <span className="text-sm font-bold text-slate-700">{u.display_name || 'Anonymous Chef'}</span>
-                </div>
+                  <span className="text-sm font-bold text-slate-700 hover:text-[#6BAEE0] transition-colors">{u.display_name || 'Anonymous Chef'}</span>
+                </button>
                 {u.alreadyFriend ? (
                   <span className="flex items-center gap-1 text-[10px] font-black text-emerald-500"><UserCheck size={11} /> Friends</span>
                 ) : (
@@ -254,7 +258,7 @@ export default function FriendsPage() {
             {friends.map(f => (
               <button
                 key={f.id}
-                onClick={() => setSelectedFriend(selectedFriend?.id === f.id ? null : f)}
+                onClick={() => setProfileUser(f)}
                 className="w-full flex items-center gap-3 px-4 py-3.5 bg-blue-50/50 border border-blue-100 rounded-2xl hover:border-sky-200 transition-all text-left"
               >
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#6BAEE0] to-[#4d96d1] flex items-center justify-center text-white font-black text-sm shrink-0">{(f.display_name || '?')[0].toUpperCase()}</div>
@@ -301,6 +305,10 @@ export default function FriendsPage() {
           <p className="text-sm font-black text-slate-400">No friends yet</p>
           <p className="text-xs text-slate-300">Share your friend code or search by name to connect</p>
         </div>
+      )}
+
+      {profileUser && (
+        <UserProfileModal user={profileUser} onClose={() => setProfileUser(null)} />
       )}
     </div>
   );

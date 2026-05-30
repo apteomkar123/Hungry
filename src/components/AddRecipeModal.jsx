@@ -65,9 +65,14 @@ export default function AddRecipeModal({ onClose }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customPrompt: prompt, directMode: true }),
       });
+      if (!res.ok) throw new Error(`Server error ${res.status} — try pasting the recipe manually.`);
       const text = await res.text();
-      const parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
-      if (parsed.error || !parsed.recipeName) throw new Error('Could not parse recipe from URL');
+      // Guard against HTML error pages
+      if (text.trim().startsWith('<')) throw new Error('The AI could not fetch this URL. Try copying the recipe text and using the manual form instead.');
+      let parsed;
+      try { parsed = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim()); }
+      catch { throw new Error('Could not read the response. The URL may be behind a login wall.'); }
+      if (parsed.error || !parsed.recipeName) throw new Error('Could not extract a recipe from this URL. Try adding it manually.');
       setName(parsed.recipeName || '');
       setMealType(parsed.meal_type || 'Main');
       setCuisine(parsed.cuisine || '');

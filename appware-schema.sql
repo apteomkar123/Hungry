@@ -31,6 +31,10 @@ create table if not exists public.profiles (
   created_at   timestamptz not null default now()
 );
 
+-- Patch: tutorial completion tracking
+alter table public.profiles
+  add column if not exists has_completed_tutorial boolean default false;
+
 -- Patch: add active_household_id if the table pre-dates this schema
 alter table public.profiles
   add column if not exists active_household_id uuid

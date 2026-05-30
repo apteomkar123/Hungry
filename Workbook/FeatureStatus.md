@@ -10,9 +10,10 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - Email / password sign in and sign up
 - Show/hide password toggle (eye icon) on password field
 - Forgot password (email reset link)
-- **Sign in with AppWare** — redirects to AppWare SSO portal, returns with session token; browser back resets sign-in view correctly
+- **Sign in with AppWare** — "Sync your AppWare apps!" tagline above button; redirects to SSO portal, returns with session token; browser back resets sign-in view correctly
 - Google and Apple sign-in removed (replaced by AppWare SSO)
 - Onboarding flow — 5-screen liquid-glass intro + preferences sheet (name, dietary restrictions, nutrition goal), written to Supabase on completion
+- **Interactive Tutorial** — runs automatically on first login (after onboarding); 8-step walkthrough covering all features; skip or dismiss marks it complete; Re-run Tutorial button in Settings; confetti on finish
 
 ### Pantry
 - Add items manually
@@ -26,6 +27,7 @@ A living document tracking what's shipped, what works, and what's blocked until 
 
 ### Recipes
 - Recipe modal header (title, star, share, X) is sticky — stays locked at top as user scrolls through ingredients and steps
+- Recipe images shown at top of modal for MealDB recipes (strMealThumb) and Spoonacular recipes
 - **Mood Food** — "How are you feeling?" mood selector (Tired / Post-Workout / Celebratory / Stressed / Adventurous) boosts matching recipes to the top of the explorer
 - Recipe explorer powered by MealDB + Spoonacular + static recipes, sorted by pantry match %
 - Search by name, ingredient, or filter keyword
@@ -116,6 +118,17 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - Default saved recipes destination (personal or a specific household)
 - Sign out
 
+### Community Recipes / Explore (top-level nav section)
+- Category rows with horizontal scroll: Trending, Healthy, Comfort Food, Breakfast, Seafood, Dessert, Beef, Asian, Indian, Mexican, Italian, American, High Protein, Quick & Easy
+- Each recipe card shows the dish photo and name; tap to open full recipe card with ingredients and steps
+- Search bar at top queries TheMealDB by name in real-time
+- Category data cached per-row for 6 hours in localStorage
+
+### Friends
+- Tapping a friend card (or a search result) opens their full profile modal
+- Profile shows: avatar, cook count, cuisine mastery badges, Chef History feed (public entries), Favorites tab (saved recipes from Supabase)
+- Tapping any recipe in the profile opens it as a full recipe card
+
 ### Potluck (top-level section in nav)
 - Create named events with auto-generated 8-character invite codes
 - Share event via URL (`?potluck=CODE`) — anyone with the link joins and can claim items
@@ -163,4 +176,4 @@ These features are intentionally deferred until a native iOS app exists. The rea
 
 ---
 
-*Last updated: 2026-05-29 (session 7)*
+*Last updated: 2026-05-30 (session 8)*

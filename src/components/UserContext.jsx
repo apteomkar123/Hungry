@@ -15,6 +15,7 @@ export const UserProvider = ({ children }) => {
   const [activeHousehold, setActiveHousehold] = useState(null);
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const fetchHouseholds = async (ids, activeId) => {
     if (!ids || ids.length === 0) {
@@ -66,10 +67,19 @@ export const UserProvider = ({ children }) => {
     await fetchHouseholds(ids, activeId);
 
     // Ensure profile row exists with display_name + active_household_id for member discovery
-    if (authUser.id && activeId) {
-      const displayName = meta.name || authUser.email?.split('@')[0] || 'Chef';
-      supabase.from('profiles').upsert([{ id: authUser.id, display_name: displayName, active_household_id: activeId }]).then(() => {});
+    const displayName = meta.name || authUser.email?.split('@')[0] || 'Chef';
+    if (authUser.id) {
+      const upsertData = { id: authUser.id, display_name: displayName };
+      if (activeId) upsertData.active_household_id = activeId;
+      supabase.from('profiles').upsert([upsertData]).then(() => {});
     }
+
+    // Check if tutorial has been completed
+    supabase.from('profiles').select('has_completed_tutorial').eq('id', authUser.id).single()
+      .then(({ data }) => {
+        if (data && data.has_completed_tutorial === false) setShowTutorial(true);
+        else if (data && data.has_completed_tutorial == null) setShowTutorial(true);
+      }).catch(() => {});
   };
 
   useEffect(() => {
@@ -108,9 +118,11 @@ export const UserProvider = ({ children }) => {
         data: { household_ids: [...currentIds, hh.id], active_household_id: hh.id }
       });
       if (metaError) return alert(`Household created but not linked: ${metaError.message}`);
-      // Write to profiles so HouseholdTab can query members by active_household_id
       const displayName = user.user_metadata?.name || user.email?.split('@')[0] || 'Chef';
-      await supabase.from('profiles').upsert([{ id: user.id, display_name: displayName, active_household_id: hh.id }]);
+      await Promise.all([
+        supabase.from('profiles').upsert([{ id: user.id, display_name: displayName, active_household_id: hh.id }]),
+        supabase.from('household_members').upsert([{ household_id: hh.id, profile_id: user.id, role: 'Administrator' }]),
+      ]);
       setHouseholds(prev => [...prev, hh]);
       setActiveHousehold(hh);
     }
@@ -132,7 +144,10 @@ export const UserProvider = ({ children }) => {
     });
     if (!metaError) {
       const displayName = user.user_metadata?.name || user.email?.split('@')[0] || 'Chef';
-      await supabase.from('profiles').upsert([{ id: user.id, display_name: displayName, active_household_id: hh.id }]);
+      await Promise.all([
+        supabase.from('profiles').upsert([{ id: user.id, display_name: displayName, active_household_id: hh.id }]),
+        supabase.from('household_members').upsert([{ household_id: hh.id, profile_id: user.id, role: 'Tenant' }]),
+      ]);
       setHouseholds(prev => [...prev, hh]);
       setActiveHousehold(hh);
     }
@@ -206,6 +221,12 @@ export const UserProvider = ({ children }) => {
 
   const handleSignOut = async () => { await supabase.auth.signOut(); };
 
+  const dismissTutorial = () => setShowTutorial(false);
+  const rerunTutorial = async () => {
+    if (user) await supabase.from('profiles').update({ has_completed_tutorial: false }).eq('id', user.id);
+    setShowTutorial(true);
+  };
+
   return (
     <UserContext.Provider value={{
       user,
@@ -223,6 +244,9 @@ export const UserProvider = ({ children }) => {
       handleUpdateBudgetLimit,
       handleUpdatePersonalBudget,
       handleSignOut,
+      showTutorial,
+      dismissTutorial,
+      rerunTutorial,
       loading
     }}>
       {children}

@@ -59,6 +59,7 @@ export default function AuthManager() {
       {!isForgotPasswordView && (
         <div className="mt-6 space-y-3 font-sans">
           {/* AppWare SSO */}
+          <p className="text-center text-[10px] font-black text-[#6BAEE0] tracking-widest uppercase mb-1">Sync your AppWare apps!</p>
           <button
             type="button"
             onClick={triggerAppWareRedirect}
