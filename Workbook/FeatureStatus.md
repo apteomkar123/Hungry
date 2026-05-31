@@ -11,6 +11,7 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - Show/hide password toggle (eye icon) on password field
 - Forgot password (email reset link)
 - **Sign in with AppWare** — "Sync your AppWare apps!" tagline above button; redirects to SSO portal, returns with session token; browser back resets sign-in view correctly
+- **Stay signed in** — Supabase client explicitly configured with `persistSession: true` + `autoRefreshToken: true`; session restored from localStorage on every page load so users never have to sign in again
 - Google and Apple sign-in removed (replaced by AppWare SSO)
 - Onboarding flow — 5-screen liquid-glass intro + preferences sheet (name, dietary restrictions, nutrition goal), written to Supabase on completion
 - **Interactive Tutorial** — runs automatically on first login (after onboarding); 10-step walkthrough now covers all features (added Community Recipes, Friends & Profiles, Events); skip or dismiss marks it complete; Re-run Tutorial button in Settings; confetti on finish; intro text no longer has quotation marks
