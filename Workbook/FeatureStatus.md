@@ -197,6 +197,18 @@ A living document tracking what's shipped, what works, and what's blocked until 
 
 ---
 
+## ⏳ Deferred — Requires External API / Library
+
+Features that were requested but cannot be built without a third-party dependency that is not yet integrated.
+
+| Feature | Reason deferred |
+|---|---|
+| **World Cuisine Map (actual world map)** | The Taste Profile "🌍 Taste" tab currently shows a bar chart of cuisines cooked. The request is for an interactive world map where countries light up based on cuisines explored. This requires a geographic mapping library (Mapbox GL JS, Leaflet + world GeoJSON, or D3 choropleth) with country-to-cuisine mapping. Non-trivial to implement without a dedicated mapping dependency, and adds significant bundle size. |
+| **Period Cycle Recipe Suggestions (Flo integration)** | Requested feature: suggest recipes and ingredients based on a user's menstrual cycle phase (e.g. iron-rich foods during menstruation, anti-inflammatory during PMS). The Flo Health app does not expose a public API or SDK for third-party integrations, so there is no way to read cycle data programmatically. A manual "cycle phase" selector in the app could approximate this without Flo, if desired. |
+| **Household Member List not showing** | If members added to a household are not appearing in the Household tab, this is a Supabase data or RLS (Row Level Security) issue rather than a client code bug. The query already handles both the old and new schema (`active_household_id` and `household_members` junction table). To fix: check in Supabase Dashboard → Authentication → Policies that `household_members` has a SELECT policy allowing authenticated users to read rows where they are a member, and verify that members were actually inserted into `household_members` when they joined. |
+
+---
+
 ## 🚧 Blocked — Requires iOS App
 
 These features are intentionally deferred until a native iOS app exists. The reason is noted for each.
