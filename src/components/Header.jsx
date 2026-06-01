@@ -23,9 +23,9 @@ export default function Header({ scrollToTop, onOpenNav }) {
           ? <img src={photo} alt="" className="w-9 h-9 rounded-xl object-cover border border-blue-100 shrink-0" />
           : <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 text-sm font-black text-[#6BAEE0]">{displayName.slice(0,1).toUpperCase()}</div>
         }
-        <div className="flex flex-col gap-0.5">
-          <h1 className="logo-text" style={{ fontSize: '1.4rem', lineHeight: '1' }}>Hungry</h1>
-          <p className="text-slate-500 text-[11px] font-bold leading-tight">{greeting}, <span className="text-[#1F6FB8]">{displayName}</span>!</p>
+        <div className="flex flex-col">
+          <h1 className="logo-text" style={{ fontSize: '1.4rem', lineHeight: '1', paddingBottom: '9px' }}>Hungry</h1>
+          <p className="text-slate-500 text-[11px] font-bold leading-none">{greeting}, <span className="text-[#1F6FB8]">{displayName}</span>!</p>
         </div>
       </button>
       <div className="flex items-center gap-3">
