@@ -277,36 +277,9 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   return (
     <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-[60] overflow-y-auto">
       <div className="bg-white/90 backdrop-blur-2xl rounded-[3rem] shadow-2xl border border-white/50 w-full max-w-2xl relative max-h-[90vh] flex flex-col overflow-hidden">
-        {/* ── Recipe image or substitution tag ──────────────────────────────── */}
-        {(() => {
-          const substitutionMade = displayRecipe._adapted && displayRecipe._substitutions?.length > 0;
-          const restriction = displayRecipe._adaptedFor;
-          if (substitutionMade) {
-            return (
-              <div className="shrink-0 w-full h-20 bg-emerald-50 border-b border-emerald-100 rounded-t-[3rem] flex items-center justify-center px-6">
-                <span className="text-[11px] font-black text-emerald-600 bg-emerald-100 px-4 py-2 rounded-full">
-                  ✅ {restriction ? `${restriction.charAt(0).toUpperCase() + restriction.slice(1)} substitution made` : 'Dietary substitution made'}
-                </span>
-              </div>
-            );
-          }
-          if (displayRecipe.image) {
-            return (
-              <div className="shrink-0 w-full h-48 overflow-hidden rounded-t-[3rem]">
-                <img
-                  src={displayRecipe.image}
-                  alt={displayRecipe.name}
-                  className="w-full h-full object-cover"
-                  onError={e => { e.target.style.display = 'none'; }}
-                />
-              </div>
-            );
-          }
-          return null;
-        })()}
 
         {/* ── Sticky header — action buttons only ───────────────────────────── */}
-        <div className={`shrink-0 px-6 pt-5 pb-3 flex justify-between items-center bg-white/90 backdrop-blur-2xl ${!displayRecipe.image ? 'rounded-t-[3rem]' : ''}`}>
+        <div className="shrink-0 px-6 pt-5 pb-3 flex justify-between items-center bg-white/90 backdrop-blur-2xl rounded-t-[3rem]">
           <span className="bg-sky-50 text-[#6BAEE0] font-mono text-[9px] px-3 py-1 rounded-full uppercase font-black tracking-widest border border-sky-100">{displayRecipe.meal_type}</span>
           <div className="flex gap-2 items-center">
             <div className="relative" ref={starBtnRef}>
@@ -341,8 +314,39 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           </div>
         </div>
 
-        {/* ── Recipe title — full width ─────────────────────────────────────── */}
-        <div className="shrink-0 px-8 pb-5 bg-white/90 backdrop-blur-2xl border-b border-blue-50">
+        {/* ── Scrollable content (image + title + body all scroll) ──────────── */}
+        <div className="overflow-y-auto flex-1">
+
+        {/* ── Recipe image or substitution tag ──────────────────────────────── */}
+        {(() => {
+          const substitutionMade = displayRecipe._adapted && displayRecipe._substitutions?.length > 0;
+          const restriction = displayRecipe._adaptedFor;
+          if (substitutionMade) {
+            return (
+              <div className="w-full h-20 bg-emerald-50 border-b border-emerald-100 flex items-center justify-center px-6">
+                <span className="text-[11px] font-black text-emerald-600 bg-emerald-100 px-4 py-2 rounded-full">
+                  ✅ {restriction ? `${restriction.charAt(0).toUpperCase() + restriction.slice(1)} substitution made` : 'Dietary substitution made'}
+                </span>
+              </div>
+            );
+          }
+          if (displayRecipe.image) {
+            return (
+              <div className="w-full h-48 overflow-hidden">
+                <img
+                  src={displayRecipe.image}
+                  alt={displayRecipe.name}
+                  className="w-full h-full object-cover"
+                  onError={e => { e.target.style.display = 'none'; }}
+                />
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+        {/* ── Recipe title — scrolls with content ──────────────────────────── */}
+        <div className="px-8 pt-5 pb-5 border-b border-blue-50">
           {/* Auto-adapting spinner */}
           {adapting?.startsWith('auto_') && (
             <div className="mb-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3">
@@ -379,10 +383,10 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
             </div>
           )}
           <h3 className="text-2xl font-black text-slate-800 tracking-tighter">{displayRecipe.name}</h3>
-        </div>{/* end sticky header */}
+        </div>
 
-        {/* ── Scrollable content ─────────────────────────────────────────────── */}
-        <div className="overflow-y-auto px-8 pb-8 pt-6 flex-1">
+        {/* ── Body ─────────────────────────────────────────────────────────── */}
+        <div className="px-8 pb-8 pt-6">
 
         {onAddIngredient && (
           <button
@@ -543,6 +547,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
             </button>
           )}
         </div>
+        </div>{/* end body */}
         </div>{/* end scrollable content */}
       </div>
     </div>

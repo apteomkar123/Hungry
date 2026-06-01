@@ -153,6 +153,7 @@ Suggest 10 food and drink items for this event. Be specific and practical. Retur
         setNewEventTime('');
         setNewEventVenue('');
       } else if (error) {
+        console.error('[Potluck] create error (full payload):', error);
         // Fallback: retry without optional columns in case they don't exist yet
         const { data: d2, error: e2 } = await supabase.from('potluck_events')
           .insert([{ name: newEventName.trim(), host_id: user.id, event_code: eventCode }])
@@ -162,12 +163,17 @@ Suggest 10 food and drink items for this event. Be specific and practical. Retur
           setEvents(prev => [{ ...d2, potluck_items: [] }, ...prev]);
           setExpandedId(d2.id);
           setNewEventName('');
+          setNewEventDate('');
+          setNewEventTime('');
+          setNewEventVenue('');
         } else {
+          console.error('[Potluck] create error (minimal payload):', e2);
           const msg = e2?.message || error?.message || '';
           setCreateError(msg || 'Could not create event. Check your connection and try again.');
         }
       }
     } catch (err) {
+      console.error('[Potluck] create exception:', err);
       setCreateError(err?.message || 'Unexpected error creating event.');
     }
     setCreating(false);
@@ -328,7 +334,12 @@ Suggest 10 food and drink items for this event. Be specific and practical. Retur
               Create
             </button>
           </div>
-          {createError && <p className="text-[11px] text-red-500 font-bold mt-1">{createError}</p>}
+          {createError && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mt-1">
+              <p className="text-[11px] text-red-600 font-bold">{createError}</p>
+              <p className="text-[10px] text-red-400 mt-1">If this persists, run migration 008 in your Supabase SQL editor.</p>
+            </div>
+          )}
         </form>
 
         {/* Join via code */}

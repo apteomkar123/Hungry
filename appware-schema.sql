@@ -140,6 +140,9 @@ create table if not exists public.potluck_events (
   host_id     uuid not null references auth.users(id) on delete cascade,
   name        text not null,
   event_code  text unique not null default upper(substring(md5(random()::text), 1, 8)),
+  event_date  date,
+  event_time  time,
+  venue       text,
   created_at  timestamptz not null default now()
 );
 
