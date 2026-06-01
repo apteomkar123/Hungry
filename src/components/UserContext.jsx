@@ -80,6 +80,21 @@ export const UserProvider = ({ children }) => {
       supabase.from('profiles').upsert([upsertData]).then(() => {});
     }
 
+    // Auto-repair: ensure the user appears in household_members for every household they belong to.
+    // This fixes cases where the household was created before household_members existed or the insert failed.
+    if (authUser.id && ids.length > 0) {
+      supabase.from('household_members').select('household_id').eq('profile_id', authUser.id).then(({ data: existing }) => {
+        const existingIds = new Set((existing || []).map(r => r.household_id));
+        const missing = ids.filter(id => !existingIds.has(id));
+        if (missing.length > 0) {
+          supabase.from('household_members').upsert(
+            missing.map(hid => ({ household_id: hid, profile_id: authUser.id, role: 'Member' })),
+            { onConflict: 'household_id,profile_id' }
+          ).then(() => {});
+        }
+      });
+    }
+
     // Load profile data (tutorial state + avatars + friend code)
     supabase.from('profiles').select('hungry_tutorial_done, avatar_url, hungry_avatar_url, friend_code').eq('id', authUser.id).single()
       .then(async ({ data }) => {

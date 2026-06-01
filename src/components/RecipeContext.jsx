@@ -390,7 +390,12 @@ export const RecipeProvider = ({ children, fridge }) => {
       steps: recipe.steps || [],
     };
     if (householdId) insertData.household_id = householdId;
-    const { data, error: err } = await supabase.from('saved_recipes').insert([insertData]).select();
+    let { data, error: err } = await supabase.from('saved_recipes').insert([insertData]).select();
+    // If cuisine column doesn't exist yet (schema cache miss), retry without it
+    if (err?.message?.includes('cuisine')) {
+      const { cuisine: _c, ...withoutCuisine } = insertData;
+      ({ data, error: err } = await supabase.from('saved_recipes').insert([withoutCuisine]).select());
+    }
     if (err) { console.error('Save recipe error:', err.message, insertData); return false; }
     if (data?.[0]) setSavedRecipes(prev => [...prev, data[0]]);
     return true;
