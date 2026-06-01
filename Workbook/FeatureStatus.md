@@ -302,4 +302,20 @@ These features are intentionally deferred until a native iOS app exists. The rea
 | **Per-aisle item location for any store** | No public API exists for any chain | All grocery chains (Walmart, Whole Foods, Trader Joe's, Costco, etc.) keep in-store map data proprietary. The current aisle guide (hardcoded per store) is the best possible without a private data agreement. |
 | **Target in-store navigation** | Target API not available to third parties | Target's Redsky API is internal only. No developer program exists. |
 
-*Last updated: 2026-05-30 (session 9)*
+---
+
+### Session 13 (2026-06-01)
+**Bugs fixed:**
+- Potluck "Events table not set up" persisting after migration — `fetchEvents`, `handleCreate`, `handleJoin` used Supabase join syntax `*, potluck_items(*)` which fails when `potluck_items` existed with old schema (no `event_id`). Fixed all three to use separate queries. New migration `006_potluck_items_event_id.sql` adds `event_id` column to existing `potluck_items`.
+- Star save from Explore/Community page silently failing — "My Saved Recipes" button passed `undefined` so `onSaveRecipe` read localStorage default (possibly a household UUID); fixed to pass `null` explicitly. "Already saved" guard also blocked personal saves when recipe existed only as household-saved; fixed to check `!r.household_id`.
+- "Hungry" logo descenders overlapping greeting text — fixed with `lineHeight: 1.2` and `paddingBottom: 2px` on h1.
+- CommunityRecipes dietary substitution not applying — `cleanedIngredients` was set to raw MealDB capitalized strings; `MEAT_PATTERN` has no `/i` flag so checks always returned false; fixed by mapping `cleanIngredientLocally` for `cleanedIngredients`.
+- Recipe title constrained by buttons on same row — restructured RecipeModal: buttons moved to their own sticky bar, title now takes full modal width below.
+- Custom recipe generator button going off screen — input and button stacked vertically now; button full-width centered.
+- Custom recipe generator using extra ingredients — prompt now explicitly says "ONLY these exact ingredients, do not add any others."
+
+**Deferred (require Supabase access or debugging):**
+- Household members not showing — code has 3-tier fallback (FK join → separate profiles fetch by ID → old schema columns). If members still don't show: in Supabase Dashboard → SQL Editor, verify `SELECT * FROM household_members WHERE household_id = '<your-hh-id>'` returns rows, and that the `hm: members can view` RLS policy exists on `household_members`.
+- Recipes added via URL link not saving ("check your connection") — `onSaveRecipe` logs the exact Supabase error to the browser console (F12 → Console). Check there for the specific error. Most likely causes: Supabase session expired (sign out and back in), or a column constraint issue.
+
+*Last updated: 2026-06-01 (session 13)*

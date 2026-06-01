@@ -378,7 +378,8 @@ export const RecipeProvider = ({ children, fridge }) => {
       householdId = defaultDest === 'personal' ? null : defaultDest;
     }
     const recipeIdStr = String(recipe.id);
-    if (!householdId && savedRecipes.some(r => r.recipe_id === recipeIdStr)) return true; // already saved
+    // Only block a personal save if the recipe is ALREADY saved personally (not just to a household)
+    if (!householdId && savedRecipes.some(r => r.recipe_id === recipeIdStr && !r.household_id)) return true;
     const insertData = {
       user_id: user.id,
       recipe_id: recipeIdStr,
@@ -390,8 +391,8 @@ export const RecipeProvider = ({ children, fridge }) => {
     };
     if (householdId) insertData.household_id = householdId;
     const { data, error: err } = await supabase.from('saved_recipes').insert([insertData]).select();
-    if (err) { console.error('Save recipe error:', err.message); return false; }
-    if (data) setSavedRecipes(prev => [...prev, data[0]]);
+    if (err) { console.error('Save recipe error:', err.message, insertData); return false; }
+    if (data?.[0]) setSavedRecipes(prev => [...prev, data[0]]);
     return true;
   };
 

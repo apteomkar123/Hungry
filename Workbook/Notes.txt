@@ -479,3 +479,40 @@ FEATURES ADDED (Session 12)
 ----------------------------
 Preview Profile button in Profile section - shows how other users see your profile
 Custom recipe generator in Recipes tab - type any ingredients to get an AI-generated recipe
+
+BUGS TO FIX (Session 13 / 2026-06-01)
+---------------------------------------
+Adding a party is still giving me the same exact message about "events table not set up yet. Run the SQL migration in your Supabase dashboard to create the potluck_events and potluck_items tables", even though I ran 005_potluck_events.sql in the SQL editor on Supabase
+Recipes from the explore page still aren't saving when the star button is hit, just the drop down with "personal" and households are appearing.
+
+DONE (Session 13 / 2026-06-01)
+--------------------------------
+Potluck "events table not set up" still showing after migration was run — root cause: potluck_events and potluck_items queries used Supabase join syntax (*, potluck_items(*)) which fails when potluck_items already existed with old schema missing event_id. Fixed by using two separate queries in fetchEvents, handleCreate, and handleJoin. New migration 006_potluck_items_event_id.sql adds event_id column to existing potluck_items.
+Star save from Explore/Community not persisting — two bugs: (1) "My Saved Recipes" button passed undefined householdId so localStorage default (possibly a household UUID) was used; fixed by passing null explicitly. (2) "already saved" guard blocked personal saves when recipe was already saved to a household; fixed to only block when saved_recipes has a matching personal (household_id = null) record.
+"Hungry" logo bleeding into greeting text — Pacifico descenders overlapped with mt-1 spacing; fixed by setting lineHeight:1.2 and paddingBottom:2px on h1, removing redundant leading-none.
+CommunityRecipes dietary substitution not applying — openMeal set cleanedIngredients to raw MealDB strings (e.g. "Chicken Breast" capitalized), but MEAT_PATTERN has no /i flag so matchesRecipeFilter returned true for chicken recipes and locallyAdaptRecipe was never called; fixed by mapping cleanIngredientLocally over ingredients for cleanedIngredients field.
+
+ADDITIONAL BUGS (reported mid-session 13)
+-------------------------------------------
+Recipe titles aren't taking up the whole width, they're getting pushed to the left. Split the header into 2 parts, one where the star, share, and x are, and one where the recipe picture and recipe title are. Lock only the star share and x header. Recipe title and tags have the entire width of the screen to display text
+Recipes added through a link are still not being saved, getting an error that says "check your connection"
+Household still isn't showing members of the household
+The custom recipe generator should only be using the ingredients entered, nothing else. The create button also goes off the screen and looks misplaced. The text field and the create button together should be centered
+
+FEATURES ADDED (mid-session 13)
+----------------------------------
+Add a filter to the pantry for households and personal, or all. Also add a pantry to the household section
+
+DONE (additional, session 13)
+-------------------------------
+RecipeModal header restructured: star/share/X in their own sticky bar; recipe title given full modal width below
+Custom recipe generator: prompt updated to "ONLY these exact ingredients, do not add any others"; input now full-width with inline clear button; Create button is full-width centered below
+Potluck fetchEvents/handleCreate/handleJoin refactored to use separate queries (no join syntax); migration 006_potluck_items_event_id.sql written to add event_id to existing potluck_items
+Star save "My Saved Recipes" now passes null explicitly so localStorage default can't redirect to a household; "already saved" guard only blocks when personal save already exists
+
+NOT DONE (session 13)
+-----------------------
+Household members not showing: code has full 3-tier fallback; issue is likely a Supabase RLS or data issue — check console + Supabase dashboard
+Recipes added via link not saving: onSaveRecipe now logs the exact Supabase error to console; user should check F12 → Console for specifics
+Pantry household/personal filter: deferred, not yet implemented
+Pantry section in HouseholdTab: deferred, not yet implemented

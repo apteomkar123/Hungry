@@ -305,63 +305,21 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
           return null;
         })()}
 
-        {/* ── Sticky header ─────────────────────────────────────────────────── */}
-        <div className={`shrink-0 px-8 pt-8 bg-white/90 backdrop-blur-2xl ${!displayRecipe.image ? 'rounded-t-[3rem]' : ''}`}>
-          {/* Auto-adapting spinner */}
-          {adapting?.startsWith('auto_') && (
-            <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3">
-              <Loader2 size={14} className="animate-spin text-amber-500 shrink-0" />
-              <p className="text-[11px] font-bold text-amber-700">
-                Adapting recipe for your {adapting.replace('auto_', '')} preference…
-              </p>
-            </div>
-          )}
-
-          {/* Adapted recipe banner */}
-          {(adaptedRecipe || autoAdaptedRecipe) && !adapting && (
-            <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
-              <p className="text-[11px] font-bold text-emerald-700">
-                {autoAdaptedRecipe && !adaptedRecipe
-                  ? `Auto-adapted for your ${autoAdaptedRecipe._adaptedFor} preference`
-                  : `Adapted for ${displayRecipe._adaptedFor}`}
-              </p>
-              {adaptedRecipe && (
-                <button onClick={() => setAdaptedRecipe(null)} className="shrink-0 text-[10px] font-black text-emerald-600 flex items-center gap-1 hover:underline">
-                  <RotateCcw size={11} /> Revert to original
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Proteinized banner */}
-          {proteinResult && (
-            <div className="mb-4 bg-violet-50 border border-violet-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
-              <p className="text-[11px] font-bold text-violet-700">
-                💪 +{Math.round(proteinResult.proteinAdded / 4)}g protein/serving via {proteinResult.proteinIngredient}
-              </p>
-              <button onClick={() => setProteinResult(null)} className="shrink-0 text-[10px] font-black text-violet-600 flex items-center gap-1 hover:underline">
-                <RotateCcw size={11} /> Revert
-              </button>
-            </div>
-          )}
-
-          <div className="flex justify-between items-start border-b border-blue-50 pb-5 mb-0">
-          <div>
-            <span className="bg-sky-50 text-[#6BAEE0] font-mono text-[9px] px-3 py-1 rounded-full uppercase font-black tracking-widest border border-sky-100">{displayRecipe.meal_type}</span>
-            <h3 className="text-2xl font-black text-slate-800 tracking-tighter mt-2">{displayRecipe.name}</h3>
-          </div>
-          <div className="flex gap-2 items-start">
+        {/* ── Sticky header — action buttons only ───────────────────────────── */}
+        <div className={`shrink-0 px-6 pt-5 pb-3 flex justify-between items-center bg-white/90 backdrop-blur-2xl ${!displayRecipe.image ? 'rounded-t-[3rem]' : ''}`}>
+          <span className="bg-sky-50 text-[#6BAEE0] font-mono text-[9px] px-3 py-1 rounded-full uppercase font-black tracking-widest border border-sky-100">{displayRecipe.meal_type}</span>
+          <div className="flex gap-2 items-center">
             <div className="relative" ref={starBtnRef}>
               <button
                 onClick={handleToggleStar}
-                className={`p-3 border rounded-2xl transition-colors ${savedEntry ? 'bg-amber-50 border-amber-200 text-amber-400' : 'bg-white border-blue-100 text-slate-300 hover:text-amber-400 hover:border-amber-200'}`}
+                className={`p-2.5 border rounded-2xl transition-colors ${savedEntry ? 'bg-amber-50 border-amber-200 text-amber-400' : 'bg-white border-blue-100 text-slate-300 hover:text-amber-400 hover:border-amber-200'}`}
               >
-                <Star size={20} fill={savedEntry ? 'currentColor' : 'none'} />
+                <Star size={18} fill={savedEntry ? 'currentColor' : 'none'} />
               </button>
               {showHouseholdMenu && !savedEntry && (
-                <div className="absolute right-0 top-14 bg-white border border-blue-100 rounded-2xl shadow-xl z-20 min-w-[180px] p-2 space-y-1">
+                <div className="absolute right-0 top-12 bg-white border border-blue-100 rounded-2xl shadow-xl z-20 min-w-[180px] p-2 space-y-1">
                   <button
-                    onClick={() => { onSaveRecipe(stableRecipe); setShowHouseholdMenu(false); }}
+                    onClick={() => { onSaveRecipe(stableRecipe, null); setShowHouseholdMenu(false); }}
                     className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-[#6BAEE0] transition-all flex items-center gap-2"
                   >
                     <Star size={12} /> My Saved Recipes
@@ -378,10 +336,49 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
                 </div>
               )}
             </div>
-            <button onClick={handleShare} className="p-3 bg-white border border-blue-100 rounded-2xl text-[#6BAEE0] hover:bg-sky-50 transition-colors"><Share2 size={20} /></button>
-            <button onClick={() => setModal(null)} className="p-3 bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button>
+            <button onClick={handleShare} className="p-2.5 bg-white border border-blue-100 rounded-2xl text-[#6BAEE0] hover:bg-sky-50 transition-colors"><Share2 size={18} /></button>
+            <button onClick={() => setModal(null)} className="p-2.5 bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors"><X size={18} /></button>
           </div>
         </div>
+
+        {/* ── Recipe title — full width ─────────────────────────────────────── */}
+        <div className="shrink-0 px-8 pb-5 bg-white/90 backdrop-blur-2xl border-b border-blue-50">
+          {/* Auto-adapting spinner */}
+          {adapting?.startsWith('auto_') && (
+            <div className="mb-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+              <Loader2 size={14} className="animate-spin text-amber-500 shrink-0" />
+              <p className="text-[11px] font-bold text-amber-700">
+                Adapting recipe for your {adapting.replace('auto_', '')} preference…
+              </p>
+            </div>
+          )}
+          {/* Adapted recipe banner */}
+          {(adaptedRecipe || autoAdaptedRecipe) && !adapting && (
+            <div className="mb-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+              <p className="text-[11px] font-bold text-emerald-700">
+                {autoAdaptedRecipe && !adaptedRecipe
+                  ? `Auto-adapted for your ${autoAdaptedRecipe._adaptedFor} preference`
+                  : `Adapted for ${displayRecipe._adaptedFor}`}
+              </p>
+              {adaptedRecipe && (
+                <button onClick={() => setAdaptedRecipe(null)} className="shrink-0 text-[10px] font-black text-emerald-600 flex items-center gap-1 hover:underline">
+                  <RotateCcw size={11} /> Revert
+                </button>
+              )}
+            </div>
+          )}
+          {/* Proteinized banner */}
+          {proteinResult && (
+            <div className="mb-3 bg-violet-50 border border-violet-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+              <p className="text-[11px] font-bold text-violet-700">
+                💪 +{Math.round(proteinResult.proteinAdded / 4)}g protein/serving via {proteinResult.proteinIngredient}
+              </p>
+              <button onClick={() => setProteinResult(null)} className="shrink-0 text-[10px] font-black text-violet-600 flex items-center gap-1 hover:underline">
+                <RotateCcw size={11} /> Revert
+              </button>
+            </div>
+          )}
+          <h3 className="text-2xl font-black text-slate-800 tracking-tighter">{displayRecipe.name}</h3>
         </div>{/* end sticky header */}
 
         {/* ── Scrollable content ─────────────────────────────────────────────── */}

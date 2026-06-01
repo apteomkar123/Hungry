@@ -56,12 +56,26 @@ export default function PotluckPage() {
     if (!user) return;
     setLoading(true);
     try {
-      const { data } = await supabase
+      const { data: eventsData, error: evErr } = await supabase
         .from('potluck_events')
-        .select('*, potluck_items(*)')
+        .select('*')
         .order('created_at', { ascending: false });
-      setEvents(data || []);
-      if (data?.length > 0 && !expandedId) setExpandedId(data[0].id);
+      if (evErr) throw evErr;
+      const evList = eventsData || [];
+      if (evList.length === 0) { setEvents([]); setLoading(false); return; }
+      const ids = evList.map(e => e.id);
+      const { data: itemsData } = await supabase
+        .from('potluck_items')
+        .select('*')
+        .in('event_id', ids);
+      const byEvent = {};
+      (itemsData || []).forEach(i => {
+        if (!byEvent[i.event_id]) byEvent[i.event_id] = [];
+        byEvent[i.event_id].push(i);
+      });
+      const merged = evList.map(ev => ({ ...ev, potluck_items: byEvent[ev.id] || [] }));
+      setEvents(merged);
+      if (merged.length > 0 && !expandedId) setExpandedId(merged[0].id);
     } catch {}
     setLoading(false);
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -129,10 +143,10 @@ Suggest 10 food and drink items for this event. Be specific and practical. Retur
       };
       const { data, error } = await supabase.from('potluck_events')
         .insert([payload])
-        .select('*, potluck_items(*)')
+        .select()
         .single();
       if (!error && data) {
-        setEvents(prev => [data, ...prev]);
+        setEvents(prev => [{ ...data, potluck_items: [] }, ...prev]);
         setExpandedId(data.id);
         setNewEventName('');
         setNewEventDate('');
@@ -142,19 +156,15 @@ Suggest 10 food and drink items for this event. Be specific and practical. Retur
         // Fallback: retry without optional columns in case they don't exist yet
         const { data: d2, error: e2 } = await supabase.from('potluck_events')
           .insert([{ name: newEventName.trim(), host_id: user.id, event_code: eventCode }])
-          .select('*, potluck_items(*)')
+          .select()
           .single();
         if (!e2 && d2) {
-          setEvents(prev => [d2, ...prev]);
+          setEvents(prev => [{ ...d2, potluck_items: [] }, ...prev]);
           setExpandedId(d2.id);
           setNewEventName('');
         } else {
           const msg = e2?.message || error?.message || '';
-          if (msg.includes('potluck_events') || msg.includes('schema cache')) {
-            setCreateError('Events table not set up yet. Run the SQL migration in your Supabase dashboard to create the potluck_events and potluck_items tables.');
-          } else {
-            setCreateError(msg || 'Could not create event. Check your connection and try again.');
-          }
+          setCreateError(msg || 'Could not create event. Check your connection and try again.');
         }
       }
     } catch (err) {
@@ -168,11 +178,13 @@ Suggest 10 food and drink items for this event. Be specific and practical. Retur
     setJoining(true);
     try {
       const { data: ev } = await supabase.from('potluck_events')
-        .select('*, potluck_items(*)')
+        .select('*')
         .eq('event_code', code.trim().toUpperCase())
         .single();
       if (ev) {
-        setEvents(prev => prev.find(e => e.id === ev.id) ? prev : [ev, ...prev]);
+        const { data: itemsData } = await supabase.from('potluck_items').select('*').eq('event_id', ev.id);
+        const full = { ...ev, potluck_items: itemsData || [] };
+        setEvents(prev => prev.find(e => e.id === ev.id) ? prev : [full, ...prev]);
         setExpandedId(ev.id);
         setJoinCode('');
       } else {

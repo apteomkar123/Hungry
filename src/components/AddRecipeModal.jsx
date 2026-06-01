@@ -56,7 +56,7 @@ export default function AddRecipeModal({ onClose }) {
       setSaved(true);
       setTimeout(() => { setSaved(false); onClose(); }, 1200);
     } else {
-      setSaveError('Could not save recipe. Please check your connection and try again.');
+      setSaveError('Could not save. Make sure you\'re signed in and try again.');
     }
   };
 

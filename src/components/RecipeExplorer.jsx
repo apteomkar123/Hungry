@@ -63,7 +63,7 @@ export default function RecipeExplorer({ initialMood = null }) {
       const restrictions = (userSettings?.dietary_restrictions || []).join(', ');
       const goal = userSettings?.nutrition_goal || '';
       const dietContext = [restrictions, goal].filter(Boolean).join('; ');
-      const prompt = `Create a creative recipe using these ingredients: ${customIngredients}.${dietContext ? ` Dietary context: ${dietContext}.` : ''} Return ONLY valid JSON with keys: recipeName, ingredients (array of strings), steps (array of strings).`;
+      const prompt = `Create a recipe using ONLY these exact ingredients (do not add any others): ${customIngredients}.${dietContext ? ` Dietary context: ${dietContext}.` : ''} Return ONLY valid JSON with keys: recipeName, ingredients (array of strings using only the provided ingredients), steps (array of strings).`;
       const res = await fetch('/.netlify/functions/scan-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -193,7 +193,7 @@ export default function RecipeExplorer({ initialMood = null }) {
           <h3 className="text-[13px] font-bold text-slate-400">Generate from Any Ingredients</h3>
         </div>
         <p className="text-[10px] text-slate-400 mb-3">Type any ingredients you have (not just from your pantry) to get a custom AI recipe.</p>
-        <div className="flex gap-2">
+        <div className="relative">
           <input
             type="text"
             value={customIngredients}
@@ -201,22 +201,22 @@ export default function RecipeExplorer({ initialMood = null }) {
             onKeyDown={e => e.key === 'Enter' && generateCustomRecipe()}
             placeholder="e.g. chicken, lemon, garlic, pasta…"
             style={{ fontSize: '16px' }}
-            className="flex-1 bg-violet-50/50 border border-violet-100 px-4 py-3 rounded-2xl text-xs font-semibold text-slate-800 focus:border-violet-300 focus:outline-none"
+            className="w-full bg-violet-50/50 border border-violet-100 px-4 py-3 pr-10 rounded-2xl text-xs font-semibold text-slate-800 focus:border-violet-300 focus:outline-none"
           />
           {customIngredients && (
-            <button onClick={() => setCustomIngredients('')} className="p-3 text-slate-300 hover:text-slate-500 transition-colors">
-              <X size={16} />
+            <button onClick={() => setCustomIngredients('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors">
+              <X size={14} />
             </button>
           )}
-          <button
-            onClick={generateCustomRecipe}
-            disabled={customGenerating || !customIngredients.trim()}
-            className="flex items-center gap-1.5 bg-violet-500 text-white px-4 py-3 rounded-2xl text-xs font-black shadow-md shadow-violet-100 disabled:opacity-50 transition-all active:scale-95"
-          >
-            {customGenerating ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
-            {customGenerating ? 'Creating…' : 'Create'}
-          </button>
         </div>
+        <button
+          onClick={generateCustomRecipe}
+          disabled={customGenerating || !customIngredients.trim()}
+          className="w-full flex items-center justify-center gap-1.5 bg-violet-500 text-white py-3 rounded-2xl text-xs font-black shadow-md shadow-violet-100 disabled:opacity-50 transition-all active:scale-95"
+        >
+          {customGenerating ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+          {customGenerating ? 'Creating…' : 'Create Recipe'}
+        </button>
       </div>
 
       {/* Recipe Grid */}

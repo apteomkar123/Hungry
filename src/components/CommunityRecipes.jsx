@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Loader2, X, Globe, ChevronLeft, ArrowRight } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
-import { toTitleCase, locallyAdaptRecipe, matchesRecipeFilter } from './recipeUtils';
+import { toTitleCase, locallyAdaptRecipe, matchesRecipeFilter, cleanIngredientLocally } from './recipeUtils';
 
 const MEALDB = 'https://www.themealdb.com/api/json/v1/1';
 
@@ -164,7 +164,7 @@ export default function CommunityRecipes() {
         cuisine: m.strArea || '',
         image: m.strMealThumb || '',
         ingredients: ings,
-        cleanedIngredients: ings,
+        cleanedIngredients: ings.map(cleanIngredientLocally).filter(Boolean),
         steps,
       };
       // Apply dietary adaptations based on the user's restrictions
