@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, DollarSign, UserPlus, ShoppingCart, Star, BookOpen, Camera } from 'lucide-react';
+import { Settings, DollarSign, UserPlus, ShoppingCart, Star, BookOpen, Camera, Link } from 'lucide-react';
 import { useUser } from './UserContext';
+import { supabase } from '../supabaseClient';
 
 const DIETARY_OPTIONS = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Halal', 'Kosher', 'Dairy-Free', 'Nut-Free', 'Low-Carb', 'High-Protein'];
 const NUTRITION_GOALS = ['Balanced', 'High Protein', 'Low Carb', 'Low Fat', 'Build Muscle', 'Lose Weight'];
@@ -19,6 +20,27 @@ export default function SettingsPage({ onNavigateFriends }) {
     handleUpdatePersonalBudget,
     rerunTutorial,
   } = useUser();
+
+  const [identities, setIdentities] = useState([]);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linkMsg, setLinkMsg] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.identities) setIdentities(user.identities);
+    });
+  }, []);
+
+  const linkGoogle = async () => {
+    setLinkLoading(true);
+    setLinkMsg(null);
+    const { error } = await supabase.auth.linkIdentity({
+      provider: 'google',
+      options: { redirectTo: import.meta.env.VITE_APP_URL || window.location.origin },
+    });
+    setLinkLoading(false);
+    if (error) setLinkMsg({ ok: false, text: error.message });
+  };
 
   // 'import-or-new' = user has global photo, ask if they want it here
   // 'apply-all' = user picked a new photo, ask if global or app-only
@@ -423,6 +445,53 @@ export default function SettingsPage({ onNavigateFriends }) {
       >
         <BookOpen size={18} /> Re-run App Tutorial
       </button>
+
+      {/* Merge AppWare Account */}
+      <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5 space-y-4">
+        <div className="flex items-center gap-2 mb-1">
+          <Link className="text-[#6BAEE0]" size={16} />
+          <h3 className="text-[13px] font-bold text-slate-400">Merge AppWare Account</h3>
+        </div>
+        <p className="text-[11px] text-slate-400 leading-relaxed">
+          Link another sign-in method to your account. Once linked, you can sign in with either method and all your data stays in one place.
+        </p>
+
+        {/* Connected identities */}
+        <div className="space-y-2">
+          {identities.map(id => (
+            <div key={id.id} className="flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-blue-50 border border-blue-100">
+              <span className="text-base">{id.provider === 'google' ? '🟥' : '✉️'}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-black text-slate-700 capitalize">{id.provider}</p>
+                <p className="text-[10px] text-slate-400 truncate">{id.identity_data?.email ?? ''}</p>
+              </div>
+              <span className="text-[10px] font-black text-emerald-500">Connected</span>
+            </div>
+          ))}
+        </div>
+
+        {!identities.some(id => id.provider === 'google') && (
+          <button
+            onClick={linkGoogle}
+            disabled={linkLoading}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-white border border-blue-100 text-[12px] font-black text-slate-600 hover:bg-sky-50 shadow-sm transition-all"
+          >
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            {linkLoading ? 'Redirecting…' : 'Link Google Account'}
+          </button>
+        )}
+
+        {linkMsg && (
+          <p className={`text-[11px] px-3 py-2 rounded-xl border font-semibold ${linkMsg.ok ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : 'text-rose-500 bg-rose-50 border-rose-200'}`}>
+            {linkMsg.text}
+          </p>
+        )}
+      </section>
 
     </div>
   );

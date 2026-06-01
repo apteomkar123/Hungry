@@ -326,6 +326,10 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - Household members not showing — code has 3-tier fallback (FK join → separate profiles fetch by ID → old schema columns). If members still don't show: in Supabase Dashboard → SQL Editor, verify `SELECT * FROM household_members WHERE household_id = '<your-hh-id>'` returns rows, and that the `hm: members can view` RLS policy exists on `household_members`.
 - Recipes added via URL link not saving ("check your connection") — `onSaveRecipe` logs the exact Supabase error to the browser console (F12 → Console). Check there for the specific error. Most likely causes: Supabase session expired (sign out and back in), or a column constraint issue.
 
+### Session 15 (2026-06-01)
+**Features added:**
+- **Merge AppWare Account** — "Merge AppWare Account" section added to Settings. Shows connected sign-in methods (email, Google) fetched live from Supabase `getUser()`. "Link Google Account" button calls `supabase.auth.linkIdentity({ provider: 'google' })`, which starts an OAuth redirect to Google; on return, Google is linked to the existing account so the user can sign in with either method.
+
 ### Session 14 (2026-06-01)
 **Bugs fixed:**
 - Tutorial re-appearing every login — `handleComplete` and `handleSkip` now also write `hungry_tutorial_done: true` to user auth metadata; `loadUserState` checks metadata first so the tutorial won't show even if the `hungry_tutorial_done` DB column is absent.
