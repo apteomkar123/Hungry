@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChefHat, Camera, Star, Trash2, Check, Lock, Globe, ChevronDown, Clock, User, Wand2, Loader2 } from 'lucide-react';
+import { X, ChefHat, Camera, Star, Trash2, Check, Lock, Globe, ChevronDown, Clock, User, Wand2, Loader2, Music } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
 
@@ -190,6 +190,21 @@ function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePh
           </button>
         )}
       </div>
+
+      {/* Feature #12: Soundtrack of My Life — show what was playing in Jukebox when cooked */}
+      {entry.soundtrack && (
+        <div className="px-6 mb-5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-300 mb-2">🎵 Playing While Cooking</p>
+          <div className="bg-violet-50 border border-violet-100 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <Music size={14} className="text-violet-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-violet-700 truncate">{entry.soundtrack.track_title}</p>
+              <p className="text-[10px] text-violet-400 truncate">{entry.soundtrack.artist}{entry.soundtrack.album ? ` · ${entry.soundtrack.album}` : ''}</p>
+            </div>
+            <span className="text-[9px] font-black text-violet-300 uppercase tracking-widest shrink-0">{entry.soundtrack.platform || 'Jukebox'}</span>
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="px-6 pb-6 space-y-3">

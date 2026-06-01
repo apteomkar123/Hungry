@@ -189,14 +189,14 @@ A living document tracking what's shipped, what works, and what's blocked until 
 
 ### AppWare Ecosystem Features
 - **#1 Kitchen Concert** — when Cooking Mode opens, writes a `cooking_started` event to `cross_app_activity` with a genre seed mapped from recipe cuisine (Italian → classical, Indian → world-music, etc.) so Jukebox can queue a matching playlist
-- **#3 Smart Grocery Split** — when a priced pantry item is moved to a household, automatically creates a `Groceries` transaction in Roomies and splits it among household members
+- **#3 Smart Grocery Split** — Household tab → Settle Up section now includes a "Split $X in Roomies" button that pushes the total household shopping list cost directly to Roomies Finance as a `Groceries` transaction, split equally among all household members
 - **#4 Potluck Planner** — "✨ Smart Suggestions" button in the Household → Potluck panel fetches each member's `hungry_settings.dietary_restrictions` and generates a filtered item suggestion list (vegan/vegetarian/meat-safe); also writes `potluck_created` signal to `cross_app_activity`
 - **#5 AppWare Wrap** — new "🌐 Wrap" tab in Analytics dashboard; shows monthly cross-app stats: recipes cooked, chores done (Roomies), bills paid (Roomies), top cuisine, pantry value, and currently playing track (Jukebox `now_playing` table)
 - **#6 Mood-Food Matching** — on app load, reads most recent `mood_signal` event from `cross_app_activity` (written by Jukebox) and pre-selects the matching mood in Recipe Explorer
 - **#7 Who's Home? Shopping Alerts** — Household tab shows an amber banner when any household member has their Roomies presence set to "🛒 At the Store" (written by Hungry's Personal Shopper mode)
 - **#10 Late-Night Snack Mode** — on app load, reads most recent `late_night_active` event from Jukebox (past 2 hours) and pre-selects "late_night" mood in Recipe Explorer
 - **#11 Grocery Gig Status** — Personal Shopper sets Roomies `user_presence` to `status='Away', custom_text='🛒 At the Store'` on open; resets to `Available` when closed
-- **#12 Soundtrack of My Life** — when a recipe is marked as Cooked, queries the Jukebox `now_playing` table and saves the current track (`track_title`, `artist`, `album`, `artwork_url`, `platform`) into `chef_history.soundtrack`
+- **#12 Soundtrack of My Life** — when a recipe is marked as Cooked, queries the Jukebox `now_playing` table and saves the current track (`track_title`, `artist`, `album`, `artwork_url`, `platform`) into `chef_history.soundtrack`; the saved track is now displayed in the expanded Chef History card as a "🎵 Playing While Cooking" purple pill
 - **#14 Nutritional BPM (write side)** — when the Analytics page loads and the user's macro breakdown is below their stated goal (e.g. protein < 20g on High Protein goal), writes a `nutrition_shortfall` event to `cross_app_activity` so Jukebox can suggest a workout playlist and Roomies can surface high-effort chores first
 
 ### Infrastructure

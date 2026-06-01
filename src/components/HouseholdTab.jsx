@@ -33,6 +33,8 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
   const [sentRequests, setSentRequests] = useState(new Set());
   const [memberPresence, setMemberPresence] = useState({}); // profileId → {status, custom_text}
   const [showAddHH, setShowAddHH] = useState(false);
+  const [pushingToRoomies, setPushingToRoomies] = useState(false);
+  const [roomiesPushMsg, setRoomiesPushMsg] = useState('');
   const [newHHName, setNewHHName] = useState('');
   const [joinHHCode, setJoinHHCode] = useState('');
 
@@ -181,6 +183,35 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
   const saveBudget = () => {
     handleUpdateBudgetLimit(budgetInput, selectedHHId);
     setEditingBudget(false);
+  };
+
+  // Feature #3: Smart Grocery Split — push household list total to Roomies expense tracker
+  const pushToRoomies = async () => {
+    if (!user || !selectedHHId || members.length < 2 || pushingToRoomies) return;
+    const totalSpend = localShopItems.reduce((s, i) => s + (i.price || 0), 0);
+    if (totalSpend <= 0) { setRoomiesPushMsg('No priced items to split yet.'); setTimeout(() => setRoomiesPushMsg(''), 4000); return; }
+    setPushingToRoomies(true);
+    try {
+      const { data: tx } = await supabase.from('transactions').insert({
+        household_id: selectedHHId,
+        paid_by: user.id,
+        amount: totalSpend,
+        memo: `Grocery run – Hungry App`,
+        category: 'Groceries',
+      }).select().single();
+      if (tx) {
+        const others = members.filter(m => m.id !== user.id);
+        const share = totalSpend / members.length;
+        await supabase.from('transaction_splits').insert(
+          others.map(m => ({ transaction_id: tx.id, debtor_id: m.id, amount_owed: Math.round(share * 100) / 100 }))
+        );
+      }
+      setRoomiesPushMsg(`✓ $${totalSpend.toFixed(2)} split pushed to Roomies Finance!`);
+    } catch {
+      setRoomiesPushMsg('Could not push to Roomies. Try again.');
+    }
+    setPushingToRoomies(false);
+    setTimeout(() => setRoomiesPushMsg(''), 5000);
   };
 
   const { handleCreateHousehold, handleJoinHousehold } = useUser();
@@ -453,6 +484,15 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
                   className="flex items-center justify-center gap-2 w-full text-[11px] font-black text-slate-400 hover:text-[#6BAEE0] border border-slate-100 hover:border-sky-200 rounded-2xl py-2.5 transition-all">
                   <ExternalLink size={12} /> Open Splitwise
                 </a>
+                {/* Feature #3: Smart Grocery Split — push directly to Roomies */}
+                <button
+                  onClick={pushToRoomies}
+                  disabled={pushingToRoomies}
+                  className="flex items-center justify-center gap-2 w-full text-[11px] font-black text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-60 rounded-2xl py-3 transition-all shadow-md"
+                >
+                  <DollarSign size={13} /> {pushingToRoomies ? 'Pushing…' : 'Split $' + totalSpend.toFixed(2) + ' in Roomies'}
+                </button>
+                {roomiesPushMsg && <p className="text-[10px] font-bold text-center text-violet-600">{roomiesPushMsg}</p>}
               </div>
             );
           })()}
