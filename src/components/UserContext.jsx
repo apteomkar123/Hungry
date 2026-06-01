@@ -99,7 +99,9 @@ export const UserProvider = ({ children }) => {
     supabase.from('profiles').select('hungry_tutorial_done, avatar_url, hungry_avatar_url, friend_code').eq('id', authUser.id).single()
       .then(async ({ data }) => {
         if (data) {
-          if (data.hungry_tutorial_done === false || data.hungry_tutorial_done == null) setShowTutorial(true);
+          // Check user metadata first (written on skip/complete — survives even if DB column is missing)
+          const metaDone = authUser.user_metadata?.hungry_tutorial_done === true;
+          if (!metaDone && (data.hungry_tutorial_done === false || data.hungry_tutorial_done == null)) setShowTutorial(true);
           setAvatarUrl(data.avatar_url || null);
           setHungryAvatarUrl(data.hungry_avatar_url || null);
           // Generate friend code if the profile doesn't have one yet

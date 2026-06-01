@@ -21,7 +21,7 @@ const getAisle = (itemName) => {
   return 'Pantry';
 };
 
-export default function ShoppingListManager({ list = [], onAdd, onToggle, onClear, onRename, onClearAll, onMarkAllDone, onAddToPantry, households = [], onMoveToHousehold }) {
+export default function ShoppingListManager({ list = [], onAdd, onToggle, onClear, onRename, onClearAll, onMarkAllDone, onAddToPantry, onRemoveFromPantry, households = [], onMoveToHousehold }) {
   const { userSettings } = useUser();
   const [shoppingInput, setShoppingInput] = useState('');
   const [movingId, setMovingId] = useState(null);
@@ -84,8 +84,8 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <button onClick={() => {
             onToggle(item.id, item.is_completed);
-            // Auto-add to pantry when checking off an item
             if (!item.is_completed && onAddToPantry) onAddToPantry(item.item_name);
+            if (item.is_completed && onRemoveFromPantry) onRemoveFromPantry(item.item_name);
           }} className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${item.is_completed ? 'bg-sky-500 text-white' : 'bg-blue-50 text-transparent border border-blue-100'}`}>
             <Check size={14} strokeWidth={4} />
           </button>

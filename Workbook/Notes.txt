@@ -516,3 +516,32 @@ Household members not showing: code has full 3-tier fallback; issue is likely a 
 Recipes added via link not saving: onSaveRecipe now logs the exact Supabase error to console; user should check F12 → Console for specifics
 Pantry household/personal filter: deferred, not yet implemented
 Pantry section in HouseholdTab: deferred, not yet implemented
+
+DONE (Session 14 / 2026-06-01)
+--------------------------------
+Tutorial re-appearing every login: handleComplete/handleSkip now also write hungry_tutorial_done:true to user auth metadata; loadUserState checks metadata first so tutorial won't show even if DB column is absent
+Potato/tomato not categorized as vegetables: regex potatoes? matched "potatoe"/"potatoes" but NOT "potato"; fixed to potato(?:es?)? and tomato(?:es?)?
+Removing item from done on shopping list: ShoppingListManager now calls onRemoveFromPantry when unchecking a completed item, removing it from pantry
+Duplicate pantry items: handleAddManualItem now checks fridgeRef.current for existing same-name item; if found, increments quantity instead of inserting duplicate
+Margherita pizza showing wrong recipe in party: openItemRecipe now uses cascading match logic (exact → contains → word overlap) preventing wrong first-word matches
+Onboarding dietary restrictions missing options: updated to full set matching SettingsPage (Dairy-Free, Nut-Free, Low-Carb, High-Protein added)
+Onboarding nutrition goals outdated: updated to match SettingsPage; changed to multi-select; saves both nutrition_goal and nutrition_goals
+
+FEATURES ADDED (Session 14)
+-----------------------------
+Party Smart Suggestions: tapping a chip now instantly adds item to event list (no pre-fill + plus button step); X button closes the suggestions panel
+
+
+ADDITIONAL BUGS FIXED (Session 14 / 2026-06-01)
+-------------------------------------------------
+Shopping list items added from recipes included quantity: handleAddShoppingItem now uses toTitleCase(sanitized) (quantity stripped) instead of toTitleCase(itemName.trim())
+"Make and enjoy!" in recipe steps: added _GENERIC_STEP filter in _isValidStep (recipeUtils.js) and CommunityRecipes.jsx openMeal step filter
+
+FEATURES ADDED (Session 14 continued)
+--------------------------------------
+Start Cooking choice dialog: tapping Start Cooking now shows sheet — Cooking Mode (voice+mic) or Simple Recipe View (clean step view)
+Simple Recipe View: full-screen overlay inside RecipeModal with step text, progress bar, Back/Next/Done navigation, no voice
+Cooking Mode voiceover toggle: mute/unmute button (Volume2/VolumeX) in header; voiceEnabledRef for stale-closure-safe checks
+Better TTS voice: prefers Google US English / Microsoft Natural / Samantha / Alex; rate 0.92, pitch 1.05
+Virtual Sous Chef label: mic button now labeled "Sous Chef" below the button
+

@@ -204,7 +204,10 @@ export default function TutorialOverlay({ onComplete, onSkip, onSwitchTab }) {
         confetti({ particleCount: 180, spread: 100, origin: { y: 0.5 }, colors: ['#6BAEE0', '#1F6FB8', '#ffffff', '#a78bfa'] });
       }).catch(() => {});
       if (user) {
-        await supabase.from('profiles').update({ hungry_tutorial_done: true }).eq('id', user.id);
+        await Promise.all([
+          supabase.from('profiles').update({ hungry_tutorial_done: true }).eq('id', user.id),
+          supabase.auth.updateUser({ data: { hungry_tutorial_done: true } }),
+        ]);
       }
     } catch {}
     onComplete();
@@ -213,7 +216,10 @@ export default function TutorialOverlay({ onComplete, onSkip, onSwitchTab }) {
   const handleSkip = async () => {
     try {
       if (user) {
-        await supabase.from('profiles').update({ hungry_tutorial_done: true }).eq('id', user.id);
+        await Promise.all([
+          supabase.from('profiles').update({ hungry_tutorial_done: true }).eq('id', user.id),
+          supabase.auth.updateUser({ data: { hungry_tutorial_done: true } }),
+        ]);
       }
     } catch {}
     onSkip();

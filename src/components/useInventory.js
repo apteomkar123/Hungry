@@ -5,6 +5,7 @@ import { put, getAll, remove, OBJECT_STORES } from '../dbUtils';
 
 export const useInventory = (user, household) => {
   const [fridge, setFridge] = useState([]);
+  const fridgeRef = useRef([]);
   const [shoppingList, setShoppingList] = useState([]);
   const shoppingListRef = useRef([]);
   const [quantities, setQuantities] = useState(() => {
@@ -42,8 +43,9 @@ export const useInventory = (user, household) => {
     } catch (e) { console.error("Failed to parse cache", e); }
   }, []);
 
-  // Sync state to LocalStorage for offline access
+  // Sync fridge to ref (for stale-closure-safe reads) and localStorage
   useEffect(() => {
+    fridgeRef.current = fridge;
     localStorage.setItem('hungry_pantry_v1', JSON.stringify(fridge));
   }, [fridge]);
 
@@ -212,6 +214,22 @@ export const useInventory = (user, household) => {
     const sanitized = await resolveSanitizedTokenOnline(itemName);
     if (!sanitized) return;
 
+    // Consolidate: if item already exists in pantry, just increment its quantity
+    const existing = fridgeRef.current.find(i =>
+      cleanIngredientLocally(i.raw_name || '') === sanitized ||
+      cleanIngredientLocally(i.item_name || '') === sanitized
+    );
+    if (existing) {
+      const addQty = Math.max(1, parseInt(extraData.quantity) || 1);
+      setQuantities(prev => {
+        const currentQty = prev[existing.id] || existing.quantity || 1;
+        const next = { ...prev, [existing.id]: currentQty + addQty };
+        try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+        return next;
+      });
+      return;
+    }
+
     const estimatedExpiry = extraData.expiry_date || getEstimatedExpiry(itemName);
 
     const tempId = `temp-${Date.now()}`;
@@ -289,7 +307,8 @@ export const useInventory = (user, household) => {
     if (!itemName || !user) return;
     const sanitized = cleanIngredientLocally(itemName);
     if (!sanitized) return;
-    const displayName = toTitleCase(itemName.trim());
+    // Use sanitized (quantity/unit stripped) so "2 cups Flour" → "Flour" in the list
+    const displayName = toTitleCase(sanitized);
 
     // Use ref so concurrent adds (from handleAddAllMissing) see the latest state
     const alreadyLocal = shoppingListRef.current.some(i => cleanIngredientLocally(i.item_name) === sanitized);
@@ -625,6 +644,16 @@ export const useInventory = (user, household) => {
     } catch {}
   }, [fridge, quantities, handleRemoveItem]);
 
+  const handleRemoveFromPantryByName = useCallback(async (itemName) => {
+    const sanitized = cleanIngredientLocally(itemName);
+    if (!sanitized) return;
+    const match = fridgeRef.current.find(i =>
+      cleanIngredientLocally(i.raw_name || '') === sanitized ||
+      cleanIngredientLocally(i.item_name || '') === sanitized
+    );
+    if (match) await handleRemoveItem(match.id);
+  }, [handleRemoveItem]);
+
   return {
     fridge,
     quantities,
@@ -657,6 +686,7 @@ export const useInventory = (user, household) => {
     handleFileUpload,
     handleUpdateInlineItem,
     handleUpdateItem,
-    handleMarkCooked
+    handleMarkCooked,
+    handleRemoveFromPantryByName,
   };
 };

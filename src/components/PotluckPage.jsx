@@ -121,8 +121,27 @@ Suggest 10 food and drink items for this event. Be specific and practical. Retur
 
   const openItemRecipe = useCallback((itemName) => {
     if (!masterRecipes?.length) return;
-    const lower = itemName.toLowerCase();
-    const match = masterRecipes.find(r => r.name.toLowerCase().includes(lower) || lower.includes(r.name.toLowerCase().split(' ')[0]));
+    const lower = itemName.toLowerCase().trim();
+    const words = lower.split(/\s+/).filter(w => w.length > 2);
+    // 1. Exact name match
+    let match = masterRecipes.find(r => r.name.toLowerCase() === lower);
+    // 2. Recipe name contains the full item string
+    if (!match) match = masterRecipes.find(r => r.name.toLowerCase().includes(lower));
+    // 3. Item contains all significant words of the recipe name
+    if (!match) match = masterRecipes.find(r => {
+      const rWords = r.name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      return rWords.length > 0 && rWords.every(w => lower.includes(w));
+    });
+    // 4. Recipe name contains all significant words of the item
+    if (!match) match = masterRecipes.find(r => {
+      const rLower = r.name.toLowerCase();
+      return words.length > 0 && words.every(w => rLower.includes(w));
+    });
+    // 5. Any long word overlap (fallback)
+    if (!match) match = masterRecipes.find(r => {
+      const rLower = r.name.toLowerCase();
+      return words.some(w => w.length > 4 && rLower.includes(w));
+    });
     if (match) setActiveModalRecipe(match);
   }, [masterRecipes, setActiveModalRecipe]);
 
@@ -202,8 +221,8 @@ Suggest 10 food and drink items for this event. Be specific and practical. Retur
 
   const [assignTo, setAssignTo] = useState({}); // eventId → { name, id } | null
 
-  const addItem = async (eventId) => {
-    const name = newItem.trim();
+  const addItem = async (eventId, overrideName) => {
+    const name = (overrideName !== undefined ? overrideName : newItem).trim();
     if (!name || !user) return;
     const assignee = assignTo[eventId];
     const insertPayload = assignee
@@ -219,7 +238,7 @@ Suggest 10 food and drink items for this event. Be specific and practical. Retur
         setEvents(prev => prev.map(ev =>
           ev.id === eventId ? { ...ev, potluck_items: [...(ev.potluck_items || []), data] } : ev
         ));
-        setNewItem('');
+        if (overrideName === undefined) setNewItem('');
       }
     } catch {}
   };
@@ -548,14 +567,23 @@ Suggest 10 food and drink items for this event. Be specific and practical. Retur
                           {ss?.loading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
                           {ss?.loading ? 'Generating suggestions…' : '✨ Smart Suggestions'}
                         </button>
-                        {ss?.suggestions?.length > 0 && (
+                        {ss?.suggestions?.length > 0 && !ss?.closed && (
                           <div className="bg-violet-50 border border-violet-100 rounded-2xl p-3">
-                            <p className="text-[9px] font-black text-violet-400 uppercase tracking-widest mb-2">Tap to add to event:</p>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-[9px] font-black text-violet-400 uppercase tracking-widest">Tap to add instantly:</p>
+                              <button
+                                type="button"
+                                onClick={() => setSmartSuggestionsState(prev => ({ ...prev, [ev.id]: { ...prev[ev.id], closed: true } }))}
+                                className="text-violet-300 hover:text-violet-500 transition-colors"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
                             <div className="flex flex-wrap gap-1.5">
                               {ss.suggestions.map(s => (
                                 <button key={s} type="button"
-                                  onClick={() => setNewItem(s)}
-                                  className="text-[10px] font-bold bg-white border border-violet-200 text-violet-600 px-2.5 py-1 rounded-full hover:bg-violet-100 transition-all">
+                                  onClick={() => addItem(ev.id, s)}
+                                  className="text-[10px] font-bold bg-white border border-violet-200 text-violet-600 px-2.5 py-1 rounded-full hover:bg-violet-100 active:scale-95 transition-all">
                                   + {s}
                                 </button>
                               ))}

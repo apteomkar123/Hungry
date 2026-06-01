@@ -213,10 +213,13 @@ const _cleanStep = (s) => String(s || '')
 const _stripStepPrefix = (s) =>
   s.replace(/^(?:step\s*)?\d+[\.\:\)]\s*/i, '').trim();
 
+const _GENERIC_STEP = /^(make\s+and\s+enjoy|enjoy[.!]?\s*$|serve\s+and\s+enjoy|cook\s+and\s+enjoy|prep\s+and\s+enjoy|make\s+it[.!]?\s*$|bon\s+appet[ée]t[.!]?\s*$|that['']s\s+it[.!]?\s*$)/i;
+
 const _isValidStep = (s) => {
   if (!s || s.length < 8) return false;
   if (/^step\s*\d+[\.\:]?\s*$/i.test(s)) return false; // "Step 1" / "Step 1:" alone
   if (/^[\d\s\.\:\-\(\)■•·]+$/.test(s)) return false;   // just numbers/punctuation
+  if (_GENERIC_STEP.test(s.trim())) return false;        // "Make and enjoy!" etc.
   return true;
 };
 
@@ -582,7 +585,7 @@ const _categorizeItemImpl = (n) => {
   if (/\b(chips?|crisps?|crackers?|cookies?|biscuits?|candies?|candy|chocolates?|popcorns?|pretzels?|almonds?|cashews?|walnuts?|peanuts?|pistachios?|trail mix|granola|protein bars?|rice cakes?|snacks?|nuts?)\b/.test(n)) return 'Snacks';
   if (/\b(ketchups?|mustards?|mayo|mayonnaise|hot sauce|soy sauce|oyster sauce|fish sauce|teriyaki|worcestershire|hoisin|tahini|sriracha|pesto|harissa|miso|tomato paste|tamarind|vinegar|aioli|ranch|pasta sauce|marinara|alfredo|bbq sauce|barbecue sauce|coconut aminos|chili sauce|salsa|dressings?|relish|chutney|olive oil|vegetable oil|sesame oil|coconut oil|canola oil)\b/.test(n)) return 'Sauces';
   if (/\b(cumin|coriander powder|turmeric|paprika|cardamom|cinnamon|cloves?|oregano|thyme|rosemary|allspice|nutmeg|saffron|cayenne|fenugreek|sumac|caraway|star anise|bay leaves?|garam masala|mixed spice|five.?spice|ras el hanout|berbere|za.?atar|italian seasoning|curry powder|chili powder|chili flakes?|red pepper flakes?|black pepper|white pepper|mustard seeds?|fennel seeds?|coriander seeds?|cumin seeds?|onion powder|garlic powder|celery salt|smoked paprika|chaat masala|biryani masala|tandoori masala|peri.?peri|jerk seasoning|old bay|seasoning|spice mix)\b/.test(n)) return 'Spices';
-  if (/\b(carrots?|potatoes?|tomatoes?|onions?|garlic|spinach|broccoli|cauliflower|lettuces?|cabbages?|cucumbers?|peppers?|celery|kale|zucchinis?|eggplants?|aubergines?|mushrooms?|corns?|peas?|beans?|lentils?|asparagus|beetroots?|radishes?|radish|leeks?|okra|squash|yams?|ginger|chilis?|chillies?|capsicums?|chard|arugula|herbs?|cilantro|parsley|basil|mint|scallions?|shallots?|artichokes?|turnips?|parsnips?|fennel|bok choy|watercress|endive)\b/.test(n)) return 'Vegetables';
+  if (/\b(carrots?|potato(?:es?)?|tomato(?:es?)?|onions?|garlic|spinach|broccoli|cauliflower|lettuces?|cabbages?|cucumbers?|peppers?|celery|kale|zucchinis?|eggplants?|aubergines?|mushrooms?|corns?|peas?|beans?|lentils?|asparagus|beetroots?|radishes?|radish|leeks?|okra|squash|yams?|ginger|chilis?|chillies?|capsicums?|chard|arugula|herbs?|cilantro|parsley|basil|mint|scallions?|shallots?|artichokes?|turnips?|parsnips?|fennel|bok choy|watercress|endive)\b/.test(n)) return 'Vegetables';
   return 'General';
 };
 
@@ -593,3 +596,5 @@ export const categorizeItem = (itemName) => {
   _categoryCache.set(n, result);
   return result;
 };
+
+export const clearCategoryCache = () => _categoryCache.clear();

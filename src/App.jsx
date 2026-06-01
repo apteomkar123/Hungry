@@ -58,6 +58,7 @@ function AppContent({ inventory }) {
     handleFileUpload,
     handleUpdateItem,
     handleMarkCooked,
+    handleRemoveFromPantryByName,
     quantities,
     adjustQuantity,
     setQuantityForItem,
@@ -272,6 +273,7 @@ function AppContent({ inventory }) {
                   onClearAll={handleClearAllShoppingItems}
                   onMarkAllDone={handleMarkAllShoppingCompleted}
                   onAddToPantry={handleAddManualItem}
+                  onRemoveFromPantry={handleRemoveFromPantryByName}
                   households={households}
                   onMoveToHousehold={(itemId, hhId) => handleMoveShoppingItem(itemId, hhId)}
                 />

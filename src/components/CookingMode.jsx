@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Mic, MicOff, ChevronLeft, ChevronRight, Volume2, List, RefreshCw, Loader2 } from 'lucide-react';
+import { X, Mic, MicOff, ChevronLeft, ChevronRight, Volume2, VolumeX, List, RefreshCw, Loader2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
 
@@ -17,6 +17,7 @@ export default function CookingMode({ steps, ingredients, recipeName, cuisine, o
   const { user } = useUser();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isListening, setIsListening] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [showIngredients, setShowIngredients] = useState(false);
   const [substituteMsg, setSubstituteMsg] = useState(null);
   const [fetchingSub, setFetchingSub] = useState(false);
@@ -25,14 +26,16 @@ export default function CookingMode({ steps, ingredients, recipeName, cuisine, o
   const utteranceRef = useRef(null);
   const wakeLockRef = useRef(null);
   const isListeningRef = useRef(false);
+  const voiceEnabledRef = useRef(true);
   const isMounted = useRef(true);
   const currentStepRef = useRef(0);
 
   useEffect(() => { isListeningRef.current = isListening; }, [isListening]);
+  useEffect(() => { voiceEnabledRef.current = voiceEnabled; }, [voiceEnabled]);
   useEffect(() => { currentStepRef.current = currentStepIndex; }, [currentStepIndex]);
 
   const speak = useCallback((text) => {
-    if (!utteranceRef.current) return;
+    if (!utteranceRef.current || !voiceEnabledRef.current) return;
     window.speechSynthesis.cancel();
     utteranceRef.current.text = text;
     window.speechSynthesis.speak(utteranceRef.current);
@@ -106,6 +109,24 @@ export default function CookingMode({ steps, ingredients, recipeName, cuisine, o
     isMounted.current = true;
     utteranceRef.current = new SpeechSynthesisUtterance();
     utteranceRef.current.lang = 'en-US';
+    utteranceRef.current.rate = 0.92;
+    utteranceRef.current.pitch = 1.05;
+    // Select the most natural-sounding voice available
+    const setVoice = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = [
+        'Google US English', 'Microsoft Aria Online (Natural)', 'Microsoft Jenny Online (Natural)',
+        'Samantha', 'Alex', 'Karen', 'Moira',
+      ];
+      for (const name of preferred) {
+        const v = voices.find(v => v.name === name || v.name.startsWith(name));
+        if (v) { utteranceRef.current.voice = v; break; }
+      }
+    };
+    setVoice();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = setVoice;
+    }
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -199,6 +220,14 @@ export default function CookingMode({ steps, ingredients, recipeName, cuisine, o
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-black text-white">Cooking Mode</h2>
           <div className="flex items-center gap-2">
+            {/* Voiceover toggle */}
+            <button
+              onClick={() => setVoiceEnabled(v => !v)}
+              className={`p-2 rounded-xl transition-colors ${voiceEnabled ? 'bg-white/15 hover:bg-white/25' : 'bg-red-500/40'}`}
+              title={voiceEnabled ? 'Mute voiceover' : 'Unmute voiceover'}
+            >
+              {voiceEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+            </button>
             {ingredients?.length > 0 && (
               <button
                 onClick={() => setShowIngredients(v => !v)}
@@ -256,13 +285,18 @@ export default function CookingMode({ steps, ingredients, recipeName, cuisine, o
           >
             <ChevronLeft size={24} />
           </button>
-          <button
-            onClick={toggleListening}
-            className={`p-4 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-[#6BAEE0]'} text-white shadow-lg transition-all`}
-          >
-            {isListening ? <MicOff size={28} /> : <Mic size={28} />}
-          </button>
-          <button onClick={() => readStep(currentStepIndex)} className="p-3 rounded-full bg-white/20 hover:bg-white/30 transition-all">
+          {/* Virtual Sous Chef mic */}
+          <div className="flex flex-col items-center gap-1">
+            <button
+              onClick={toggleListening}
+              className={`p-4 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-[#6BAEE0]'} text-white shadow-lg transition-all`}
+              title={isListening ? 'Stop Virtual Sous Chef' : 'Start Virtual Sous Chef'}
+            >
+              {isListening ? <MicOff size={28} /> : <Mic size={28} />}
+            </button>
+            <span className="text-[9px] font-black text-white/50 uppercase tracking-widest">Sous Chef</span>
+          </div>
+          <button onClick={() => readStep(currentStepIndex)} className="p-3 rounded-full bg-white/20 hover:bg-white/30 transition-all" title="Read step aloud">
             <Volume2 size={24} />
           </button>
           <button

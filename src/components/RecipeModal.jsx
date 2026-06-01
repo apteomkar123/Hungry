@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw, Dumbbell, ChefHat, ShoppingCart, Users, ChevronDown } from 'lucide-react';
+import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw, Dumbbell, ChefHat, ShoppingCart, Users, ChevronDown, ChevronLeft, ChevronRight, Mic, BookOpen } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
-import { parseRecipeIngredientMeasurements, cleanIngredientLocally, normalizeIngredientTokens, fuzzyTokenMatch, stripIngredientNotes, estimateNutrition, isRecipeMeat, isRecipeFish, isRecipeVegan, matchesRecipeFilter, locallyAdaptRecipe } from './recipeUtils';
+import { parseRecipeIngredientMeasurements, cleanIngredientLocally, normalizeIngredientTokens, fuzzyTokenMatch, stripIngredientNotes, estimateNutrition, isRecipeMeat, isRecipeFish, isRecipeVegan, matchesRecipeFilter, locallyAdaptRecipe, getStaticRecipeSteps } from './recipeUtils';
 
 // Returns true if pantryQty (count) satisfies the needed amount from a recipe ingredient string
 const _pantryHasEnough = (ingredient, pantryQty) => {
@@ -47,6 +47,8 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   const [proteinizing, setProteinizing] = useState(false);
   const [cooked, setCooked] = useState(false);
   const [pantryOverrides, setPantryOverrides] = useState({}); // {ingredientKey: true|false} user manual overrides
+  const [showCookingChoice, setShowCookingChoice] = useState(false);
+  const [simpleViewStep, setSimpleViewStep] = useState(null); // null = closed, 0+ = step index
   useEffect(() => {
     setAdaptedRecipe(null);
     setAdapting(null);
@@ -55,6 +57,8 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     setProteinResult(null);
     setCooked(false);
     setPantryOverrides({});
+    setShowCookingChoice(false);
+    setSimpleViewStep(null);
   }, [recipe?.id]);
 
   const violatedRestrictions = useMemo(() => {
@@ -531,7 +535,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
               ))}
             </div>
             <button
-              onClick={onStartCooking}
+              onClick={() => setShowCookingChoice(true)}
               className="flex-1 bg-[#6BAEE0] text-white px-4 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-all text-sm"
             >
               <Play size={16} fill="currentColor" /> Start Cooking
@@ -550,6 +554,94 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
         </div>{/* end body */}
         </div>{/* end scrollable content */}
       </div>
+
+      {/* ── Start Cooking choice sheet ──────────────────────────────────────── */}
+      {showCookingChoice && (
+        <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-sm flex items-end justify-center z-20 rounded-[3rem]">
+          <div className="w-full bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 space-y-3 shadow-2xl border-t border-white/50">
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest text-center mb-4">How would you like to cook?</p>
+            <button
+              onClick={() => { setShowCookingChoice(false); onStartCooking(); }}
+              className="w-full flex items-center gap-4 bg-[#6BAEE0] text-white px-5 py-4 rounded-2xl font-bold active:scale-95 transition-all shadow-lg shadow-blue-200"
+            >
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <Mic size={20} />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-black">Cooking Mode</p>
+                <p className="text-[10px] font-normal opacity-80">Voice commands, step-by-step narration, Virtual Sous Chef</p>
+              </div>
+            </button>
+            <button
+              onClick={() => { setShowCookingChoice(false); setSimpleViewStep(0); }}
+              className="w-full flex items-center gap-4 bg-slate-100 text-slate-700 px-5 py-4 rounded-2xl font-bold active:scale-95 transition-all"
+            >
+              <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center shrink-0">
+                <BookOpen size={20} />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-black">Simple Recipe View</p>
+                <p className="text-[10px] font-normal text-slate-500">Clean step-by-step view, no voice, easy to read</p>
+              </div>
+            </button>
+            <button onClick={() => setShowCookingChoice(false)} className="w-full text-center text-[11px] font-bold text-slate-400 py-2">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Simple Recipe View overlay ──────────────────────────────────────── */}
+      {simpleViewStep !== null && (() => {
+        const svSteps = getStaticRecipeSteps(displayRecipe);
+        const total = svSteps.length;
+        const idx = Math.max(0, Math.min(simpleViewStep, total - 1));
+        return (
+          <div className="absolute inset-0 bg-blue-900/95 flex flex-col z-20 rounded-[3rem] overflow-hidden">
+            {/* header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4">
+              <div>
+                <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">{displayRecipe?.name}</p>
+                <p className="text-sm font-black text-white">Step {idx + 1} <span className="text-white/40">/ {total}</span></p>
+              </div>
+              <button onClick={() => setSimpleViewStep(null)} className="p-2 text-white/60 hover:text-white transition-colors">
+                <X size={22} />
+              </button>
+            </div>
+            {/* progress */}
+            <div className="mx-6 h-1 bg-white/10 rounded-full overflow-hidden mb-6">
+              <div className="h-full bg-[#6BAEE0] rounded-full transition-all duration-300" style={{ width: `${((idx + 1) / total) * 100}%` }} />
+            </div>
+            {/* step text */}
+            <div className="flex-1 flex items-center justify-center px-8">
+              <p className="text-2xl font-bold text-white leading-relaxed text-center">{svSteps[idx]}</p>
+            </div>
+            {/* nav */}
+            <div className="flex items-center justify-between px-6 pb-8 gap-4">
+              <button
+                onClick={() => setSimpleViewStep(i => Math.max(0, i - 1))}
+                disabled={idx === 0}
+                className="flex items-center gap-2 px-5 py-3 bg-white/10 rounded-2xl text-white font-bold disabled:opacity-30 transition-all"
+              >
+                <ChevronLeft size={18} /> Back
+              </button>
+              {idx < total - 1 ? (
+                <button
+                  onClick={() => setSimpleViewStep(i => Math.min(total - 1, i + 1))}
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-[#6BAEE0] rounded-2xl text-white font-black shadow-lg shadow-blue-900/40 active:scale-95 transition-all"
+                >
+                  Next <ChevronRight size={18} />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setSimpleViewStep(null)}
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500 rounded-2xl text-white font-black shadow-lg active:scale-95 transition-all"
+                >
+                  <Check size={16} /> Done!
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

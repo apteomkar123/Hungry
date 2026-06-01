@@ -150,13 +150,16 @@ export default function CommunityRecipes() {
         const meas = m[`strMeasure${i}`];
         if (ing && ing.trim()) ings.push(`${meas?.trim() || ''} ${ing.trim()}`.trim());
       }
+      const _genericStep = /^(make\s+and\s+enjoy|enjoy[.!]?\s*$|serve\s+and\s+enjoy|cook\s+and\s+enjoy|prep\s+and\s+enjoy|make\s+it[.!]?\s*$|bon\s+appet[ée]t[.!]?\s*$|that['']s\s+it[.!]?\s*$)/i;
       const rawInstr = (m.strInstructions || '').replace(/\r\n?/g, '\n');
-      let steps = rawInstr.split(/\n+/).map(s => s.trim().replace(/^(?:step\s*)?\d+[\.\:\)]\s*/i, '').trim()).filter(s => s.length > 8);
+      let steps = rawInstr.split(/\n+/).map(s => s.trim().replace(/^(?:step\s*)?\d+[\.\:\)]\s*/i, '').trim()).filter(s => s.length > 8 && !_genericStep.test(s));
       // If only one long block, split by sentence boundaries
       if (steps.length <= 1 && rawInstr.length > 200) {
-        const sentences = rawInstr.replace(/([.!?])\s+(?=[A-Z])/g, '$1\n').split(/\n+/).map(s => s.trim()).filter(s => s.length > 8);
+        const sentences = rawInstr.replace(/([.!?])\s+(?=[A-Z])/g, '$1\n').split(/\n+/).map(s => s.trim()).filter(s => s.length > 8 && !_genericStep.test(s));
         if (sentences.length > 1) steps = sentences;
       }
+      // If steps is still empty or trivially short, fall through to fallback below
+
       let recipe = {
         id: `mealdb-${m.idMeal}`,
         name: toTitleCase(m.strMeal),

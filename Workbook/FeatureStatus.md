@@ -13,8 +13,8 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - **Sign in with AppWare** — "Sync your AppWare apps!" tagline above button; redirects to SSO portal, returns with session token; browser back resets sign-in view correctly
 - **Stay signed in** — Supabase client explicitly configured with `persistSession: true` + `autoRefreshToken: true`; session restored from localStorage on every page load so users never have to sign in again
 - Google and Apple sign-in removed (replaced by AppWare SSO)
-- Onboarding flow — 5-screen liquid-glass intro + preferences sheet (name, dietary restrictions, nutrition goal), written to Supabase on completion
-- **Interactive Tutorial** — runs automatically on first login (after onboarding); 10-step walkthrough now covers all features (added Community Recipes, Friends & Profiles, Events); skip or dismiss marks it complete; Re-run Tutorial button in Settings; confetti on finish; intro text no longer has quotation marks
+- Onboarding flow — 5-screen liquid-glass intro + preferences sheet (name, dietary restrictions, nutrition goal), written to Supabase on completion; dietary restrictions now show full set (Vegetarian, Vegan, Gluten-Free, Halal, Kosher, Dairy-Free, Nut-Free, Low-Carb, High-Protein) matching Settings; nutrition goals multi-select matching Settings (Balanced, High Protein, Low Carb, Low Fat, Build Muscle, Lose Weight)
+- **Interactive Tutorial** — runs automatically on first login (after onboarding); also writes completion to user auth metadata so tutorial won't re-appear if the `hungry_tutorial_done` DB column is missing; skip or dismiss marks it complete; Re-run Tutorial button in Settings; confetti on finish
 
 ### Pantry
 - Add items manually
@@ -26,6 +26,9 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - Assign items to a personal or household pantry — household picker dropdown when multiple households exist
 - Quantity controls per item
 - Pantry item names displayed in Title Case (regardless of how they were stored)
+- **Duplicate item consolidation** — adding an item that already exists in the pantry increments its quantity instead of creating a duplicate row
+- **Corrected vegetable categorization** — `potato` and `tomato` (singular) now correctly categorize as Vegetables
+- Shopping list items added from recipes now show only the ingredient name (quantity/unit stripped via `cleanIngredientLocally`)
 
 ### Recipes
 - Recipe modal header (title, star, share, X) is sticky — stays locked at top as user scrolls through ingredients and steps
@@ -48,7 +51,12 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - Ingredient substitution (AI-powered swap)
 - Multiplier (1×, 2×, 4× servings)
 - Estimated nutrition per serving
+- **Start Cooking choice dialog** — tapping "Start Cooking" now shows a sheet asking: "🎙️ Cooking Mode" (voice + Virtual Sous Chef) or "📋 Simple Recipe View" (clean step-by-step, no voice)
+- **Simple Recipe View** — full-screen step navigator with progress bar, no voice/mic, prev/next buttons, Done! on last step
 - Cooking Mode — full-screen step-by-step view
+- **Cooking Mode voiceover toggle** — mute/unmute button in the Cooking Mode header; uses `voiceEnabledRef` for stale-closure-safe checks
+- **Natural TTS voice** — prefers Google US English, Microsoft Natural, Samantha, Alex or other high-quality voice; rate 0.92, pitch 1.05
+- **Virtual Sous Chef** labeled mic button — clearly labeled "Sous Chef" under the button
 - Mark as Cooked (updates pantry)
 
 ### Personal Shopper
@@ -60,7 +68,7 @@ A living document tracking what's shipped, what works, and what's blocked until 
 ### Shopping List
 - Add items manually — items are now stored with their original casing (Title Case), not lowercased
 - Items auto-grouped by aisle (Produce, Dairy, Meat, Bakery, etc.)
-- Check off items — **checked-off items are automatically added to pantry**
+- Check off items — **checked-off items are automatically added to pantry; unchecking a completed item removes it from pantry**
 - Delete items
 - **Mark All Done** — bulk-complete all pending shopping list items
 - **Delete All** — clear the entire shopping list (with confirmation)
@@ -167,8 +175,8 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - View Full Details card shows each attendee's dietary restrictions (pulled from their profile settings)
 - RSVP view shows who's bringing what, unclaimed items, and the user's own dietary restrictions
 - **Tappable claimer profiles**: claimed_by names in both the item list and the detail card open the claimer's full Hungry profile (UserProfileModal) when tapped; profile is fetched from Supabase and cached
-- **Smart Suggestions**: per-event "✨ Smart Suggestions" button calls AI with event name + attendee dietary restrictions to generate 10 food/drink suggestions; tapping a suggestion pre-fills the add-item input; dietary restrictions respected but not overridden for minority-only restrictions
-- **Recipe cards on item tap**: tapping an event item name opens its recipe card (matched from master recipe list) so all attendees know how to make it; ChefHat icon next to each item name indicates recipe availability
+- **Smart Suggestions**: per-event "✨ Smart Suggestions" button calls AI with event name + attendee dietary restrictions to generate 10 food/drink suggestions; **tapping a chip now instantly adds the item to the event list** (no pre-fill step needed); **X button** closes the suggestions panel; dietary restrictions respected but not overridden for minority-only restrictions
+- **Recipe cards on item tap**: tapping an event item name opens its recipe card using cascading match logic (exact → contains → word overlap) — prevents mismatches like Margherita Pizza opening the wrong recipe; ChefHat icon next to each item name indicates recipe availability
 
 ### Household Members
 - Member cards now tappable (non-self) — opens UserProfileModal showing their saved recipes and chef history
@@ -318,4 +326,25 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - Household members not showing — code has 3-tier fallback (FK join → separate profiles fetch by ID → old schema columns). If members still don't show: in Supabase Dashboard → SQL Editor, verify `SELECT * FROM household_members WHERE household_id = '<your-hh-id>'` returns rows, and that the `hm: members can view` RLS policy exists on `household_members`.
 - Recipes added via URL link not saving ("check your connection") — `onSaveRecipe` logs the exact Supabase error to the browser console (F12 → Console). Check there for the specific error. Most likely causes: Supabase session expired (sign out and back in), or a column constraint issue.
 
-*Last updated: 2026-06-01 (session 13)*
+### Session 14 (2026-06-01)
+**Bugs fixed:**
+- Tutorial re-appearing every login — `handleComplete` and `handleSkip` now also write `hungry_tutorial_done: true` to user auth metadata; `loadUserState` checks metadata first so the tutorial won't show even if the `hungry_tutorial_done` DB column is absent.
+- `potato` (singular) not categorized as Vegetables — regex was `potatoes?` (matched "potatoe"/"potatoes" but NOT "potato"); fixed to `potato(?:es?)?`. Same fix applied to `tomato(?:es?)?`.
+- Removing a done item from shopping list now also removes it from pantry — `ShoppingListManager` calls `onRemoveFromPantry(item.item_name)` when unchecking a completed item.
+- Duplicate pantry items — `handleAddManualItem` now checks `fridgeRef.current` for an existing item with the same sanitized name; if found, increments quantity instead of inserting a duplicate row.
+- Margherita pizza (and other party items) matching wrong recipe — `openItemRecipe` now uses cascading match logic: exact name → recipe contains item string → item contains all recipe words → recipe contains all item words → any long-word overlap. Prevents "Margherita" matching a random recipe with that as its first word.
+- Onboarding dietary restrictions missing options — updated to match `SettingsPage` full set: Vegetarian, Vegan, Gluten-Free, Halal, Kosher, Dairy-Free, Nut-Free, Low-Carb, High-Protein.
+- Onboarding nutrition goals outdated and single-select — goals list updated to match `SettingsPage` (Balanced, High Protein, Low Carb, Low Fat, Build Muscle, Lose Weight); changed to multi-select; saves both `nutrition_goal` (first item) and `nutrition_goals` (array).
+
+- Shopping list items added from a recipe now only carry the ingredient name (quantity/unit stripped); "2 cups Flour" → "Flour".
+- "Make and enjoy!" and other trivial single-line recipe steps now filtered out in both `getStaticRecipeSteps` and `CommunityRecipes.openMeal`.
+
+**Features added:**
+- Events Smart Suggestions: tapping a suggestion chip now **instantly adds the item** to the event list; added **X button** to close the suggestions panel per event.
+- Cooking Mode: "Start Cooking" button now shows a choice sheet — **Cooking Mode** (voice + Virtual Sous Chef) or **Simple Recipe View** (clean step-by-step full screen, no voice).
+- Simple Recipe View: progress bar, step text in large font, Back / Next / Done navigation, accessible from the start-cooking choice sheet.
+- Cooking Mode: **voiceover mute/unmute** toggle button (Volume2 / VolumeX) in header; uses ref so it's stale-closure-safe.
+- Cooking Mode: selects highest-quality TTS voice (Google US English, Microsoft Natural, Samantha, Alex…); rate 0.92, pitch 1.05 for more natural speech.
+- Cooking Mode: mic button now clearly labeled "Sous Chef" so its purpose as the Virtual Sous Chef trigger is obvious.
+
+*Last updated: 2026-06-01 (session 14)*

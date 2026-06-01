@@ -123,14 +123,14 @@ const SCREENS = [
   },
 ];
 
-const RESTRICTIONS = ['Vegetarian', 'Vegan', 'Halal', 'Kosher', 'Gluten-Free'];
-const GOALS = ['Increase Protein', 'Lower Carbs', 'Eco-Friendly'];
+const RESTRICTIONS = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Halal', 'Kosher', 'Dairy-Free', 'Nut-Free', 'Low-Carb', 'High-Protein'];
+const GOALS = ['Balanced', 'High Protein', 'Low Carb', 'Low Fat', 'Build Muscle', 'Lose Weight'];
 
 export default function Onboarding({ user, onComplete }) {
   const [screen, setScreen] = useState(0);
   const [chefName, setChefName] = useState('');
   const [restrictions, setRestrictions] = useState([]);
-  const [goal, setGoal] = useState('');
+  const [goals, setGoals] = useState([]);
   const [saving, setSaving] = useState(false);
 
   // Photo onboarding state
@@ -224,11 +224,13 @@ export default function Onboarding({ user, onComplete }) {
     if (isPrefs) {
       setSaving(true);
       try {
+        const goalsList = goals.length > 0 ? goals : ['Balanced'];
         await supabase.auth.updateUser({
           data: {
             name: chefName.trim() || undefined,
             dietary_restrictions: restrictions,
-            nutrition_goal: goal || 'Balanced',
+            nutrition_goal: goalsList[0],
+            nutrition_goals: goalsList,
             onboarding_completed: true,
           }
         });
@@ -328,13 +330,13 @@ export default function Onboarding({ user, onComplete }) {
               ))}
             </div>
 
-            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Nutrition Goal</label>
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Nutrition Goals <span className="text-slate-300 font-bold normal-case">(pick any)</span></label>
             <div className="flex flex-wrap gap-2">
               {GOALS.map(g => (
                 <button
                   key={g}
-                  onClick={() => setGoal(prev => prev === g ? '' : g)}
-                  className={`px-4 py-2 rounded-full text-[11px] font-black transition-all ${goal === g ? 'bg-emerald-500 text-white shadow-md' : 'bg-white border border-blue-100 text-slate-500 hover:border-emerald-300'}`}
+                  onClick={() => setGoals(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])}
+                  className={`px-4 py-2 rounded-full text-[11px] font-black transition-all ${goals.includes(g) ? 'bg-emerald-500 text-white shadow-md' : 'bg-white border border-blue-100 text-slate-500 hover:border-emerald-300'}`}
                 >{g}</button>
               ))}
             </div>
