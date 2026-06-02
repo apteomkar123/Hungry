@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Star, ShoppingCart, Plus, Trash2, Check, X, ChevronDown, DollarSign, Edit2, UserPlus, UserCheck, CreditCard, ExternalLink, MapPin, ChevronRight, Home, Copy, Share2 } from 'lucide-react';
+import { Users, Star, ShoppingCart, Plus, Trash2, Check, X, ChevronDown, DollarSign, Edit2, UserPlus, UserCheck, CreditCard, ExternalLink, MapPin, ChevronRight, Home, Copy, Share2, Lock } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
@@ -8,7 +8,7 @@ import UserProfileModal from './UserProfileModal';
 
 
 export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDeleteHhItem }) {
-  const { households, household: activeHousehold, handleUpdateBudgetLimit, user } = useUser();
+  const { households, household: activeHousehold, handleUpdateBudgetLimit, user, hungryHouseholdId, isHungryShared, handleSetHungrySpecificHousehold, handleClearHungryHousehold } = useUser();
   const { savedRecipes, setActiveModalRecipe, onSaveRecipe, onRemoveSavedRecipe, masterRecipes } = useRecipes();
 
   const [selectedHHId, setSelectedHHId] = useState(activeHousehold?.id || null);
@@ -262,6 +262,56 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
 
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+      {/* ── Household Mode ── */}
+      <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5 space-y-4">
+        <h2 className="text-[14px] font-bold text-slate-400 flex items-center gap-2"><Share2 size={15} /> Household Mode</h2>
+        <p className="text-[11px] text-slate-400 leading-relaxed">
+          By default, Hungry shares your active household with Roomies — including the grocery list.
+          Switch to a Hungry-specific household to keep them separate.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={handleClearHungryHousehold}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[12px] font-black transition-all border ${isHungryShared ? 'bg-sky-500 text-white border-sky-500 shadow-md shadow-sky-100' : 'bg-white text-slate-500 border-blue-100 hover:bg-sky-50'}`}
+          >
+            <Share2 size={13} /> Shared with Roomies
+          </button>
+          <button
+            onClick={() => {
+              if (isHungryShared && households.length > 1) {
+                const other = households.find(h => h.id !== activeHousehold?.id);
+                if (other) handleSetHungrySpecificHousehold(other.id);
+              }
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[12px] font-black transition-all border ${!isHungryShared ? 'bg-[#6BAEE0] text-white border-[#6BAEE0] shadow-md shadow-blue-100' : 'bg-white text-slate-500 border-blue-100 hover:bg-sky-50'}`}
+          >
+            <Lock size={13} /> Hungry-Specific
+          </button>
+        </div>
+        {!isHungryShared && households.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hungry is using:</p>
+            <div className="flex flex-wrap gap-2">
+              {households.map(hh => (
+                <button
+                  key={hh.id}
+                  onClick={() => handleSetHungrySpecificHousehold(hh.id)}
+                  className={`px-4 py-2 rounded-xl text-[11px] font-black border transition-all ${hungryHouseholdId === hh.id ? 'bg-[#6BAEE0] text-white border-[#6BAEE0]' : 'bg-white text-slate-600 border-blue-100 hover:bg-sky-50'}`}
+                >
+                  {hh.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {isHungryShared && households.length <= 1 && (
+          <p className="text-[11px] text-amber-500 font-semibold">
+            Add another household below to use a Hungry-specific one.
+          </p>
+        )}
+      </section>
+
       {/* Household selector */}
       {households.length > 1 && (
         <div className="relative">

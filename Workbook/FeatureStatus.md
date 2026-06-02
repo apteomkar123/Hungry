@@ -390,6 +390,12 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - **Cooking Mode UI redesign** — Full visual overhaul: deep navy gradient background with ambient glow orbs, glassy backdrop-blur step card, animated progress bar, animated ping ring on active mic, simplified controls (no more voiceover toggle or manual-read button). TTS auto-reading of steps removed; the Sous Chef mic now exclusively drives voice interaction and speaks only its own AI responses (substitution suggestions, ingredient confirmations).
 - **Tap outside to close overlays** — Tapping the dark backdrop outside RecipeModal or CookingMode now dismisses the overlay. Nutrition breakdown card in Analytics already had this behavior.
 
+### Session 19 (2026-06-02)
+**Bugs fixed:**
+- **Household Mode not visible** — `HouseholdSettings.jsx` had the Household Mode toggle but was never rendered; `HouseholdTab.jsx` is what's shown on the Household tab. Added the Household Mode section (Shared with Roomies / Hungry-Specific toggle + household picker) directly to `HouseholdTab.jsx` so it appears at the top of the Household page.
+
+*Last updated: 2026-06-02 (session 19)*
+
 *Last updated: 2026-06-02 (session 17)*
 
 ### Session 16 (2026-06-02)
