@@ -207,6 +207,13 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - **#12 Soundtrack of My Life** — when a recipe is marked as Cooked, queries the Jukebox `now_playing` table and saves the current track (`track_title`, `artist`, `album`, `artwork_url`, `platform`) into `chef_history.soundtrack`; the saved track is now displayed in the expanded Chef History card as a "🎵 Playing While Cooking" purple pill
 - **#14 Nutritional BPM (write side)** — when the Analytics page loads and the user's macro breakdown is below their stated goal (e.g. protein < 20g on High Protein goal), writes a `nutrition_shortfall` event to `cross_app_activity` so Jukebox can suggest a workout playlist and Roomies can surface high-effort chores first
 
+### Session 18 (2026-06-02)
+- **Temperature units** — all Celsius temperatures in `staticRecipes.js` converted to Fahrenheit (150°C→302°F, 160°C→320°F, 170°C→338°F, 175°C→347°F, 180°C→356°F, 190°C→374°F, 200°C→392°F, 210°C→410°F, 220°C→428°F, 230°C→446°F)
+- **Scroll to top on header tap** — tapping anywhere on the sticky header bar scrolls to the top; profile pic and right-side action buttons use `e.stopPropagation()` to preserve their existing behavior
+- **Household member profile pictures** — member query now fetches `avatar_url` and `hungry_avatar_url`; member avatar in Members list and Settle Up section shows the user's Hungry photo (or AppWare global photo fallback) instead of initials
+- **Link AppWare Account button** — "Merge AppWare Account" section now shows a single "Link AppWare Account" button that redirects to the AppWare SSO portal (via `useAppWareSSO.triggerAppWareRedirect`), replacing the old Google-specific link flow
+- **Recipe image tap opens recipe card** — in the Saved Recipes tab, tapping the recipe image now opens the recipe modal (the text row below was already clickable; now the image is too)
+
 ### Infrastructure
 - Progressive Web App (PWA) — installable on home screen, offline support via service worker
 - IndexedDB sync queue for offline mutations (pantry, shopping list)

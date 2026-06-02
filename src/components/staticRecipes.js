@@ -1,4 +1,4 @@
-export const STATIC_RECIPES = [
+﻿export const STATIC_RECIPES = [
   // ─── INDIAN ───────────────────────────────────────────────────────────────
   {
     id: 'static-in-001',
@@ -354,7 +354,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Blend chickpeas, onion, garlic, herbs, and spices to a coarse paste. Do not over-blend.',
       'Mix in flour and salt. Chill 30 minutes. Form into balls or patties.',
-      'Deep-fry at 180°C until deep golden brown, about 3–4 minutes. Serve with tahini and pita.'
+      'Deep-fry at 356°F until deep golden brown, about 3–4 minutes. Serve with tahini and pita.'
     ]
   },
   {
@@ -619,7 +619,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Stir-fry vegetables and noodles with soy sauce, sesame oil, and ginger until wilted.',
       'Cool filling. Place 2 tbsp on each wrapper, roll tightly, seal edge with water.',
-      'Deep-fry at 180°C until golden, about 3–4 minutes. Serve with sweet chili sauce.'
+      'Deep-fry at 356°F until golden, about 3–4 minutes. Serve with sweet chili sauce.'
     ]
   },
 
@@ -651,7 +651,7 @@ export const STATIC_RECIPES = [
       '1/2 tsp chili powder', 'Sour cream', 'Cilantro', 'Lime'
     ],
     steps: [
-      'Cook onion, garlic, beans, corn, and spices. Preheat oven to 190°C.',
+      'Cook onion, garlic, beans, corn, and spices. Preheat oven to 374°F.',
       'Warm tortillas, fill with bean mixture, roll and place in a baking dish seam-down.',
       'Pour enchilada sauce over top, sprinkle cheese. Bake 20 minutes. Serve with sour cream.'
     ]
@@ -737,7 +737,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Blend piri piri chilies, garlic, lemon juice, paprika, oregano, salt, and olive oil.',
       'Coat chicken in piri piri sauce. Marinate at least 2 hours.',
-      'Grill or roast at 200°C for 35–45 minutes, basting with sauce twice.'
+      'Grill or roast at 392°F for 35–45 minutes, basting with sauce twice.'
     ]
   },
 
@@ -891,7 +891,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Make roux with butter and flour. Whisk in milk until thick. Add cheese and seasonings.',
       'Cook macaroni until al dente. Toss with cheese sauce.',
-      'Transfer to baking dish, top with breadcrumbs, bake at 190°C for 20 minutes until golden.'
+      'Transfer to baking dish, top with breadcrumbs, bake at 374°F for 20 minutes until golden.'
     ]
   },
   {
@@ -905,7 +905,7 @@ export const STATIC_RECIPES = [
       'Brioche buns', 'Coleslaw'
     ],
     steps: [
-      'Rub pork with spice mix. Slow cook at 150°C for 6–7 hours until fork-tender.',
+      'Rub pork with spice mix. Slow cook at 302°F for 6–7 hours until fork-tender.',
       'Shred pork with two forks. Mix with BBQ sauce.',
       'Serve on brioche buns with coleslaw.'
     ]
@@ -940,7 +940,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Brown lamb with onion, carrots, and garlic. Add tomato paste, broth, and Worcestershire sauce. Simmer 20 minutes.',
       'Transfer to a baking dish. Top with mashed potatoes, dot with butter.',
-      'Bake at 200°C for 25–30 minutes until golden on top.'
+      'Bake at 392°F for 25–30 minutes until golden on top.'
     ]
   },
 
@@ -1007,7 +1007,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Thinly slice all vegetables. Sauté onion and garlic in oil.',
       'Spread sautéed base in dish. Layer alternating vegetable slices in concentric circles.',
-      'Drizzle oil, season, bake covered at 180°C for 40 minutes, then uncovered 20 more.'
+      'Drizzle oil, season, bake covered at 356°F for 40 minutes, then uncovered 20 more.'
     ]
   },
 
@@ -1043,7 +1043,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Sauté onion, garlic, and spinach until wilted. Squeeze dry, cool.',
       'Mix with crumbled feta, eggs, and dill. Season.',
-      'Layer oiled phyllo in baking dish, spread filling, top with more phyllo layers. Bake at 180°C for 35 minutes until golden.'
+      'Layer oiled phyllo in baking dish, spread filling, top with more phyllo layers. Bake at 356°F for 35 minutes until golden.'
     ]
   },
 
@@ -1079,7 +1079,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Mix all marinade ingredients. Score chicken deeply and coat thoroughly. Marinate 6–8 hours or overnight.',
-      'Preheat oven to 220°C or prepare grill. Cook chicken 25–30 minutes, turning halfway.',
+      'Preheat oven to 428°F or prepare grill. Cook chicken 25–30 minutes, turning halfway.',
       'Char slightly for authentic flavor. Serve with mint chutney, sliced onions, and lemon.'
     ]
   },
@@ -1308,7 +1308,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Blend spices, garlic, lemon juice, and olive oil. Marinate chicken at least 2 hours.',
-      'Grill or roast at 220°C for 25–30 minutes until slightly charred at edges.',
+      'Grill or roast at 428°F for 25–30 minutes until slightly charred at edges.',
       'Slice thin. Serve in pita with garlic sauce, tomatoes, pickles, and fresh vegetables.'
     ]
   },
@@ -1325,7 +1325,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Soak bulgur 20 minutes. Blend with raw meat, onion, and spices into a dough.',
       'Make filling: fry onion with meat, pine nuts, and allspice until cooked.',
-      'Shape dough into ovals, hollow, fill, seal. Fry in oil at 180°C until golden, or bake at 200°C for 25 minutes.'
+      'Shape dough into ovals, hollow, fill, seal. Fry in oil at 356°F until golden, or bake at 392°F for 25 minutes.'
     ]
   },
   {
@@ -1437,7 +1437,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Make syrup: boil sugar, water, lemon juice, and orange blossom water. Cool.',
       'Mix kataifi with melted butter. Press half into buttered pan, add cheese layer, top with remaining kataifi.',
-      'Bake at 200°C for 25–30 minutes until golden. Invert onto plate, pour cold syrup over hot knafeh. Top with pistachios.'
+      'Bake at 392°F for 25–30 minutes until golden. Invert onto plate, pour cold syrup over hot knafeh. Top with pistachios.'
     ]
   },
   {
@@ -1565,7 +1565,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Toss plantain cubes with ginger, cayenne, nutmeg, anise, and salt. Rest 10 minutes.',
-      'Deep-fry in hot oil at 180°C until golden and crispy on outside, about 4–5 minutes.',
+      'Deep-fry in hot oil at 356°F until golden and crispy on outside, about 4–5 minutes.',
       'Drain and serve hot as a snack or alongside stew and rice.'
     ]
   },
@@ -1864,7 +1864,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Bring milk, water, oil, and salt to boil. Pour hot liquid over tapioca starch and mix until crumbly.',
       'Cool 10 minutes. Add eggs and both cheeses. Knead until smooth dough.',
-      'Roll into balls. Bake at 200°C for 20–25 minutes until puffed and golden.'
+      'Roll into balls. Bake at 392°F for 20–25 minutes until puffed and golden.'
     ]
   },
   {
@@ -1999,7 +1999,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Mix mince with rice, onion, garlic, egg, paprika, salt, and pepper.',
       'Place filling in blanched cabbage leaves and roll tightly.',
-      'Arrange in baking dish. Pour tomato sauce over. Bake covered at 180°C for 1 hour. Serve with sour cream.'
+      'Arrange in baking dish. Pour tomato sauce over. Bake covered at 356°F for 1 hour. Serve with sour cream.'
     ]
   },
   {
@@ -2099,8 +2099,8 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Mix garlic, citrus juice, cumin, oregano, oil, salt, and pepper into mojo sauce. Score pork and marinate 8+ hours.',
-      'Roast at 160°C for 3–4 hours until fall-apart tender, basting every hour.',
-      'Increase heat to 230°C for 20 minutes to crisp skin. Rest 15 minutes before shredding.'
+      'Roast at 320°F for 3–4 hours until fall-apart tender, basting every hour.',
+      'Increase heat to 446°F for 20 minutes to crisp skin. Rest 15 minutes before shredding.'
     ]
   },
   {
@@ -2134,7 +2134,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Mix all sauce ingredients. Marinate pork overnight.',
-      'Roast at 200°C for 25 minutes. Brush with remaining marinade, turn and roast 10 more minutes.',
+      'Roast at 392°F for 25 minutes. Brush with remaining marinade, turn and roast 10 more minutes.',
       'Rest 5 minutes. Slice and serve over rice, or use in bao buns.'
     ]
   },
@@ -2216,7 +2216,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Dry duck in fridge uncovered for 24–48 hours. Brush with honey-soy-vinegar glaze twice.',
-      'Roast at 190°C for 1.5–2 hours, basting every 30 minutes until skin is lacquered and crispy.',
+      'Roast at 374°F for 1.5–2 hours, basting every 30 minutes until skin is lacquered and crispy.',
       'Carve skin into thin slices. Serve on warm pancakes with hoisin sauce, cucumber, and spring onion.'
     ]
   },
@@ -2348,7 +2348,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Make yeast dough with flour, water, oil, and salt. Rest 1 hour. Roll into oval boats.',
-      'Fill each boat with mixed cheeses. Bake at 220°C for 15 minutes until crust is golden.',
+      'Fill each boat with mixed cheeses. Bake at 428°F for 15 minutes until crust is golden.',
       'Make a well in cheese, crack egg in, add butter. Return to oven 3–4 minutes (yolk should be runny). Stir while eating.'
     ]
   },
@@ -2400,7 +2400,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Braise chicken with onion, saffron, ginger, and cinnamon until very tender. Shred. Scramble eggs in braising liquid.',
       'Toast and coarsely chop almonds with honey and cinnamon.',
-      'Layer buttered phyllo in round pan, add chicken and egg mixture, then almond layer. Fold phyllo over, bake 25 minutes at 190°C. Dust with icing sugar and cinnamon.'
+      'Layer buttered phyllo in round pan, add chicken and egg mixture, then almond layer. Fold phyllo over, bake 25 minutes at 374°F. Dust with icing sugar and cinnamon.'
     ]
   },
   {
@@ -2646,7 +2646,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Fry onion with curry powder, add mince. Cook through. Add soaked bread (squeezed), jam, chutney, and vinegar.',
       'Spread in baking dish, tuck in bay leaves.',
-      'Beat eggs with milk and turmeric. Pour over. Bake at 180°C for 30 minutes until golden custard sets.'
+      'Beat eggs with milk and turmeric. Pour over. Bake at 356°F for 30 minutes until golden custard sets.'
     ]
   },
   {
@@ -2678,7 +2678,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Pound pork cutlets thin. Season with salt and pepper. Coat in flour, egg, then panko breadcrumbs.',
-      'Deep-fry at 170°C for 4–5 minutes until golden brown and cooked through.',
+      'Deep-fry at 338°F for 4–5 minutes until golden brown and cooked through.',
       'Slice into strips. Serve over rice with shredded cabbage and tonkatsu sauce.'
     ]
   },
@@ -2695,7 +2695,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Make soft dough. Rest 1 hour until doubled. Divide into balls, flatten thin.',
       'Mix za\'atar with olive oil to a paste. Spread generously over dough.',
-      'Bake at 230°C for 8–10 minutes until crust is golden and crisp at edges.'
+      'Bake at 446°F for 8–10 minutes until crust is golden and crisp at edges.'
     ]
   },
   {
@@ -2860,7 +2860,7 @@ export const STATIC_RECIPES = [
       'Churma: leftover baati, 2 tbsp ghee, jaggery powder, cardamom'
     ],
     steps: [
-      'Make stiff baati dough, shape into balls, bake at 200°C for 30 minutes until golden, or cook in tandoor.',
+      'Make stiff baati dough, shape into balls, bake at 392°F for 30 minutes until golden, or cook in tandoor.',
       'Cook mixed dal with ghee tempering (cumin, coriander, chili, ginger, garlic, tomato).',
       'Crack baati, pour ghee over. Serve with dal. Crush remaining baati with ghee and jaggery for churma.'
     ]
@@ -3053,7 +3053,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Score chicken all over. Marinate in yogurt, mughlai masala, and salt for 4 hours.',
       'Blend fried onions and cashews to paste. Cook in ghee with whole spices, add cream and saffron.',
-      'Roast marinated chicken in oven at 200°C for 30 minutes. Transfer to onion gravy, cover and cook 20 more minutes.'
+      'Roast marinated chicken in oven at 392°F for 30 minutes. Transfer to onion gravy, cover and cook 20 more minutes.'
     ]
   },
   {
@@ -3117,7 +3117,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Mix sattu with spices and mustard oil. Make wheat dough, form balls, hollow and fill.',
-      'Bake litti at 200°C or over coals for 25 minutes until cooked through.',
+      'Bake litti at 392°F or over coals for 25 minutes until cooked through.',
       'Peel and mash roasted brinjal and tomato with garlic, chili, and mustard oil for chokha. Serve together.'
     ]
   },
@@ -3243,7 +3243,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Dust veal with flour and brown in olive oil. Remove. Fry onion, carrot, celery.',
-      'Deglaze with wine. Add tomatoes, broth, and return veal. Braise covered at 160°C for 1.5 hours.',
+      'Deglaze with wine. Add tomatoes, broth, and return veal. Braise covered at 320°F for 1.5 hours.',
       'Make gremolata. Serve osso buco on saffron risotto, topped with gremolata.'
     ]
   },
@@ -3290,7 +3290,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Chill risotto. Take a handful, flatten in palm, add mozzarella and ragù in centre. Seal into a ball.',
       'Coat in flour, then egg, then breadcrumbs. Chill 30 minutes.',
-      'Deep-fry at 175°C for 4–5 minutes until golden. Drain and serve hot.'
+      'Deep-fry at 347°F for 4–5 minutes until golden. Drain and serve hot.'
     ]
   },
   {
@@ -3436,7 +3436,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Marinate chicken in soy, sake, ginger, and garlic for 30 minutes.',
       'Coat in potato starch and flour mix.',
-      'Deep-fry at 170°C for 4 minutes. Rest 3 minutes, fry again at 180°C for 2 minutes for extra crunch. Serve with lemon and mayo.'
+      'Deep-fry at 338°F for 4 minutes. Rest 3 minutes, fry again at 356°F for 2 minutes for extra crunch. Serve with lemon and mayo.'
     ]
   },
   {
@@ -3597,7 +3597,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Cut tofu into cubes. Coat in potato starch.',
-      'Deep-fry at 175°C until lightly golden, about 3 minutes. Drain.',
+      'Deep-fry at 347°F until lightly golden, about 3 minutes. Drain.',
       'Heat tentsuyu in a small pan. Place tofu in bowls, pour broth over. Top with daikon, ginger, spring onion, bonito.'
     ]
   },
@@ -3615,7 +3615,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Toast and rehydrate dried chilies. Blend with garlic, onion, and spices.',
-      'Coat meat in chili paste. Brown in a pot, add broth. Braise at 160°C for 3 hours until very tender.',
+      'Coat meat in chili paste. Brown in a pot, add broth. Braise at 320°F for 3 hours until very tender.',
       'Shred meat. Dip tortillas in the rich braising juices (consommé), fry until crispy, fill with meat. Serve with consommé for dipping.'
     ]
   },
@@ -3679,7 +3679,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Blend achiote with citrus, garlic, cumin, and pepper. Score and marinate pork overnight.',
-      'Wrap in banana leaves, place in dutch oven. Cover and bake at 150°C for 4 hours.',
+      'Wrap in banana leaves, place in dutch oven. Cover and bake at 302°F for 4 hours.',
       'Shred pork, mix with cooking juices. Serve in warm tortillas with pickled onions.'
     ]
   },
@@ -3863,7 +3863,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Grill eggplant slices until soft. Make meat sauce: fry onion, garlic, mince; add wine, tomatoes, spices. Simmer 20 minutes.',
       'Make béchamel: whisk butter-flour roux with milk until thick. Season with nutmeg, add egg yolk.',
-      'Layer: eggplant, meat sauce, eggplant. Top with béchamel. Bake at 180°C for 45 minutes until golden.'
+      'Layer: eggplant, meat sauce, eggplant. Top with béchamel. Bake at 356°F for 45 minutes until golden.'
     ]
   },
   {
@@ -3943,7 +3943,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Brown beef and lardons. Fry vegetables. Add flour and tomato paste.',
-      'Add wine, garlic, and herbs. Braise covered at 160°C for 2.5–3 hours.',
+      'Add wine, garlic, and herbs. Braise covered at 320°F for 2.5–3 hours.',
       'Add mushrooms and pearl onions in last 30 minutes. Serve with mashed potatoes or egg noodles.'
     ]
   },
@@ -3992,7 +3992,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Mix spinach, feta, eggs, dill, and sautéed onion. Season.',
       'Cut phyllo into strips, brush with oil. Place filling at one end, fold into triangles flag-style.',
-      'Bake at 190°C for 20–25 minutes until golden and crisp.'
+      'Bake at 374°F for 20–25 minutes until golden and crisp.'
     ]
   },
   {
@@ -4006,7 +4006,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Heat cream with vanilla until simmering. Whisk yolks and sugar until pale, slowly add hot cream.',
-      'Strain into ramekins. Bake in water bath at 160°C for 30–35 minutes until just set with a wobble.',
+      'Strain into ramekins. Bake in water bath at 320°F for 30–35 minutes until just set with a wobble.',
       'Chill at least 2 hours. Sprinkle caster sugar over each, torch or broil until caramel crust forms.'
     ]
   },
@@ -4023,7 +4023,7 @@ export const STATIC_RECIPES = [
     steps: [
       'Sear beef all over, brush with mustard, cool. Cook mushroom duxelles until completely dry.',
       'Lay prosciutto on film, spread duxelles, wrap beef tightly. Chill 30 minutes.',
-      'Wrap in puff pastry, seal, egg wash. Bake at 210°C for 25 minutes for medium-rare. Rest 10 minutes.'
+      'Wrap in puff pastry, seal, egg wash. Bake at 410°F for 25 minutes for medium-rare. Rest 10 minutes.'
     ]
   },
   {
@@ -4054,7 +4054,7 @@ export const STATIC_RECIPES = [
     ],
     steps: [
       'Boil water with butter, add flour all at once, stir until dough pulls from sides. Cool 5 minutes. Beat in eggs one at a time.',
-      'Pipe walnut-sized balls onto baking parchment. Bake at 200°C for 22 minutes. Cool. Slit and fill with cream.',
+      'Pipe walnut-sized balls onto baking parchment. Bake at 392°F for 22 minutes. Cool. Slit and fill with cream.',
       'Pour warm chocolate sauce over assembled profiteroles.'
     ]
   },
@@ -4227,7 +4227,7 @@ export const STATIC_RECIPES = [
       '2 tbsp yogurt', 'Lemon juice', 'Oil for frying', 'Salt'],
     steps: ['Mix besan, rice flour, ajwain, chili powder, ginger-garlic, yogurt, and lemon into marinade.',
       'Coat fish pieces generously and marinate 30 minutes.',
-      'Deep-fry at 180°C until crispy and golden, about 4 minutes. Serve with mint chutney.']
+      'Deep-fry at 356°F until crispy and golden, about 4 minutes. Serve with mint chutney.']
   },
   {
     id: 'static-in4-015',
@@ -4298,7 +4298,7 @@ export const STATIC_RECIPES = [
       '2 tbsp ginger-garlic paste', '1/4 cup cashews (soaked)', '2 onions (fried golden)',
       '1/2 cup cream', '1 tsp saffron in milk', '2 hard-boiled eggs (for stuffing)', '3 tbsp ghee'],
     steps: ['Score chicken, marinate in yogurt, masala, ginger-garlic, and salt 4 hours.',
-      'Stuff chicken with hard-boiled eggs. Roast at 200°C for 35 minutes, basting with ghee.',
+      'Stuff chicken with hard-boiled eggs. Roast at 392°F for 35 minutes, basting with ghee.',
       'Blend cashews and fried onions with cream and saffron. Pour over chicken last 10 minutes of roasting.']
   },
   {
@@ -4512,7 +4512,7 @@ export const STATIC_RECIPES = [
       'Oil for deep frying', 'Salt'],
     steps: ['Cook mince with onion, chilies, spices, and peas until dry. Cool.',
       'Fill samosa sheets in cone shape, fill with keema, seal edges with water.',
-      'Deep-fry at 170°C until golden and crispy. Serve with mint and tamarind chutney.']
+      'Deep-fry at 338°F until golden and crispy. Serve with mint and tamarind chutney.']
   },
   {
     id: 'static-in4-039',
@@ -4560,7 +4560,7 @@ export const STATIC_RECIPES = [
       'Filling: 200g char siu pork, 2 tbsp oyster sauce, 1 tbsp soy sauce, 1 tsp sesame oil, cornstarch'],
     steps: ['Make soft yeast dough, rest 1 hour until doubled.',
       'Dice char siu, mix with sauces and cornstarch.',
-      'Divide dough into balls, flatten, fill, pleat to seal. Rest 20 minutes. Steam 15 minutes or bake at 190°C until golden.']
+      'Divide dough into balls, flatten, fill, pleat to seal. Rest 20 minutes. Steam 15 minutes or bake at 374°F until golden.']
   },
   {
     id: 'static-ch4-003',
@@ -4630,7 +4630,7 @@ export const STATIC_RECIPES = [
       '1 tsp five-spice powder', '3 cloves garlic, minced', '2 slices ginger',
       'Star anise, cinnamon', 'Rice and pancakes to serve'],
     steps: ['Marinate duck inside and out with all seasonings. Refrigerate uncovered 24 hours to dry the skin.',
-      'Brush skin with maltose diluted in water. Roast at 190°C for 1.5 hours, basting every 30 minutes.',
+      'Brush skin with maltose diluted in water. Roast at 374°F for 1.5 hours, basting every 30 minutes.',
       'Rest 10 minutes. Chop and serve with rice or thin pancakes, spring onion, and hoisin.']
   },
   {
@@ -4852,7 +4852,7 @@ export const STATIC_RECIPES = [
       'Béchamel: 50g butter, 50g flour, 500ml milk, nutmeg', '100g parmesan', 'Salt'],
     steps: ['Make slow ragù: fry soffritto, add beef, wine, tomatoes. Simmer 1.5 hours.',
       'Make béchamel. Cook lasagne sheets.',
-      'Layer: ragù, pasta, béchamel, parmesan. Repeat. Top with béchamel and parmesan. Bake 180°C for 40 minutes.']
+      'Layer: ragù, pasta, béchamel, parmesan. Repeat. Top with béchamel and parmesan. Bake 356°F for 40 minutes.']
   },
   {
     id: 'static-it3-002',
@@ -4874,7 +4874,7 @@ export const STATIC_RECIPES = [
       '6 tbsp olive oil', '350ml warm water', 'Cherry tomatoes', 'Olives', 'Rosemary', 'Flaky salt'],
     steps: ['Mix flour, yeast, sugar, salt. Add water and 3 tbsp oil. Knead 10 minutes. Rest 1 hour.',
       'Press into oiled baking tray. Dimple generously with fingers. Drizzle remaining oil.',
-      'Press in tomatoes, olives, and rosemary. Rest 30 minutes. Bake 220°C for 25 minutes. Sprinkle flaky salt.']
+      'Press in tomatoes, olives, and rosemary. Rest 30 minutes. Bake 428°F for 25 minutes. Sprinkle flaky salt.']
   },
   {
     id: 'static-it3-004',
@@ -4885,7 +4885,7 @@ export const STATIC_RECIPES = [
       '50g parmesan', '2 eggs (1 in risotto, 1 for coating)', 'Breadcrumbs', 'Oil for frying'],
     steps: ['Mix cold risotto with one beaten egg and parmesan. Take a handful, enclose mozzarella cube inside, form egg shape.',
       'Coat in beaten egg then breadcrumbs.',
-      'Deep-fry at 175°C until golden. The mozzarella inside melts into "telephone wires" when you pull apart.']
+      'Deep-fry at 347°F until golden. The mozzarella inside melts into "telephone wires" when you pull apart.']
   },
   {
     id: 'static-it3-005',

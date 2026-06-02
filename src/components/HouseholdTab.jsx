@@ -81,7 +81,7 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
     // to querying profiles directly using active_household_id (old schema).
     supabase
       .from('household_members')
-      .select('profile_id, profiles!profile_id(id, display_name, hungry_settings, friend_code)')
+      .select('profile_id, profiles!profile_id(id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url)')
       .eq('household_id', selectedHHId)
       .then(async ({ data, error }) => {
         let loaded = (data || []).map(m => m.profiles).filter(Boolean);
@@ -93,7 +93,7 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
           if (ids.length) {
             const { data: profs } = await supabase
               .from('profiles')
-              .select('id, display_name, hungry_settings, friend_code')
+              .select('id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url')
               .in('id', ids);
             loaded = profs || [];
           }
@@ -103,7 +103,7 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
         if (!loaded.length) {
           const { data: oldProfs } = await supabase
             .from('profiles')
-            .select('id, display_name, hungry_settings, friend_code')
+            .select('id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url')
             .or(`active_household_id.eq.${selectedHHId},household_id.eq.${selectedHHId}`);
           loaded = oldProfs || [];
         }
@@ -343,9 +343,10 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
                   onClick={() => !isSelf && setActiveProfile(m)}
                   className={`w-full flex items-center gap-3 px-4 py-3 bg-blue-50/50 border border-blue-100 rounded-2xl text-left transition-all ${!isSelf ? 'hover:border-sky-300 hover:bg-sky-50/50 active:scale-[0.99]' : ''}`}
                 >
-                  <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#6BAEE0] to-[#4d96d1] flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm">
-                    {(m.display_name || '?')[0].toUpperCase()}
-                  </div>
+                  {(m.hungry_avatar_url || m.avatar_url)
+                    ? <img src={m.hungry_avatar_url || m.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 shadow-sm border border-blue-100" />
+                    : <div className="w-10 h-10 rounded-full bg-linear-to-br from-[#6BAEE0] to-[#4d96d1] flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm">{(m.display_name || '?')[0].toUpperCase()}</div>
+                  }
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-slate-700 truncate">{m.display_name || 'Member'}{isSelf ? ' (You)' : ''}</p>
                     <div className="flex items-center gap-2 flex-wrap mt-0.5">
@@ -469,9 +470,10 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
                 )}
                 {members.filter(m => m.id !== user?.id).map(m => (
                   <div key={m.id} className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6BAEE0] to-[#4d96d1] flex items-center justify-center text-white font-black text-sm shrink-0">
-                      {(m.display_name || '?')[0].toUpperCase()}
-                    </div>
+                    {(m.hungry_avatar_url || m.avatar_url)
+                      ? <img src={m.hungry_avatar_url || m.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-blue-100" />
+                      : <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#6BAEE0] to-[#4d96d1] flex items-center justify-center text-white font-black text-sm shrink-0">{(m.display_name || '?')[0].toUpperCase()}</div>
+                    }
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-slate-700 truncate">{m.display_name || 'Member'}</p>
                       <p className="text-[10px] text-slate-400">owes ${perPerson.toFixed(2)}</p>

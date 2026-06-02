@@ -439,7 +439,16 @@ function AppContent({ inventory }) {
                       return (
                         <div key={recipe.id} className="bg-white/80 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition-all group overflow-hidden w-full min-w-0">
                           {image && (
-                            <div className="w-full h-32 overflow-hidden">
+                            <div
+                              className="w-full h-32 overflow-hidden cursor-pointer"
+                              onClick={() => setActiveModalRecipe({
+                                ...recipe,
+                                id: recipe.recipe_id,
+                                name: recipe.recipe_name,
+                                image: image || undefined,
+                                cleanedIngredients: recipe.ingredients ? recipe.ingredients.map(cleanIngredientLocally) : []
+                              })}
+                            >
                               <img src={image} alt={recipe.recipe_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
                             </div>
                           )}

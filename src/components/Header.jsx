@@ -14,10 +14,13 @@ export default function Header({ scrollToTop, onOpenNav }) {
   const photo = hungryAvatarUrl || avatarUrl;
 
   return (
-    <header className="bg-white border border-blue-100 rounded-[2.5rem] sticky top-4 mx-4 z-40 px-6 py-4 flex justify-between items-center w-[calc(100%-2rem)] max-w-6xl shadow-lg shadow-slate-200 backdrop-blur-xl">
+    <header
+      className="bg-white border border-blue-100 rounded-[2.5rem] sticky top-4 mx-4 z-40 px-6 py-4 flex justify-between items-center w-[calc(100%-2rem)] max-w-6xl shadow-lg shadow-slate-200 backdrop-blur-xl cursor-pointer"
+      onClick={() => scrollToTop?.()}
+    >
       <div className="flex items-center gap-4">
         <button
-          onClick={() => onOpenNav?.()}
+          onClick={(e) => { e.stopPropagation(); onOpenNav?.(); }}
           className="active:opacity-70 transition-opacity shrink-0"
         >
           {photo
@@ -35,14 +38,14 @@ export default function Header({ scrollToTop, onOpenNav }) {
       </div>
       <div className="flex items-center gap-3">
         <button
-          onClick={() => setIsAiPickerOpen(true)}
+          onClick={(e) => { e.stopPropagation(); setIsAiPickerOpen(true); }}
           disabled={aiGenerating}
           title="Generate AI Recipe"
           className="bg-sky-50 text-[#6BAEE0] p-2.5 rounded-2xl hover:bg-sky-100 transition-colors disabled:opacity-60"
         >
           {aiGenerating ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
         </button>
-        <button onClick={triggerStoreTripPlanner} title="Shopping Suggestions" className="bg-sky-50 text-[#6BAEE0] p-2.5 rounded-2xl hover:bg-sky-100 transition-colors">
+        <button onClick={(e) => { e.stopPropagation(); triggerStoreTripPlanner(); }} title="Shopping Suggestions" className="bg-sky-50 text-[#6BAEE0] p-2.5 rounded-2xl hover:bg-sky-100 transition-colors">
           <ShoppingBag size={20} />
         </button>
       </div>

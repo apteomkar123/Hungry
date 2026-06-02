@@ -545,3 +545,11 @@ Cooking Mode voiceover toggle: mute/unmute button (Volume2/VolumeX) in header; v
 Better TTS voice: prefers Google US English / Microsoft Natural / Samantha / Alex; rate 0.92, pitch 1.05
 Virtual Sous Chef label: mic button now labeled "Sous Chef" below the button
 
+DONE (Session 18 / 2026-06-02)
+--------------------------------
+Temperature units: all Celsius values in staticRecipes.js converted to Fahrenheit
+Scroll to top: tapping anywhere on the sticky header now scrolls to page top; profile pic / AI / shopping buttons use stopPropagation
+Household member profile pictures: member query fetches avatar_url and hungry_avatar_url; shows profile pic (or initials fallback) in Members list and Settle Up section
+Link AppWare Account: Settings "Merge AppWare Account" section now has a single "Link AppWare Account" button using useAppWareSSO.triggerAppWareRedirect (removed Google-specific linkIdentity flow)
+Recipe image tap: in the Saved Recipes tab, tapping the recipe image now opens the recipe modal
+
