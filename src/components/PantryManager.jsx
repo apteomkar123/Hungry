@@ -3,14 +3,16 @@ import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User, GripV
 import { Html5Qrcode } from 'html5-qrcode';
 import { estimateNutrition, categorizeItem, CATEGORY_ICONS, toTitleCase } from './recipeUtils';
 
-const CATEGORIES = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Beverages', 'Snacks', 'Frozen', 'Sauces', 'Spices', 'General'];
+const CATEGORIES = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Bakery', 'Beverages', 'Alcohol', 'Snacks', 'Frozen', 'Sauces', 'Spices', 'General'];
 
 const CATEGORY_COLORS = {
   'Proteins': 'bg-rose-50 text-rose-500 border-rose-100',
   'Dairy & Eggs': 'bg-amber-50 text-amber-500 border-amber-100',
   'Fruits': 'bg-pink-50 text-pink-500 border-pink-100',
   'Vegetables': 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  'Bakery': 'bg-yellow-50 text-yellow-600 border-yellow-100',
   'Beverages': 'bg-cyan-50 text-cyan-500 border-cyan-100',
+  'Alcohol': 'bg-amber-50 text-amber-600 border-amber-100',
   'Snacks': 'bg-orange-50 text-orange-500 border-orange-100',
   'Frozen': 'bg-sky-50 text-sky-500 border-sky-100',
   'Sauces': 'bg-red-50 text-red-500 border-red-100',
@@ -450,11 +452,17 @@ export default function PantryManager({
 
     const rec = new SpeechRec();
     rec.lang = 'en-US';
-    rec.continuous = false;
+    rec.continuous = true;
     rec.interimResults = false;
 
     rec.onresult = async (e) => {
-      const transcript = e.results[0][0].transcript;
+      // Collect all final results (continuous mode can fire multiple times)
+      let transcript = '';
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) transcript += e.results[i][0].transcript + ' ';
+      }
+      transcript = transcript.trim();
+      if (!transcript) return;
       // Stop mic immediately — user has stopped speaking, parsing is starting
       try { rec.stop(); } catch {}
       setVoiceListening(false);
@@ -496,10 +504,10 @@ export default function PantryManager({
   const addAllVoiceItems = async () => {
     if (!voiceItems) return;
     const items = [...voiceItems];
-    dismissVoicePanel(async () => {
-      for (const item of items) {
-        if (item.name) await handleAddManualItem(item.name, null, { quantity: item.quantity || 1 });
-      }
+    dismissVoicePanel(() => {
+      Promise.all(items.filter(i => i.name).map(item =>
+        handleAddManualItem(item.name, null, { quantity: item.quantity || 1 })
+      ));
     });
   };
 

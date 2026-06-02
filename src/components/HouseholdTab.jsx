@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Star, ShoppingCart, Plus, Trash2, Check, X, ChevronDown, DollarSign, Edit2, UserPlus, UserCheck, CreditCard, ExternalLink, MapPin, ChevronRight, Home, Copy } from 'lucide-react';
+import { Users, Star, ShoppingCart, Plus, Trash2, Check, X, ChevronDown, DollarSign, Edit2, UserPlus, UserCheck, CreditCard, ExternalLink, MapPin, ChevronRight, Home, Copy, Share2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
@@ -277,28 +277,30 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
       )}
 
       {selectedHH && (
-        <div className="bg-sky-50 border border-sky-100 rounded-2xl px-5 py-3 flex items-center justify-between">
+        <div className="bg-linear-to-br from-[#6BAEE0]/10 to-sky-50 border border-sky-100 rounded-4xl p-5 space-y-3">
+          <p className="text-base font-black text-[#1F6FB8]">{selectedHH.name}</p>
           <div>
-            <p className="text-sm font-black text-[#1F6FB8]">{selectedHH.name}</p>
-            <p className="text-[10px] text-slate-400 font-mono">Code: {selectedHH.invite_code}</p>
-          </div>
-          <div className="text-right">
-            {editingBudget ? (
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">$</span>
-                  <input type="number" value={budgetInput} onChange={e => setBudgetInput(e.target.value)}
-                    className="w-24 bg-white border border-sky-200 pl-6 pr-2 py-1.5 rounded-xl text-xs font-bold text-slate-800 focus:outline-none" placeholder="0.00" />
-                </div>
-                <button onClick={saveBudget} className="text-[10px] font-black text-white bg-[#6BAEE0] px-3 py-1.5 rounded-xl">Save</button>
-              </div>
-            ) : (
-              <button onClick={() => setEditingBudget(true)} className="flex items-center gap-1 text-[10px] font-black text-slate-400 hover:text-[#6BAEE0] transition-colors">
-                <DollarSign size={11} />
-                {selectedHH.budget_limit > 0 ? `$${Number(selectedHH.budget_limit).toFixed(2)}/mo` : 'Set budget'}
-                <Edit2 size={10} />
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Invite Code</p>
+            <div className="flex items-center gap-2">
+              <span className="flex-1 text-2xl font-black text-slate-800 tracking-[0.18em] font-mono bg-white border border-sky-100 rounded-2xl px-4 py-3 text-center select-all">
+                {selectedHH.invite_code}
+              </span>
+              <button
+                onClick={() => {
+                  const text = selectedHH.invite_code;
+                  if (navigator.share) {
+                    navigator.share({ title: `Join ${selectedHH.name} on Hungry`, text: `Use code ${text} to join my household on Hungry!` }).catch(() => {});
+                  } else {
+                    navigator.clipboard?.writeText(text).then(() => alert('Code copied!')).catch(() => {});
+                  }
+                }}
+                className="flex flex-col items-center gap-1 bg-[#6BAEE0] text-white px-4 py-3 rounded-2xl shadow-md active:scale-95 transition-all"
+              >
+                <Share2 size={18} />
+                <span className="text-[9px] font-black">Share</span>
               </button>
-            )}
+            </div>
+            <p className="text-[9px] text-slate-400 mt-1.5 text-center">Share this code so others can join automatically</p>
           </div>
         </div>
       )}
@@ -496,6 +498,37 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
               </div>
             );
           })()}
+        </section>
+      )}
+
+      {/* Budget Card */}
+      {selectedHH && (
+        <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
+          <h2 className="text-[14px] font-bold text-slate-400 mb-4 flex items-center gap-2"><DollarSign size={15} /> Household Budget</h2>
+          {editingBudget ? (
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-bold">$</span>
+                <input type="number" value={budgetInput} onChange={e => setBudgetInput(e.target.value)}
+                  className="w-full bg-blue-50/50 border border-blue-100 pl-8 pr-4 py-3 rounded-2xl text-sm font-bold text-slate-800 focus:border-sky-400 focus:outline-none" placeholder="0.00" />
+              </div>
+              <button onClick={saveBudget} className="bg-[#6BAEE0] text-white px-5 py-3 rounded-2xl text-xs font-black">Save</button>
+              <button onClick={() => setEditingBudget(false)} className="text-slate-400 hover:text-slate-600 text-xs font-bold px-2">Cancel</button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-black text-slate-800">
+                  {selectedHH.budget_limit > 0 ? `$${Number(selectedHH.budget_limit).toFixed(2)}` : '—'}
+                  {selectedHH.budget_limit > 0 && <span className="text-sm font-semibold text-slate-400">/mo</span>}
+                </p>
+                <p className="text-[10px] text-slate-400 mt-0.5">{selectedHH.budget_limit > 0 ? 'Monthly household budget' : 'No budget set'}</p>
+              </div>
+              <button onClick={() => setEditingBudget(true)} className="flex items-center gap-1.5 text-[11px] font-black text-[#6BAEE0] bg-sky-50 border border-sky-100 px-4 py-2 rounded-2xl hover:bg-sky-100 transition-all">
+                <Edit2 size={12} /> {selectedHH.budget_limit > 0 ? 'Edit' : 'Set Budget'}
+              </button>
+            </div>
+          )}
         </section>
       )}
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, DollarSign, UserPlus, ShoppingCart, Star, BookOpen, Camera, Link } from 'lucide-react';
+import { Settings, DollarSign, UserPlus, ShoppingCart, Star, BookOpen, Camera, Link, LogOut } from 'lucide-react';
 import { useUser } from './UserContext';
 import { supabase } from '../supabaseClient';
 
@@ -19,6 +19,7 @@ export default function SettingsPage({ onNavigateFriends }) {
     handleUpdateSettings,
     handleUpdatePersonalBudget,
     rerunTutorial,
+    handleSignOut,
   } = useUser();
 
   const [identities, setIdentities] = useState([]);
@@ -492,6 +493,14 @@ export default function SettingsPage({ onNavigateFriends }) {
           </p>
         )}
       </section>
+
+      {/* Sign Out */}
+      <button
+        onClick={handleSignOut}
+        className="w-full flex items-center justify-center gap-2 bg-white/80 backdrop-blur-lg border border-red-100 shadow-xl shadow-blue-900/5 py-4 rounded-4xl text-sm font-black text-red-400 hover:bg-red-50 transition-all"
+      >
+        <LogOut size={18} /> Sign Out
+      </button>
 
     </div>
   );

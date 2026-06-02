@@ -386,14 +386,19 @@ export const RecipeProvider = ({ children, fridge }) => {
       recipe_name: recipe.name,
       meal_type: recipe.meal_type || 'General',
       cuisine: recipe.cuisine || '',
+      image: recipe.image || null,
       ingredients: recipe.ingredients || [],
       steps: recipe.steps || [],
     };
     if (householdId) insertData.household_id = householdId;
     let { data, error: err } = await supabase.from('saved_recipes').insert([insertData]).select();
-    // If cuisine column doesn't exist yet (schema cache miss), retry without it
+    // Retry without columns that may not exist yet in the remote schema
+    if (err?.message?.includes('image')) {
+      const { image: _i, ...withoutImage } = insertData;
+      ({ data, error: err } = await supabase.from('saved_recipes').insert([withoutImage]).select());
+    }
     if (err?.message?.includes('cuisine')) {
-      const { cuisine: _c, ...withoutCuisine } = insertData;
+      const { cuisine: _c, image: _i2, ...withoutCuisine } = insertData;
       ({ data, error: err } = await supabase.from('saved_recipes').insert([withoutCuisine]).select());
     }
     if (err) { console.error('Save recipe error:', err.message, insertData); return false; }

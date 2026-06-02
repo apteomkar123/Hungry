@@ -351,4 +351,35 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - Cooking Mode: selects highest-quality TTS voice (Google US English, Microsoft Natural, Samantha, Alex…); rate 0.92, pitch 1.05 for more natural speech.
 - Cooking Mode: mic button now clearly labeled "Sous Chef" so its purpose as the Virtual Sous Chef trigger is obvious.
 
-*Last updated: 2026-06-01 (session 14)*
+**Session 15 — Bug Fixes:**
+- **Explore section dietary substitution** — confirmed working: `openMeal` in CommunityRecipes applies `locallyAdaptRecipe` for all user restrictions; meat/fish category rows hidden for vegetarians/vegans.
+- **Single-household dropdown** — dropdown is already conditionally hidden when only one household exists (`households.length > 1`).
+- **HouseholdTab redesign** — invite code is now displayed in large monospace format with a native Share button (uses Web Share API / clipboard fallback); household budget moved to its own card at the bottom of the page.
+- **"Your Taste" section** — RecipeExplorer now loads the user's chef history from Supabase, identifies top cuisines, and shows a "Your Taste" section with matching recipes above the main grid.
+- **Recipe images in Saved Recipes** — saved recipe cards now show the recipe image (from `saved_recipes.image` column, or looked up from `masterRecipes` by `recipe_id`); migration 009 adds `image text` column.
+- **Compact filters** — both RecipeExplorer and Saved Recipes filters now collapse behind a single "Filters" button with an active count badge; active filters shown as dismissible chips.
+- **Custom recipe generator — "1 each tomatoes" fix** — prompt now explicitly requests proper culinary measurements and real, tasty recipes; AiLoadingAnimation now shown during generation.
+- **Chef hat loading animation** — redesigned to look like a proper tall toque with brim, pleat lines, dome puff, and steam dots; viewBox enlarged for better proportions.
+- **ChefHistory ingredient pills** — "+N more" is now a tappable button that expands to show all ingredients; "Show less" collapses them back.
+- **Start Cooking choice sheet** — z-index increased to `z-30` + `pointer-events-auto` to guarantee the sheet renders above the scrollable content area.
+- **Sign Out moved to Settings** — LogOut button removed from the header; Sign Out button added at the bottom of SettingsPage. Header decluttered (slightly larger avatar, more spacing).
+- **Pantry categories: Bakery & Alcohol** — added two new categories; `categorizeItem` now recognises breads/pastries → Bakery and beer/wine/spirits → Alcohol (no longer lumped into Beverages); Beverages check now runs before Fruits so "mango juice" correctly categorises as Beverages instead of Fruits.
+- **Voice pantry input** — changed to `continuous: true` so users can list many items without the 2-second gap triggering early parsing; items now added in parallel (Promise.all) instead of sequentially, dramatically speeding up bulk add.
+- **Tutorial redesign** — dark overlay removed (light blur backdrop only); pulsing dot replaced with element-targeting highlight ring; cooking mode step now shows an animated preview of the Cooking Mode UI; step dots are now tappable for direct navigation; `scrollContainerRef` passed in so the tutorial can auto-scroll to the relevant section.
+- **Nutrition numbers tap** — tapping Protein, Carbs, or Fat in the Nutritional Overview opens a bottom-sheet breakdown card ranked by which pantry ingredient contributes most of that nutrient; uses actual barcode nutrition where available, falls back to `estimateNutrition`.
+
+**Session 15 — Features Not Added (deferred):**
+- Auto-add shopping list to online stores (Target, Walmart, Amazon Fresh, etc.) — requires retailer APIs/OAuth; deferred.
+- "When pantry item category changes, reflect across app in AI" — category overrides are stored in localStorage per-session; full persistence would require a new DB column; deferred.
+- Multi dietary restrictions — already fully supported (multi-select in Settings, arrays passed through all AI prompts, filters respect all restrictions).
+
+### Session 16 (2026-06-02)
+**Features added:**
+- **Shared Grocery List with Roomies** — `useInventory` cross-reads from Roomies `shopping_items` for the shared household; items show a ROOMIES badge. Toggle/delete/rename/clear-all all work across both tables.
+- **Household Mode toggle** — new card in Household Settings: Shared with Roomies (default) or Hungry-Specific. Stored as `profiles.hungry_household_id`; `UserContext` exposes `hungryHousehold`, `isHungryShared`, and mode-switch handlers.
+- **Ecosystem tutorial steps** — 3 new steps: AppWare Ecosystem, Shared Grocery List, Kitchen Concert & Mood Food.
+- **Hungry-style nav in Roomies** — floating glass drawer with hamburger + swipe + Lucide icons, replaces fixed sidebar.
+
+**DB migration:** `009_hungry_household_id.sql`
+
+*Last updated: 2026-06-02 (session 16)*

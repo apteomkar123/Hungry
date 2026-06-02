@@ -8,6 +8,7 @@ function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePh
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState(entry.notes || '');
   const [remixing, setRemixing] = useState(false);
+  const [showAllIngredients, setShowAllIngredients] = useState(false);
   const fileRef = useRef(null);
 
   const saveNotes = () => {
@@ -117,13 +118,13 @@ function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePh
           <p className="text-sm text-slate-500 leading-relaxed">{entry.description}</p>
         ) : entry.ingredients?.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            {entry.ingredients.slice(0, 6).map((ing, i) => {
+            {(showAllIngredients ? entry.ingredients : entry.ingredients.slice(0, 6)).map((ing, i) => {
               const label = typeof ing === 'string'
                 ? ing
-                    .replace(/^[\d½⅓¼¾⅛\s\/\-.]+/, '')           // strip leading numbers/fractions
-                    .replace(/^\s*(tbsps?|tsps?|tablespoons?|teaspoons?|cups?|oz|ounces?|g|grams?|kg|lb|lbs|ml|liters?|litres?|pieces?|slices?|cloves?|bunch|cans?|jars?)\s+/i, '') // strip units
-                    .replace(/\s*\([^)]*\)/g, '')                  // strip parenthetical notes
-                    .replace(/,.*$/, '')                           // strip comma-separated qualifiers
+                    .replace(/^[\d½⅓¼¾⅛\s\/\-.]+/, '')
+                    .replace(/^\s*(tbsps?|tsps?|tablespoons?|teaspoons?|cups?|oz|ounces?|g|grams?|kg|lb|lbs|ml|liters?|litres?|pieces?|slices?|cloves?|bunch|cans?|jars?)\s+/i, '')
+                    .replace(/\s*\([^)]*\)/g, '')
+                    .replace(/,.*$/, '')
                     .trim()
                 : String(ing);
               if (!label || label.length < 2) return null;
@@ -133,10 +134,21 @@ function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePh
                 </span>
               );
             })}
-            {entry.ingredients.length > 5 && (
-              <span className="text-[10px] font-bold bg-blue-50 border border-blue-100 text-[#6BAEE0] px-2.5 py-1 rounded-full">
-                +{entry.ingredients.length - 5} more
-              </span>
+            {!showAllIngredients && entry.ingredients.length > 6 && (
+              <button
+                onClick={e => { e.stopPropagation(); setShowAllIngredients(true); }}
+                className="text-[10px] font-bold bg-blue-50 border border-blue-100 text-[#6BAEE0] px-2.5 py-1 rounded-full hover:bg-sky-100 transition-colors"
+              >
+                +{entry.ingredients.length - 6} more
+              </button>
+            )}
+            {showAllIngredients && (
+              <button
+                onClick={e => { e.stopPropagation(); setShowAllIngredients(false); }}
+                className="text-[10px] font-bold bg-slate-100 border border-slate-200 text-slate-500 px-2.5 py-1 rounded-full hover:bg-slate-200 transition-colors"
+              >
+                Show less
+              </button>
             )}
           </div>
         )}

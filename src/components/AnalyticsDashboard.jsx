@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { DollarSign, BarChart, ShoppingBag, TrendingDown, PieChart, Target, Sparkles, Loader2, RefreshCw, Star, Plus, Leaf, AlertTriangle, CalendarDays, Edit2, Globe } from 'lucide-react';
+import { DollarSign, BarChart, ShoppingBag, TrendingDown, PieChart, Target, Sparkles, Loader2, RefreshCw, Star, Plus, Leaf, AlertTriangle, CalendarDays, Edit2, Globe, X } from 'lucide-react';
+import { estimateNutrition } from './recipeUtils';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
 import { supabase } from '../supabaseClient';
@@ -36,7 +37,8 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
   const [isEditingHouseholdBudget, setIsEditingHouseholdBudget] = useState(false);
   const [householdBudgetInput, setHouseholdBudgetInput] = useState('');
   const [starredRecipes, setStarredRecipes] = useState(new Set());
-  const [openingRecipe, setOpeningRecipe] = useState(null); // name being generated/opened
+  const [openingRecipe, setOpeningRecipe] = useState(null);
+  const [selectedNutrient, setSelectedNutrient] = useState(null); // 'protein'|'carbs'|'fat'|'kcal'
 
   // ── Spending calcs ───────────────────────────────────────────────────────
   const { pantryValue, missingSpend, purchasedSpend, totalListCost, stockEfficiency, budgetLimit, budgetPercent, isOverBudget } = useMemo(() => {
@@ -267,20 +269,67 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
           <h2 className="text-[14px] font-bold text-slate-400">Nutritional Overview</h2>
         </div>
 
+        <p className="text-[10px] text-slate-400 text-center mb-3 -mt-2">Tap a number to see which ingredients contribute most</p>
         <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-            <p className="text-xs text-slate-500">Protein</p>
-            <p className="text-xl font-bold text-[#6BAEE0]">{metrics.protein}g</p>
-          </div>
-          <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-            <p className="text-xs text-slate-500">Carbs</p>
-            <p className="text-xl font-bold text-[#6BAEE0]">{metrics.carbs}g</p>
-          </div>
-          <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-            <p className="text-xs text-slate-500">Fat</p>
-            <p className="text-xl font-bold text-[#6BAEE0]">{metrics.fat}g</p>
-          </div>
+          {[
+            { key: 'protein', label: 'Protein', val: metrics.protein, color: 'text-emerald-500', bg: 'bg-emerald-50 border-emerald-100 hover:bg-emerald-100' },
+            { key: 'carbs',   label: 'Carbs',   val: metrics.carbs,   color: 'text-amber-500',  bg: 'bg-amber-50 border-amber-100 hover:bg-amber-100' },
+            { key: 'fat',     label: 'Fat',     val: metrics.fat,     color: 'text-rose-400',   bg: 'bg-rose-50 border-rose-100 hover:bg-rose-100' },
+          ].map(({ key, label, val, color, bg }) => (
+            <button key={key} onClick={() => setSelectedNutrient(key)}
+              className={`p-4 rounded-2xl border transition-all active:scale-95 ${bg}`}>
+              <p className="text-xs text-slate-500">{label}</p>
+              <p className={`text-xl font-bold ${color}`}>{val}g</p>
+              <p className="text-[8px] text-slate-400 mt-0.5">Tap ↗</p>
+            </button>
+          ))}
         </div>
+
+        {/* Nutrient Ingredient Breakdown Modal */}
+        {selectedNutrient && (() => {
+          const nutrientLabel = { protein: 'Protein', carbs: 'Carbs', fat: 'Fat' }[selectedNutrient];
+          const nutrientColor = { protein: 'text-emerald-500 bg-emerald-50', carbs: 'text-amber-500 bg-amber-50', fat: 'text-rose-400 bg-rose-50' }[selectedNutrient];
+          const items = fridge
+            .map(item => {
+              const name = item.raw_name || item.item_name || '';
+              const n = item.nutrition?.kcal > 0 ? item.nutrition : estimateNutrition(name);
+              return { name, value: n?.[selectedNutrient] || 0 };
+            })
+            .filter(i => i.name && i.value > 0)
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 12);
+          const max = items[0]?.value || 1;
+          return (
+            <div className="fixed inset-0 bg-blue-900/30 backdrop-blur-sm flex items-end justify-center z-80 p-4" onClick={() => setSelectedNutrient(null)}>
+              <div className="w-full max-w-md bg-white rounded-4xl shadow-2xl border border-white/50 overflow-hidden" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-blue-50">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Breakdown by</p>
+                    <p className={`text-lg font-black ${nutrientColor.split(' ')[0]}`}>{nutrientLabel}</p>
+                  </div>
+                  <button onClick={() => setSelectedNutrient(null)} className="p-2 text-slate-300 hover:text-slate-600 transition-colors"><X size={18} /></button>
+                </div>
+                <div className="p-5 space-y-3 max-h-[60vh] overflow-y-auto">
+                  {items.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic text-center py-6">Add pantry items to see the breakdown</p>
+                  ) : items.map((item, i) => (
+                    <div key={i} className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-700 capitalize truncate flex-1 pr-2">{item.name}</span>
+                        <span className={`text-[11px] font-black px-2 py-0.5 rounded-full shrink-0 ${nutrientColor}`}>{item.value.toFixed(1)}g</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${selectedNutrient === 'protein' ? 'bg-emerald-400' : selectedNutrient === 'carbs' ? 'bg-amber-400' : 'bg-rose-400'}`}
+                          style={{ width: `${(item.value / max) * 100}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-[9px] text-slate-300 text-center pt-2">Values are estimates per serving where actual nutrition isn't available</p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="mt-8 space-y-5 px-2">
           {[

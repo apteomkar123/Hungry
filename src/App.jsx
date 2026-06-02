@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings, Clock, PlusCircle, X, UserRound, Share2, PartyPopper, Globe, User, Layers } from 'lucide-react';
+import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings, Clock, PlusCircle, X, UserRound, Share2, PartyPopper, Globe, User, Layers, SlidersHorizontal } from 'lucide-react';
 import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic, matchesRecipeFilter } from './components/recipeUtils';
 import Header from './components/Header';
 import PantryManager from './components/PantryManager';
@@ -67,6 +67,7 @@ function AppContent({ inventory }) {
   const {
     activeModalRecipe,
     setActiveModalRecipe,
+    masterRecipes,
     savedRecipes,
     onSaveRecipe,
     onRemoveSavedRecipe,
@@ -118,6 +119,7 @@ function AppContent({ inventory }) {
   const [isShopperOpen, setIsShopperOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [savedTab, setSavedTab] = useState('saved'); // 'saved' | 'restaurants'
+  const [savedFiltersOpen, setSavedFiltersOpen] = useState(false);
 
   // Derive household shopping items directly from main state — no async fetch needed
   const hhShoppingItems = shoppingList.filter(i => i.household_id === activeHousehold?.id);
@@ -355,99 +357,138 @@ function AppContent({ inventory }) {
                   </div>
                 )}
 
-                <div className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
-                  <div className="relative mb-6">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                      type="text"
-                      placeholder="Search saved recipes..."
-                      value={savedSearch}
-                      onChange={(e) => setSavedSearch(e.target.value)}
-                      className="w-full bg-blue-50/50 border border-blue-100 pl-12 pr-6 py-4 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none transition-all"
-                    />
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                    <button onClick={() => setSavedCategoryFilters([])} className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedCategoryFilters.length === 0 ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}>all</button>
-                    {['breakfast', 'lunch', 'dinner', 'snack', 'dessert'].map((f) => (
-                      <button key={f} onClick={() => toggleFilter(setSavedCategoryFilters)(f)}
-                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedCategoryFilters.includes(f) ? 'bg-[#6BAEE0] text-white shadow-lg shadow-blue-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-sky-200'}`}>
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-2">
-                    {['vegetarian', 'vegan', 'meat', 'fish'].map((f) => (
-                      <button key={f} onClick={() => toggleFilter(setSavedDietFilters)(f)}
-                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedDietFilters.includes(f) ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-white text-slate-400 border border-blue-50 hover:border-emerald-200'}`}>
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
-                    {['indian', 'chinese', 'mexican', 'japanese', 'korean', 'jamaican', 'latin', 'african', 'mediterranean'].map((f) => (
-                      <button key={f} onClick={() => toggleFilter(setSavedCuisineFilters)(f)}
-                        className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${savedCuisineFilters.includes(f) ? 'bg-slate-700 text-white shadow-lg' : 'bg-white text-slate-400 border border-blue-50 hover:border-slate-300'}`}>
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {/* Compact search + filter */}
+                {(() => {
+                  const savedAllFilters = [...savedCategoryFilters, ...savedDietFilters, ...savedCuisineFilters];
+                  const savedFilterCount = savedAllFilters.length;
+                  const clearSavedFilters = () => { setSavedCategoryFilters([]); setSavedDietFilters([]); setSavedCuisineFilters([]); };
+                  return (
+                    <div className="bg-white/80 backdrop-blur-lg p-5 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5 space-y-3">
+                      <div className="flex gap-2 items-center">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                          <input type="text" placeholder="Search saved recipes..." value={savedSearch}
+                            onChange={(e) => setSavedSearch(e.target.value)}
+                            className="w-full bg-blue-50/50 border border-blue-100 pl-10 pr-4 py-3 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none transition-all" />
+                        </div>
+                        <button
+                          onClick={() => setSavedFiltersOpen(o => !o)}
+                          className={`relative flex items-center gap-1.5 px-4 py-3 rounded-2xl text-[11px] font-black transition-all shrink-0 ${savedFiltersOpen || savedFilterCount > 0 ? 'bg-[#6BAEE0] text-white shadow-md' : 'bg-white border border-blue-100 text-slate-500 hover:border-sky-300'}`}
+                        >
+                          <SlidersHorizontal size={14} /> Filters
+                          {savedFilterCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">{savedFilterCount}</span>
+                          )}
+                        </button>
+                      </div>
+                      {savedFilterCount > 0 && (
+                        <div className="flex gap-1.5 flex-wrap">
+                          {savedAllFilters.map(f => (
+                            <span key={f} className="inline-flex items-center gap-1 bg-[#6BAEE0]/10 text-[#6BAEE0] text-[10px] font-black px-2.5 py-1 rounded-full border border-[#6BAEE0]/20">
+                              {f}
+                              <button onClick={() => {
+                                if (savedCategoryFilters.includes(f)) setSavedCategoryFilters(p => p.filter(x => x !== f));
+                                else if (savedDietFilters.includes(f)) setSavedDietFilters(p => p.filter(x => x !== f));
+                                else setSavedCuisineFilters(p => p.filter(x => x !== f));
+                              }}><X size={10} /></button>
+                            </span>
+                          ))}
+                          <button onClick={clearSavedFilters} className="text-[10px] font-black text-slate-400 hover:text-red-400 transition-colors px-1">Clear all</button>
+                        </div>
+                      )}
+                      {savedFiltersOpen && (
+                        <div className="space-y-3 pt-2 border-t border-blue-50">
+                          <div>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Meal Type</p>
+                            <div className="flex gap-1.5 flex-wrap">
+                              <button onClick={() => setSavedCategoryFilters([])} className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${savedCategoryFilters.length === 0 ? 'bg-[#6BAEE0] text-white' : 'bg-white text-slate-400 border border-blue-100'}`}>All</button>
+                              {['breakfast','lunch','dinner','snack','dessert'].map(f => (
+                                <button key={f} onClick={() => toggleFilter(setSavedCategoryFilters)(f)} className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${savedCategoryFilters.includes(f) ? 'bg-[#6BAEE0] text-white' : 'bg-white text-slate-400 border border-blue-100'}`}>{f}</button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Diet</p>
+                            <div className="flex gap-1.5 flex-wrap">
+                              {['vegetarian','vegan','meat','fish'].map(f => (
+                                <button key={f} onClick={() => toggleFilter(setSavedDietFilters)(f)} className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${savedDietFilters.includes(f) ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 border border-blue-100'}`}>{f}</button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Cuisine</p>
+                            <div className="flex gap-1.5 flex-wrap">
+                              {['indian','chinese','mexican','japanese','korean','jamaican','latin','african','mediterranean'].map(f => (
+                                <button key={f} onClick={() => toggleFilter(setSavedCuisineFilters)(f)} className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${savedCuisineFilters.includes(f) ? 'bg-slate-700 text-white' : 'bg-white text-slate-400 border border-blue-100'}`}>{f}</button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="grid gap-4 w-full">
                   {filteredSavedRecipes.length === 0 ? (
                     <p className="text-xs text-slate-400 font-medium italic text-center py-10">No saved recipes match your criteria</p>
                   ) : (
-                    filteredSavedRecipes.map(recipe => (
-                      <div key={recipe.id} className="bg-white/80 px-4 py-5 rounded-3xl border border-blue-100 flex justify-between items-center gap-2 shadow-sm hover:shadow-md transition-all group relative w-full min-w-0">
-                        <div
-                          className="flex-1 cursor-pointer min-w-0 overflow-hidden"
-                          onClick={() => setActiveModalRecipe({
-                            ...recipe,
-                            id: recipe.recipe_id,
-                            name: recipe.recipe_name,
-                            cleanedIngredients: recipe.ingredients ? recipe.ingredients.map(cleanIngredientLocally) : []
-                          })}
-                        >
-                          <span className="text-[8px] font-mono font-black text-slate-400 uppercase bg-blue-50/50 px-2 py-1 rounded-md">{recipe.meal_type}</span>
-                          <h3 className="text-sm font-bold text-slate-700 mt-1 group-hover:text-[#6BAEE0] transition-colors truncate pr-1 max-w-full">{recipe.recipe_name}</h3>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0 ml-3">
-                          {households?.length > 0 && (
-                            <div className="relative" ref={savedShareMenuId === recipe.id ? savedShareMenuRef : null}>
-                              <button
-                                onClick={() => setSavedShareMenuId(savedShareMenuId === recipe.id ? null : recipe.id)}
-                                className="flex items-center gap-1 text-[9px] font-black text-slate-400 hover:text-[#6BAEE0] border border-slate-200 hover:border-sky-200 px-2 py-1.5 rounded-xl transition-all"
-                              >
-                                <Users size={11} /> Share
-                              </button>
-                              {savedShareMenuId === recipe.id && (
-                                <div className="absolute right-0 top-full mt-1 bg-white border border-blue-100 rounded-2xl shadow-xl z-30 min-w-[160px] p-2 space-y-1">
-                                  {households.map(h => (
-                                    <button
-                                      key={h.id}
-                                      onClick={() => {
-                                        onSaveRecipe({
-                                          id: recipe.recipe_id,
-                                          name: recipe.recipe_name,
-                                          meal_type: recipe.meal_type,
-                                          ingredients: recipe.ingredients || [],
-                                          steps: recipe.steps || []
-                                        }, h.id);
-                                        setSavedShareMenuId(null);
-                                      }}
-                                      className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-[#6BAEE0] transition-all flex items-center gap-2"
-                                    >
-                                      <Users size={11} /> {h.name}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
+                    filteredSavedRecipes.map(recipe => {
+                      const masterRecipe = masterRecipes?.find(mr => String(mr.id) === String(recipe.recipe_id));
+                      const image = recipe.image || masterRecipe?.image || null;
+                      return (
+                        <div key={recipe.id} className="bg-white/80 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition-all group overflow-hidden w-full min-w-0">
+                          {image && (
+                            <div className="w-full h-32 overflow-hidden">
+                              <img src={image} alt={recipe.recipe_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
                             </div>
                           )}
-                          <button onClick={() => onRemoveSavedRecipe(recipe.id)} className="text-red-300 hover:text-red-500 transition-colors p-2"><Trash2 size={20} /></button>
+                          <div className="px-4 py-4 flex justify-between items-center gap-2">
+                            <div
+                              className="flex-1 cursor-pointer min-w-0 overflow-hidden"
+                              onClick={() => setActiveModalRecipe({
+                                ...recipe,
+                                id: recipe.recipe_id,
+                                name: recipe.recipe_name,
+                                image: image || undefined,
+                                cleanedIngredients: recipe.ingredients ? recipe.ingredients.map(cleanIngredientLocally) : []
+                              })}
+                            >
+                              <span className="text-[8px] font-mono font-black text-slate-400 uppercase bg-blue-50/50 px-2 py-1 rounded-md">{recipe.meal_type}</span>
+                              <h3 className="text-sm font-bold text-slate-700 mt-1 group-hover:text-[#6BAEE0] transition-colors truncate pr-1 max-w-full">{recipe.recipe_name}</h3>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0 ml-3">
+                              {households?.length > 0 && (
+                                <div className="relative" ref={savedShareMenuId === recipe.id ? savedShareMenuRef : null}>
+                                  <button
+                                    onClick={() => setSavedShareMenuId(savedShareMenuId === recipe.id ? null : recipe.id)}
+                                    className="flex items-center gap-1 text-[9px] font-black text-slate-400 hover:text-[#6BAEE0] border border-slate-200 hover:border-sky-200 px-2 py-1.5 rounded-xl transition-all"
+                                  >
+                                    <Users size={11} /> Share
+                                  </button>
+                                  {savedShareMenuId === recipe.id && (
+                                    <div className="absolute right-0 top-full mt-1 bg-white border border-blue-100 rounded-2xl shadow-xl z-30 min-w-40 p-2 space-y-1">
+                                      {households.map(h => (
+                                        <button key={h.id}
+                                          onClick={() => {
+                                            onSaveRecipe({ id: recipe.recipe_id, name: recipe.recipe_name, meal_type: recipe.meal_type, ingredients: recipe.ingredients || [], steps: recipe.steps || [] }, h.id);
+                                            setSavedShareMenuId(null);
+                                          }}
+                                          className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-[#6BAEE0] transition-all flex items-center gap-2"
+                                        >
+                                          <Users size={11} /> {h.name}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              <button onClick={() => onRemoveSavedRecipe(recipe.id)} className="text-red-300 hover:text-red-500 transition-colors p-2"><Trash2 size={20} /></button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
                 </>}
@@ -575,6 +616,7 @@ function AppContent({ inventory }) {
           onComplete={dismissTutorial}
           onSkip={dismissTutorial}
           onSwitchTab={switchTab}
+          scrollContainerRef={mainRef}
         />
       )}
     </div>
@@ -582,8 +624,8 @@ function AppContent({ inventory }) {
 }
 
 function MainApp() {
-  const { user, household, loading: authLoading } = useUser();
-  const inventory = useInventory(user, household);
+  const { user, hungryHousehold, loading: authLoading } = useUser();
+  const inventory = useInventory(user, hungryHousehold);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Show onboarding for users who haven't completed it

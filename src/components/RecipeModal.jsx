@@ -557,7 +557,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
 
       {/* ── Start Cooking choice sheet ──────────────────────────────────────── */}
       {showCookingChoice && (
-        <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-sm flex items-end justify-center z-20 rounded-[3rem]">
+        <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-sm flex items-end justify-center z-30 rounded-[3rem] pointer-events-auto">
           <div className="w-full bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 space-y-3 shadow-2xl border-t border-white/50">
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest text-center mb-4">How would you like to cook?</p>
             <button

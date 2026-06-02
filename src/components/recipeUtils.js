@@ -1,4 +1,4 @@
-const MINOR_WORDS = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'by', 'in', 'of', 'up', 'as', 'with', 'from', 'into']);
+﻿const MINOR_WORDS = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'by', 'in', 'of', 'up', 'as', 'with', 'from', 'into']);
 
 export const toTitleCase = (str) => {
   if (!str) return '';
@@ -562,7 +562,9 @@ export const CATEGORY_ICONS = {
   'Dairy & Eggs': '🥛',
   'Fruits': '🍎',
   'Vegetables': '🥦',
-  'Beverages': '☕',
+  'Beverages': '🧃',
+  'Alcohol': '🍺',
+  'Bakery': '🍞',
   'Snacks': '🍿',
   'Frozen': '🧊',
   'Sauces': '🫙',
@@ -570,7 +572,7 @@ export const CATEGORY_ICONS = {
   'General': '📦',
 };
 
-export const CATEGORY_ORDER = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Beverages', 'Snacks', 'Frozen', 'Sauces', 'Spices', 'General'];
+export const CATEGORY_ORDER = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Bakery', 'Beverages', 'Alcohol', 'Snacks', 'Frozen', 'Sauces', 'Spices', 'General'];
 
 // Frozen checked FIRST — "Frozen Chicken" must be Frozen, not Proteins
 // Snacks checked before Vegetables — "potato chips" must be Snacks not Vegetables
@@ -578,10 +580,12 @@ export const CATEGORY_ORDER = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables
 // Patterns use s? / es? / ies endings to match plural forms (bananas, apples, tomatoes, etc.)
 const _categorizeItemImpl = (n) => {
   if (/\b(frozen|ice creams?|gelatos?|popsicles?|sorbets?)\b/.test(n)) return 'Frozen';
+  if (/\b(beers?|wines?|champagnes?|proseccos?|spirits?|whiskeys?|bourbons?|vodkas?|rums?|gins?|tequilas?|brandies?|brandy|liqueurs?|sake|meads?|hard ciders?|hard seltzers?|ales?|lagers?|stouts?)\b/.test(n)) return 'Alcohol';
+  if (/\b(juices?|lemonades?|smoothies?|shakes?|milkshakes?|waters?|sparkling water|sodas?|teas?|coffees?|lattes?|espresso|kombuchas?|colas?|energy drinks?|sports drinks?|drinks?|beverages?|cordials?)\b/.test(n)) return 'Beverages';
   if (/\b(chickens?|beefs?|pork|lambs?|turkeys?|fishs?|salmons?|tunas?|shrimps?|crabs?|lobsters?|bacons?|sausages?|hams?|muttons?|ducks?|seafood|steaks?|minces?|pepperonis?|anchovies|anchovy|venisons?|veals?|salamis?|meats?|prawns?)\b/.test(n)) return 'Proteins';
   if (/\b(milks?|cheeses?|butters?|yogurts?|creams?|eggs?|paneer|ghee|curd|whey|kefir|mozzarella|cheddars?|parmesan|brie|ricotas?|ricotta|cottage|sour cream|dairy)\b/.test(n)) return 'Dairy & Eggs';
   if (/\b(apples?|bananas?|oranges?|mangoes?|mangos?|grapes?|strawberr(?:y|ies)|blueberr(?:y|ies)|raspberr(?:y|ies)|blackberr(?:y|ies)|lemons?|limes?|pears?|peaches?|plums?|cherr(?:y|ies)|watermelons?|melons?|pineapples?|kiwis?|avocados?|figs?|dates?|papayas?|guavas?|coconuts?|pomegranates?|passion fruits?|lychees?|mandarins?|tangerines?|clementines?|grapefruit)\b/.test(n)) return 'Fruits';
-  if (/\b(waters?|juices?|sodas?|teas?|coffees?|beers?|wines?|spirits?|whiskeys?|vodkas?|rums?|gins?|drinks?|beverages?|smoothies?|shakes?|colas?|lemonades?|kombuchas?|sparkling)\b/.test(n)) return 'Beverages';
+  if (/\b(breads?|loafs?|loaves?|baguettes?|rolls?|buns?|croissants?|muffins?|bagels?|toast|pastries?|pastry|cakes?|pies?|tarts?|donuts?|doughnuts?|waffles?|pancake mix|tortillas?|pitas?|wraps?|naans?|sourdough|rye bread|white bread|wheat bread|focaccia|pretzels? bread|brioche|scones?|brownies?|danishes?|crepes?)\b/.test(n)) return 'Bakery';
   if (/\b(chips?|crisps?|crackers?|cookies?|biscuits?|candies?|candy|chocolates?|popcorns?|pretzels?|almonds?|cashews?|walnuts?|peanuts?|pistachios?|trail mix|granola|protein bars?|rice cakes?|snacks?|nuts?)\b/.test(n)) return 'Snacks';
   if (/\b(ketchups?|mustards?|mayo|mayonnaise|hot sauce|soy sauce|oyster sauce|fish sauce|teriyaki|worcestershire|hoisin|tahini|sriracha|pesto|harissa|miso|tomato paste|tamarind|vinegar|aioli|ranch|pasta sauce|marinara|alfredo|bbq sauce|barbecue sauce|coconut aminos|chili sauce|salsa|dressings?|relish|chutney|olive oil|vegetable oil|sesame oil|coconut oil|canola oil)\b/.test(n)) return 'Sauces';
   if (/\b(cumin|coriander powder|turmeric|paprika|cardamom|cinnamon|cloves?|oregano|thyme|rosemary|allspice|nutmeg|saffron|cayenne|fenugreek|sumac|caraway|star anise|bay leaves?|garam masala|mixed spice|five.?spice|ras el hanout|berbere|za.?atar|italian seasoning|curry powder|chili powder|chili flakes?|red pepper flakes?|black pepper|white pepper|mustard seeds?|fennel seeds?|coriander seeds?|cumin seeds?|onion powder|garlic powder|celery salt|smoked paprika|chaat masala|biryani masala|tandoori masala|peri.?peri|jerk seasoning|old bay|seasoning|spice mix)\b/.test(n)) return 'Spices';
