@@ -15,19 +15,24 @@ export default function Header({ scrollToTop, onOpenNav }) {
 
   return (
     <header className="bg-white border border-blue-100 rounded-[2.5rem] sticky top-4 mx-4 z-40 px-6 py-4 flex justify-between items-center w-[calc(100%-2rem)] max-w-6xl shadow-lg shadow-slate-200 backdrop-blur-xl">
-      <button
-        onClick={() => { scrollToTop?.(); onOpenNav?.(); }}
-        className="flex items-center gap-4 text-left active:opacity-70 transition-opacity"
-      >
-        {photo
-          ? <img src={photo} alt="" className="w-10 h-10 rounded-2xl object-cover border border-blue-100 shrink-0" />
-          : <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 text-sm font-black text-[#6BAEE0]">{displayName.slice(0,1).toUpperCase()}</div>
-        }
-        <div className="flex flex-col">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => onOpenNav?.()}
+          className="active:opacity-70 transition-opacity shrink-0"
+        >
+          {photo
+            ? <img src={photo} alt="" className="w-10 h-10 rounded-2xl object-cover border border-blue-100" />
+            : <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-sm font-black text-[#6BAEE0]">{displayName.slice(0,1).toUpperCase()}</div>
+          }
+        </button>
+        <button
+          onClick={() => scrollToTop?.()}
+          className="flex flex-col text-left active:opacity-70 transition-opacity"
+        >
           <h1 className="logo-text" style={{ fontSize: '1.4rem', lineHeight: '1', paddingBottom: '9px' }}>Hungry</h1>
           <p className="text-slate-500 text-[11px] font-bold leading-none">{greeting}, <span className="text-[#1F6FB8]">{displayName}</span>!</p>
-        </div>
-      </button>
+        </button>
+      </div>
       <div className="flex items-center gap-3">
         <button
           onClick={() => setIsAiPickerOpen(true)}

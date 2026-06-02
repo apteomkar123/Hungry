@@ -79,8 +79,8 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
   };
 
   const renderItem = (item) => (
-    <div key={item.id} className={`bg-white border rounded-2xl transition-all overflow-hidden ${item.is_completed ? 'border-transparent opacity-50' : 'border-blue-50 shadow-sm'}`}>
-      <div className="flex items-center justify-between gap-3 p-4 min-w-0 overflow-hidden">
+    <div key={item.id} className={`bg-white border rounded-2xl transition-all ${item.is_completed ? 'border-transparent opacity-50' : 'border-blue-50 shadow-sm'}`}>
+      <div className="flex items-center justify-between gap-3 p-4 min-w-0">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <button onClick={() => {
             onToggle(item.id, item.is_completed);

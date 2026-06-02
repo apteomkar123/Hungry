@@ -153,3 +153,13 @@ User should be able to select multiple dietary restrictions. All dietary restric
 Add a feature where you can automatically add your shopping list to target, Walmart, Harris teeter, food lion, Amazon fresh, Whole Foods and any other store that has an online shopping. Keep any items not found on the websites/apps on the shopping list, and show a message what items weren't added
 
 Tapping the nutrition numbers in the nutrition overview should bring up a card that ranks each ingredient by the most of the nutrients to the least, and show how much it has
+
+Tapping on the very top of the screen still doesn't take you all the way at the top
+
+The share button for ingredients isn't showing up correctly, it's getting hidden behind the list card.
+
+The card that pull up when a nutrition number is tapped on in nutrition overview isn't showing up correctly, it's going out of screen at the top.
+
+Improve the UI of the Cooking Mode, make it glassy, take out the read out loud voice and only keep the human sounding dynamic Sous Chef (which I can't hear yet), and make it more animated and exciting.
+
+Tapping outside of any card overlaid on the main layer should close the card on top.

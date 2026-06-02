@@ -301,15 +301,15 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
           const max = items[0]?.value || 1;
           return (
             <div className="fixed inset-0 bg-blue-900/30 backdrop-blur-sm flex items-end justify-center z-80 p-4" onClick={() => setSelectedNutrient(null)}>
-              <div className="w-full max-w-md bg-white rounded-4xl shadow-2xl border border-white/50 overflow-hidden" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-blue-50">
+              <div className="w-full max-w-md bg-white rounded-4xl shadow-2xl border border-white/50 overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-blue-50 shrink-0">
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Breakdown by</p>
                     <p className={`text-lg font-black ${nutrientColor.split(' ')[0]}`}>{nutrientLabel}</p>
                   </div>
                   <button onClick={() => setSelectedNutrient(null)} className="p-2 text-slate-300 hover:text-slate-600 transition-colors"><X size={18} /></button>
                 </div>
-                <div className="p-5 space-y-3 max-h-[60vh] overflow-y-auto">
+                <div className="p-5 space-y-3 overflow-y-auto flex-1">
                   {items.length === 0 ? (
                     <p className="text-xs text-slate-400 italic text-center py-6">Add pantry items to see the breakdown</p>
                   ) : items.map((item, i) => (

@@ -279,8 +279,8 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   };
 
   return (
-    <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-[60] overflow-y-auto">
-      <div className="bg-white/90 backdrop-blur-2xl rounded-[3rem] shadow-2xl border border-white/50 w-full max-w-2xl relative max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-center justify-center p-4 z-[60] overflow-y-auto" onClick={() => setModal(null)}>
+      <div className="bg-white/90 backdrop-blur-2xl rounded-[3rem] shadow-2xl border border-white/50 w-full max-w-2xl relative max-h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
 
         {/* ── Sticky header — action buttons only ───────────────────────────── */}
         <div className="shrink-0 px-6 pt-5 pb-3 flex justify-between items-center bg-white/90 backdrop-blur-2xl rounded-t-[3rem]">

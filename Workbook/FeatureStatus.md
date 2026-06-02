@@ -373,6 +373,18 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - "When pantry item category changes, reflect across app in AI" — category overrides are stored in localStorage per-session; full persistence would require a new DB column; deferred.
 - Multi dietary restrictions — already fully supported (multi-select in Settings, arrays passed through all AI prompts, filters respect all restrictions).
 
+### Session 17 (2026-06-02)
+**Bugs fixed:**
+- **Scroll-to-top broken** — Header avatar button was calling both `scrollToTop()` and `onOpenNav()` simultaneously, causing the nav to open and interrupt the scroll animation. Split into two separate buttons: avatar opens nav, logo text scrolls to top.
+- **Move-to-household dropdown hidden** — Shopping list item cards had `overflow-hidden` on both the outer card and inner flex container, clipping the absolute-positioned household-move dropdown. Removed `overflow-hidden` from both to let the dropdown overflow correctly.
+- **Nutrition breakdown card off-screen at top** — The nutrition nutrient breakdown bottom-sheet had no max-height on the outer card wrapper, so with many pantry items it could extend above the top of the viewport. Added `max-h-[90vh] flex flex-col` to the wrapper and changed the content area to `flex-1 overflow-y-auto`.
+
+**Features added / improved:**
+- **Cooking Mode UI redesign** — Full visual overhaul: deep navy gradient background with ambient glow orbs, glassy backdrop-blur step card, animated progress bar, animated ping ring on active mic, simplified controls (no more voiceover toggle or manual-read button). TTS auto-reading of steps removed; the Sous Chef mic now exclusively drives voice interaction and speaks only its own AI responses (substitution suggestions, ingredient confirmations).
+- **Tap outside to close overlays** — Tapping the dark backdrop outside RecipeModal or CookingMode now dismisses the overlay. Nutrition breakdown card in Analytics already had this behavior.
+
+*Last updated: 2026-06-02 (session 17)*
+
 ### Session 16 (2026-06-02)
 **Features added:**
 - **Shared Grocery List with Roomies** — `useInventory` cross-reads from Roomies `shopping_items` for the shared household; items show a ROOMIES badge. Toggle/delete/rename/clear-all all work across both tables.
