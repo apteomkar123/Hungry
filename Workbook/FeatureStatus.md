@@ -207,6 +207,14 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - **#12 Soundtrack of My Life** — when a recipe is marked as Cooked, queries the Jukebox `now_playing` table and saves the current track (`track_title`, `artist`, `album`, `artwork_url`, `platform`) into `chef_history.soundtrack`; the saved track is now displayed in the expanded Chef History card as a "🎵 Playing While Cooking" purple pill
 - **#14 Nutritional BPM (write side)** — when the Analytics page loads and the user's macro breakdown is below their stated goal (e.g. protein < 20g on High Protein goal), writes a `nutrition_shortfall` event to `cross_app_activity` so Jukebox can suggest a workout playlist and Roomies can surface high-effort chores first
 
+### Session 19 (2026-06-02)
+- **Nutrition breakdown card position fix** — card container changed from `max-h-[90vh]` to `max-h-[72vh]` with `pt-16` top padding so the card no longer clips above the visible area on phones with notches / safe-area insets
+- **App icon updated** — `public/icon.svg` replaced with a solid #6BAEE0 blue rounded-rect containing "Hungry" in Pacifico (loaded via Google Fonts `@import`); correct brand color replaces old blue gradient
+- **Recipes load immediately** — static recipes now set into `masterRecipes` before the slow MealDB / Spoonacular fetches begin; user sees recipes within ~100ms instead of waiting up to a minute for 26 parallel API calls
+- **Household Mode simplified** — large "Household Mode" section replaced with a single compact badge line ("Shared with Roomies" or "Hungry-Specific") with a "Change" tap target; both Create Household forms now include a two-button type selector (Shared with Roomies / Hungry-Specific)
+- **Header no longer scrolls to top on tap** — removed `onClick={scrollToTop}` from the `<header>` element so tapping the header no longer forces scroll-to-top; native iOS status-bar tap still scrolls to top
+- **Celsius-to-Fahrenheit conversion in recipe steps** — added `convertCelsiusInText()` utility to `recipeUtils.js`; handles `180°C`, `180 °C`, `180C` (no gap, plausible cooking temp 40–350°C), and `180 degrees Celsius/Centigrade`; applied inside `_cleanStep` so every recipe step from any source (MealDB, Spoonacular, static) is converted automatically
+
 ### Session 18 (2026-06-02)
 - **Temperature units** — all Celsius temperatures in `staticRecipes.js` converted to Fahrenheit (150°C→302°F, 160°C→320°F, 170°C→338°F, 175°C→347°F, 180°C→356°F, 190°C→374°F, 200°C→392°F, 210°C→410°F, 220°C→428°F, 230°C→446°F)
 - **Scroll to top on header tap** — tapping anywhere on the sticky header bar scrolls to the top; profile pic and right-side action buttons use `e.stopPropagation()` to preserve their existing behavior
@@ -390,11 +398,16 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - **Cooking Mode UI redesign** — Full visual overhaul: deep navy gradient background with ambient glow orbs, glassy backdrop-blur step card, animated progress bar, animated ping ring on active mic, simplified controls (no more voiceover toggle or manual-read button). TTS auto-reading of steps removed; the Sous Chef mic now exclusively drives voice interaction and speaks only its own AI responses (substitution suggestions, ingredient confirmations).
 - **Tap outside to close overlays** — Tapping the dark backdrop outside RecipeModal or CookingMode now dismisses the overlay. Nutrition breakdown card in Analytics already had this behavior.
 
+### Session 20 (2026-06-02)
+**Bugs fixed:**
+- **AppWare sign-in redirecting back to login page** — `useAppWareSSO.ingestIncomingSession` called `window.location.reload()` after `setSession`, which was unnecessary (Supabase's `onAuthStateChange` handles state transition) and created a window for race conditions if localStorage hadn't fully persisted. Removed `reload()`. Also: `setSession` errors were silently swallowed — added try/catch with a user-visible alert and proper console error. Also: only the URL hash was checked for tokens; now checks query params too (covers PKCE / manual portal redirects that use `?access_token=...`). `window.history.replaceState` moved to `finally` block so tokens are always cleaned regardless of outcome.
+- **Loading state race with SSO redirect** — `UserContext` only called `setLoading(false)` inside `getSession().then()`. If Supabase's `detectSessionInUrl` set the session after `getSession()` already resolved with null, the app briefly showed the login page and `onAuthStateChange` had no path to clear `loading`. Fixed: `setLoading(false)` is now called via a one-shot `doneLoading()` closure in both `getSession().then()` and `onAuthStateChange`, whichever fires first.
+
 ### Session 19 (2026-06-02)
 **Bugs fixed:**
 - **Household Mode not visible** — `HouseholdSettings.jsx` had the Household Mode toggle but was never rendered; `HouseholdTab.jsx` is what's shown on the Household tab. Added the Household Mode section (Shared with Roomies / Hungry-Specific toggle + household picker) directly to `HouseholdTab.jsx` so it appears at the top of the Household page.
 
-*Last updated: 2026-06-02 (session 19)*
+*Last updated: 2026-06-02 (session 20)*
 
 *Last updated: 2026-06-02 (session 17)*
 

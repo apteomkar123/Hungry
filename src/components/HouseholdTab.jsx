@@ -36,6 +36,7 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
   const [pushingToRoomies, setPushingToRoomies] = useState(false);
   const [roomiesPushMsg, setRoomiesPushMsg] = useState('');
   const [newHHName, setNewHHName] = useState('');
+  const [newHHType, setNewHHType] = useState('shared'); // 'shared' | 'hungry-specific'
   const [joinHHCode, setJoinHHCode] = useState('');
 
   const selectedHH = households.find(h => h.id === selectedHHId) || activeHousehold;
@@ -216,10 +217,16 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
 
   const { handleCreateHousehold, handleJoinHousehold } = useUser();
 
-  const handleCreateHH = () => {
+  const handleCreateHH = async () => {
     if (!newHHName.trim()) return;
-    handleCreateHousehold(newHHName.trim());
+    await handleCreateHousehold(newHHName.trim());
+    if (newHHType === 'hungry-specific') {
+      // The new household id won't be immediately available; the context will refresh households.
+      // We store the preference flag; once households refresh the user can toggle from the line.
+      handleClearHungryHousehold && handleClearHungryHousehold(false);
+    }
     setNewHHName('');
+    setNewHHType('shared');
     setShowAddHH(false);
   };
 
@@ -241,10 +248,18 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
         <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5 space-y-5">
           <div>
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1"><Plus size={11} /> Create New Household</p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mb-2">
               <input type="text" placeholder="Household name (e.g. My Flat)" value={newHHName} onChange={e => setNewHHName(e.target.value)}
                 className="flex-1 bg-white border border-blue-100 px-5 py-4 rounded-2xl text-xs font-semibold focus:border-sky-400 focus:outline-none" />
               <button onClick={handleCreateHH} className="bg-[#6BAEE0] text-white p-4 rounded-2xl"><Plus size={20} /></button>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setNewHHType('shared')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[11px] font-black border transition-all ${newHHType === 'shared' ? 'bg-sky-500 text-white border-sky-500' : 'bg-white text-slate-500 border-blue-100'}`}>
+                <Share2 size={11} /> Shared with Roomies
+              </button>
+              <button onClick={() => setNewHHType('hungry-specific')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[11px] font-black border transition-all ${newHHType === 'hungry-specific' ? 'bg-[#6BAEE0] text-white border-[#6BAEE0]' : 'bg-white text-slate-500 border-blue-100'}`}>
+                <Lock size={11} /> Hungry-Specific
+              </button>
             </div>
           </div>
           <div>
@@ -263,54 +278,28 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-      {/* ── Household Mode ── */}
-      <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5 space-y-4">
-        <h2 className="text-[14px] font-bold text-slate-400 flex items-center gap-2"><Share2 size={15} /> Household Mode</h2>
-        <p className="text-[11px] text-slate-400 leading-relaxed">
-          By default, Hungry shares your active household with Roomies — including the grocery list.
-          Switch to a Hungry-specific household to keep them separate.
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={handleClearHungryHousehold}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[12px] font-black transition-all border ${isHungryShared ? 'bg-sky-500 text-white border-sky-500 shadow-md shadow-sky-100' : 'bg-white text-slate-500 border-blue-100 hover:bg-sky-50'}`}
-          >
-            <Share2 size={13} /> Shared with Roomies
-          </button>
-          <button
-            onClick={() => {
-              if (isHungryShared && households.length > 1) {
-                const other = households.find(h => h.id !== activeHousehold?.id);
-                if (other) handleSetHungrySpecificHousehold(other.id);
-              }
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[12px] font-black transition-all border ${!isHungryShared ? 'bg-[#6BAEE0] text-white border-[#6BAEE0] shadow-md shadow-blue-100' : 'bg-white text-slate-500 border-blue-100 hover:bg-sky-50'}`}
-          >
-            <Lock size={13} /> Hungry-Specific
-          </button>
+      {/* ── Household Mode (single-line badge) ── */}
+      <div className="flex items-center justify-between bg-white/80 backdrop-blur-lg px-5 py-3 rounded-4xl border border-white/20 shadow-lg shadow-blue-900/5">
+        <div className="flex items-center gap-2">
+          {isHungryShared ? <Share2 size={13} className="text-sky-500" /> : <Lock size={13} className="text-[#6BAEE0]" />}
+          <span className="text-[11px] font-black text-slate-500">
+            {isHungryShared ? 'Shared with Roomies' : 'Hungry-Specific'}
+          </span>
         </div>
-        {!isHungryShared && households.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hungry is using:</p>
-            <div className="flex flex-wrap gap-2">
-              {households.map(hh => (
-                <button
-                  key={hh.id}
-                  onClick={() => handleSetHungrySpecificHousehold(hh.id)}
-                  className={`px-4 py-2 rounded-xl text-[11px] font-black border transition-all ${hungryHouseholdId === hh.id ? 'bg-[#6BAEE0] text-white border-[#6BAEE0]' : 'bg-white text-slate-600 border-blue-100 hover:bg-sky-50'}`}
-                >
-                  {hh.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {isHungryShared && households.length <= 1 && (
-          <p className="text-[11px] text-amber-500 font-semibold">
-            Add another household below to use a Hungry-specific one.
-          </p>
-        )}
-      </section>
+        <button
+          onClick={() => {
+            if (isHungryShared) {
+              const other = households.find(h => h.id !== activeHousehold?.id);
+              if (other) handleSetHungrySpecificHousehold(other.id);
+            } else {
+              handleClearHungryHousehold();
+            }
+          }}
+          className="text-[10px] font-black text-[#6BAEE0] hover:underline"
+        >
+          Change
+        </button>
+      </div>
 
       {/* Household selector */}
       {households.length > 1 && (
@@ -600,10 +589,18 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
           </div>
           <div>
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1"><Plus size={11} /> Create New</p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mb-2">
               <input type="text" placeholder="Household name" value={newHHName} onChange={e => setNewHHName(e.target.value)}
                 className="flex-1 bg-white border border-blue-100 px-4 py-3 rounded-2xl text-xs font-semibold focus:border-sky-400 focus:outline-none" />
               <button onClick={handleCreateHH} className="bg-[#6BAEE0] text-white p-3 rounded-2xl"><Plus size={18} /></button>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setNewHHType('shared')} className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-2xl text-[11px] font-black border transition-all ${newHHType === 'shared' ? 'bg-sky-500 text-white border-sky-500' : 'bg-white text-slate-500 border-blue-100'}`}>
+                <Share2 size={11} /> Shared with Roomies
+              </button>
+              <button onClick={() => setNewHHType('hungry-specific')} className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-2xl text-[11px] font-black border transition-all ${newHHType === 'hungry-specific' ? 'bg-[#6BAEE0] text-white border-[#6BAEE0]' : 'bg-white text-slate-500 border-blue-100'}`}>
+                <Lock size={11} /> Hungry-Specific
+              </button>
             </div>
           </div>
           <div>

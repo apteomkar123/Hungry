@@ -553,3 +553,17 @@ Household member profile pictures: member query fetches avatar_url and hungry_av
 Link AppWare Account: Settings "Merge AppWare Account" section now has a single "Link AppWare Account" button using useAppWareSSO.triggerAppWareRedirect (removed Google-specific linkIdentity flow)
 Recipe image tap: in the Saved Recipes tab, tapping the recipe image now opens the recipe modal
 
+DONE (Session 19 / 2026-06-02)
+--------------------------------
+Nutrition breakdown card going off screen at top: fixed — card max-h reduced to 72vh, container now has pt-16 so card can't clip above safe area
+App icon: updated icon.svg to solid #6BAEE0 box with Hungry in Pacifico font
+Recipes loading slowly: static recipes now rendered immediately; MealDB/Spoonacular still load in background and merge in
+Household mode section: collapsed to single-line badge showing current mode; type selector (Shared with Roomies / Hungry-Specific) added to both create-household forms
+Header scroll-to-top on tap: removed — header click no longer triggers scroll-to-top; native iOS status-bar tap still works
+Celsius temperatures in recipes: added convertCelsiusInText() to recipeUtils.js; converts 180°C, 180C, 180 degrees Celsius etc. → °F in all recipe steps at parse time
+
+DONE (Session 20 / 2026-06-02)
+--------------------------------
+AppWare SSO sign-in redirect bug: removed window.location.reload() from ingestIncomingSession (unnecessary — onAuthStateChange handles transition); added try/catch with user-visible alert for setSession errors; added query-param fallback for access_token (PKCE redirects); moved history.replaceState to finally block so tokens are always cleaned.
+UserContext loading race with SSO: setLoading(false) now fires from a one-shot doneLoading() closure called by both getSession().then() and onAuthStateChange — whichever resolves first clears loading, preventing a stuck loading state when detectSessionInUrl sets the session after getSession resolved with null.
+

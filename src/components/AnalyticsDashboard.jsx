@@ -300,8 +300,8 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
             .slice(0, 12);
           const max = items[0]?.value || 1;
           return (
-            <div className="fixed inset-0 bg-blue-900/30 backdrop-blur-sm flex items-end justify-center z-80 p-4" onClick={() => setSelectedNutrient(null)}>
-              <div className="w-full max-w-md bg-white rounded-4xl shadow-2xl border border-white/50 overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-blue-900/30 backdrop-blur-sm flex items-end justify-center z-80 px-4 pb-4 pt-16" onClick={() => setSelectedNutrient(null)}>
+              <div className="w-full max-w-md bg-white rounded-4xl shadow-2xl border border-white/50 overflow-hidden max-h-[72vh] flex flex-col" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-blue-50 shrink-0">
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Breakdown by</p>

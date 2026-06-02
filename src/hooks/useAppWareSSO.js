@@ -1,24 +1,33 @@
 import { useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
-// AppWare SSO portal — update this URL when the portal is deployed
 const AUTH_PORTAL_URL = 'https://authappware.netlify.app';
 
 export function useAppWareSSO() {
   useEffect(() => {
     const ingestIncomingSession = async () => {
-      // Supabase redirects back with tokens in the URL hash after OAuth
-      if (!window.location.hash.includes('access_token=')) return;
-
-      const params = new URLSearchParams(window.location.hash.substring(1));
+      // Check hash first (implicit flow), then query params (PKCE / manual redirect)
+      const hashStr = window.location.hash.substring(1);
+      const queryStr = window.location.search.substring(1);
+      const source = hashStr.includes('access_token=') ? hashStr : queryStr;
+      const params = new URLSearchParams(source);
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
 
-      if (accessToken && refreshToken) {
-        await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-        // Clean the tokens out of the address bar
+      if (!accessToken || !refreshToken) return;
+
+      try {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (error) throw error;
+      } catch (err) {
+        console.error('AppWare SSO error:', err.message);
+        alert('Could not sign in with AppWare. Please try again or use email/password.');
+      } finally {
+        // Always clean tokens from the address bar regardless of outcome
         window.history.replaceState(null, '', window.location.pathname);
-        window.location.reload();
       }
     };
 

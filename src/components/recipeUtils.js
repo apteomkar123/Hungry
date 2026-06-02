@@ -200,14 +200,26 @@ export const stripIngredientNotes = (ing) =>
     .replace(/\s*,?\s*or to taste\b.*/i, '')
     .trim();
 
+// Convert Celsius temperatures to Fahrenheit in a text string.
+// Handles: 180°C, 180 °C, 180C (no space), 180 C (space), 180 degrees C/Celsius
+export const convertCelsiusInText = (text) => {
+  if (!text) return text;
+  return String(text)
+    // "180 degrees Celsius" / "180 degrees C"
+    .replace(/(\d+(?:\.\d+)?)\s*degrees?\s+(?:celsius|centigrade)/gi, (_, n) => `${Math.round(parseFloat(n) * 9/5 + 32)}°F`)
+    // "180°C" or "180 °C"
+    .replace(/(\d+(?:\.\d+)?)\s*°\s*C\b/g, (_, n) => `${Math.round(parseFloat(n) * 9/5 + 32)}°F`)
+    // "180C" (no space/symbol) — only convert plausible cooking temps 40–350°C
+    .replace(/\b((?:4[0-9]|[5-9]\d|[1-2]\d{2}|3[0-4]\d|350))C\b/g, (_, n) => `${Math.round(parseFloat(n) * 9/5 + 32)}°F`);
+};
+
 // Cooking-method-only words that should never appear as standalone ingredients after splitting
 const _COOKING_METHOD_ONLY = /^(boiled?|mashed?|fried|baked|grilled?|steamed?|saut[eé]ed?|roasted?|cooked?|drained?|rinsed?|peeled?|sliced?|diced?|chopped?|minced?|grated?|shredded?|beaten?|softened?|melted?|toasted?)(\s+and\s+\w+)?$/i;
 
-const _cleanStep = (s) => String(s || '')
-  .replace(/\r\n?/g, '\n')
-  .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // strip control chars
-  .replace(/[■▪▶►→•·□▪� ]/g, '')
-  .trim();
+const _cleanStep = (s) => {
+  const raw = String(s || "").trim();
+  return convertCelsiusInText(raw);
+};
 
 // Strip leading "Step N:" / "1." / "1)" prefixes from a step string
 const _stripStepPrefix = (s) =>

@@ -118,13 +118,23 @@ export const UserProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    let loadingDone = false;
+    const doneLoading = () => {
+      if (!loadingDone) {
+        loadingDone = true;
+        setLoading(false);
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       loadUserState(session?.user || null);
-      setLoading(false);
+      doneLoading();
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       loadUserState(session?.user || null);
+      // Ensure loading clears even when session is set via SSO redirect after getSession() resolved
+      doneLoading();
     });
 
     return () => subscription.unsubscribe();

@@ -169,7 +169,18 @@ export const RecipeProvider = ({ children, fridge }) => {
     }
   };
 
+  const _processRecipes = (list) => list.map(r => ({
+    ...r,
+    name: toTitleCase(r.name || ''),
+    ingredients: _normalizeIngredients(r.ingredients).map(i => toTitleCase(i)),
+    cleanedIngredients: (r.ingredients || []).map(cleanIngredientLocally).filter(Boolean),
+    steps: getStaticRecipeSteps(r)
+  }));
+
   const loadRecipes = useCallback(async () => {
+    // Show static recipes immediately so the UI isn't blank
+    const staticImmediate = _processRecipes(STATIC_RECIPES);
+    setMasterRecipes(staticImmediate);
     setLoading(true);
     try {
       const [mealDb, spoonacular] = await Promise.all([
@@ -180,24 +191,10 @@ export const RecipeProvider = ({ children, fridge }) => {
       const mealDbIds = new Set(mealDb.map(r => String(r.id)));
       const uniqueSpoonacular = spoonacular.filter(r => !mealDbIds.has(String(r.id)));
       const apiIds = new Set([...mealDb, ...uniqueSpoonacular].map(r => String(r.id)));
-      const staticProcessed = STATIC_RECIPES
-        .filter(r => !apiIds.has(String(r.id)))
-        .map(r => ({
-          ...r,
-          name: toTitleCase(r.name || ''),
-          ingredients: _normalizeIngredients(r.ingredients).map(i => toTitleCase(i)),
-          cleanedIngredients: _normalizeIngredients(r.ingredients).map(cleanIngredientLocally).filter(Boolean),
-          steps: r.steps || []
-        }));
-      const combined = [...mealDb, ...uniqueSpoonacular, ...staticProcessed];
+      const staticDeduped = STATIC_RECIPES.filter(r => !apiIds.has(String(r.id)));
+      const combined = [...mealDb, ...uniqueSpoonacular, ...staticDeduped];
 
-      const normalized = combined.map(r => ({
-        ...r,
-        name: toTitleCase(r.name || ''),
-        ingredients: _normalizeIngredients(r.ingredients).map(i => toTitleCase(i)),
-        cleanedIngredients: (r.ingredients || []).map(cleanIngredientLocally).filter(Boolean),
-        steps: getStaticRecipeSteps(r)
-      }));
+      const normalized = _processRecipes(combined);
 
       setMasterRecipes(normalized);
 

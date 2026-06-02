@@ -21,4 +21,5 @@ UPDATE [text](Workbook/FeatureStatus.md) with all the features that have been ad
 
 
 
-PUSH TO GIT AFTER ALL CHANGES HAVE BEEN MADE.
+
+DON'T PUSH TO GIT, PULL UP A TEST BROWSER WINDOW FOR THE USER TO TEST INSTEAD.

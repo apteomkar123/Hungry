@@ -15,8 +15,7 @@ export default function Header({ scrollToTop, onOpenNav }) {
 
   return (
     <header
-      className="bg-white border border-blue-100 rounded-[2.5rem] sticky top-4 mx-4 z-40 px-6 py-4 flex justify-between items-center w-[calc(100%-2rem)] max-w-6xl shadow-lg shadow-slate-200 backdrop-blur-xl cursor-pointer"
-      onClick={() => scrollToTop?.()}
+      className="bg-white border border-blue-100 rounded-[2.5rem] sticky top-4 mx-4 z-40 px-6 py-4 flex justify-between items-center w-[calc(100%-2rem)] max-w-6xl shadow-lg shadow-slate-200 backdrop-blur-xl"
     >
       <div className="flex items-center gap-4">
         <button
@@ -29,8 +28,7 @@ export default function Header({ scrollToTop, onOpenNav }) {
           }
         </button>
         <button
-          onClick={() => scrollToTop?.()}
-          className="flex flex-col text-left active:opacity-70 transition-opacity"
+          className="flex flex-col text-left"
         >
           <h1 className="logo-text" style={{ fontSize: '1.4rem', lineHeight: '1', paddingBottom: '9px' }}>Hungry</h1>
           <p className="text-slate-500 text-[11px] font-bold leading-none">{greeting}, <span className="text-[#1F6FB8]">{displayName}</span>!</p>
