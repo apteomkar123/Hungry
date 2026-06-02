@@ -182,6 +182,29 @@ export const useInventory = (user, household) => {
         shopItems = [...shopItems, ...(hhShop || [])];
       }
 
+      // Cross-app: also fetch Roomies shopping_items for the same household (shared grocery list)
+      if (household?.id) {
+        const { data: roomiesItems } = await supabase
+          .from('shopping_items').select('*')
+          .eq('household_id', household.id)
+          .order('created_at', { ascending: true });
+        const mapped = (roomiesItems || []).map(item => ({
+          id: `roomies_${item.id}`,
+          _roomies_id: item.id,
+          _source: 'roomies',
+          user_id: item.added_by,
+          household_id: item.household_id,
+          item_name: item.title,
+          is_completed: item.purchased,
+          price: 0,
+          aisle: null,
+          is_urgent: item.urgent,
+          quantity: item.quantity || '1',
+          created_at: item.created_at,
+        }));
+        shopItems = [...shopItems, ...mapped];
+      }
+
       // Merge server data with any temp items not yet saved (avoids wiping optimistic adds)
       setShoppingList(prev => {
         const serverIds = new Set(shopItems.map(i => i.id));
@@ -338,31 +361,55 @@ export const useInventory = (user, household) => {
   }, [user, performMutation, shoppingList]);
 
   const handleMoveShoppingItem = useCallback(async (id, newHouseholdId) => {
-    setShoppingList(prev => prev.map(item => item.id === id ? { ...item, household_id: newHouseholdId } : item));
-    await performMutation('shopping_list', 'UPDATE', { household_id: newHouseholdId }, id);
+    const item = shoppingListRef.current.find(i => i.id === id);
+    setShoppingList(prev => prev.map(i => i.id === id ? { ...i, household_id: newHouseholdId } : i));
+    if (item?._source === 'roomies') {
+      await performMutation('shopping_items', 'UPDATE', { household_id: newHouseholdId }, item._roomies_id);
+    } else {
+      await performMutation('shopping_list', 'UPDATE', { household_id: newHouseholdId }, id);
+    }
   }, [performMutation]);
 
   const handleToggleShoppingCompleted = useCallback(async (id, currentStatus) => {
-    setShoppingList(prev => prev.map(item => item.id === id ? { ...item, is_completed: !currentStatus } : item));
-    await performMutation('shopping_list', 'UPDATE', { is_completed: !currentStatus }, id);
+    const item = shoppingListRef.current.find(i => i.id === id);
+    setShoppingList(prev => prev.map(i => i.id === id ? { ...i, is_completed: !currentStatus } : i));
+    if (item?._source === 'roomies') {
+      await performMutation('shopping_items', 'UPDATE', { purchased: !currentStatus }, item._roomies_id);
+    } else {
+      await performMutation('shopping_list', 'UPDATE', { is_completed: !currentStatus }, id);
+    }
   }, [performMutation]);
 
   const handleClearShoppingItem = useCallback(async (id) => {
-    setShoppingList(prev => prev.filter(item => item.id !== id));
-    await performMutation('shopping_list', 'DELETE', null, id);
+    const item = shoppingListRef.current.find(i => i.id === id);
+    setShoppingList(prev => prev.filter(i => i.id !== id));
+    if (item?._source === 'roomies') {
+      await performMutation('shopping_items', 'DELETE', null, item._roomies_id);
+    } else {
+      await performMutation('shopping_list', 'DELETE', null, id);
+    }
   }, [performMutation]);
 
   const handleRenameShoppingItem = useCallback(async (id, newName) => {
     if (!newName.trim()) return;
-    setShoppingList(prev => prev.map(item => item.id === id ? { ...item, item_name: newName.trim() } : item));
-    await performMutation('shopping_list', 'UPDATE', { item_name: newName.trim() }, id);
+    const item = shoppingListRef.current.find(i => i.id === id);
+    setShoppingList(prev => prev.map(i => i.id === id ? { ...i, item_name: newName.trim() } : i));
+    if (item?._source === 'roomies') {
+      await performMutation('shopping_items', 'UPDATE', { title: newName.trim() }, item._roomies_id);
+    } else {
+      await performMutation('shopping_list', 'UPDATE', { item_name: newName.trim() }, id);
+    }
   }, [performMutation]);
 
   const handleClearAllShoppingItems = useCallback(async () => {
-    const ids = shoppingListRef.current.map(i => i.id);
+    const items = [...shoppingListRef.current];
     setShoppingList([]);
-    for (const id of ids) {
-      await performMutation('shopping_list', 'DELETE', null, id);
+    for (const item of items) {
+      if (item._source === 'roomies') {
+        await performMutation('shopping_items', 'DELETE', null, item._roomies_id);
+      } else {
+        await performMutation('shopping_list', 'DELETE', null, item.id);
+      }
     }
   }, [performMutation]);
 
@@ -370,7 +417,11 @@ export const useInventory = (user, household) => {
     const pending = shoppingListRef.current.filter(i => !i.is_completed);
     setShoppingList(prev => prev.map(i => ({ ...i, is_completed: true })));
     for (const item of pending) {
-      await performMutation('shopping_list', 'UPDATE', { is_completed: true }, item.id);
+      if (item._source === 'roomies') {
+        await performMutation('shopping_items', 'UPDATE', { purchased: true }, item._roomies_id);
+      } else {
+        await performMutation('shopping_list', 'UPDATE', { is_completed: true }, item.id);
+      }
     }
   }, [performMutation]);
 

@@ -13,6 +13,7 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [households, setHouseholds] = useState([]);
   const [activeHousehold, setActiveHousehold] = useState(null);
+  const [hungryHouseholdId, setHungryHouseholdId] = useState(null);
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -95,8 +96,8 @@ export const UserProvider = ({ children }) => {
       });
     }
 
-    // Load profile data (tutorial state + avatars + friend code)
-    supabase.from('profiles').select('hungry_tutorial_done, avatar_url, hungry_avatar_url, friend_code').eq('id', authUser.id).single()
+    // Load profile data (tutorial state + avatars + friend code + hungry_household_id)
+    supabase.from('profiles').select('hungry_tutorial_done, avatar_url, hungry_avatar_url, friend_code, hungry_household_id').eq('id', authUser.id).single()
       .then(async ({ data }) => {
         if (data) {
           // Check user metadata first (written on skip/complete — survives even if DB column is missing)
@@ -104,6 +105,9 @@ export const UserProvider = ({ children }) => {
           if (!metaDone && (data.hungry_tutorial_done === false || data.hungry_tutorial_done == null)) setShowTutorial(true);
           setAvatarUrl(data.avatar_url || null);
           setHungryAvatarUrl(data.hungry_avatar_url || null);
+          // Load Hungry-specific household override if set
+          if (data.hungry_household_id) setHungryHouseholdId(data.hungry_household_id);
+          else setHungryHouseholdId(null);
           // Generate friend code if the profile doesn't have one yet
           if (!data.friend_code) {
             const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -190,6 +194,20 @@ export const UserProvider = ({ children }) => {
       await supabase.from('profiles').upsert([{ id: user.id, active_household_id: householdId }]);
       setActiveHousehold(households.find(h => h.id === householdId) || null);
     }
+  };
+
+  // Set a Hungry-specific household (overrides shared active_household_id for Hungry only)
+  const handleSetHungrySpecificHousehold = async (householdId) => {
+    if (!user) return;
+    const { error } = await supabase.from('profiles').update({ hungry_household_id: householdId }).eq('id', user.id);
+    if (!error) setHungryHouseholdId(householdId);
+  };
+
+  // Clear Hungry-specific override — go back to sharing active_household_id with Roomies
+  const handleClearHungryHousehold = async () => {
+    if (!user) return;
+    const { error } = await supabase.from('profiles').update({ hungry_household_id: null }).eq('id', user.id);
+    if (!error) setHungryHouseholdId(null);
   };
 
   const handleUpdateBudgetLimit = async (newLimit, householdId) => {
@@ -282,12 +300,23 @@ export const UserProvider = ({ children }) => {
     setShowTutorial(true);
   };
 
+  // hungryHousehold: the effective household Hungry uses for pantry + shopping
+  // If the user set a Hungry-specific household, use that; otherwise share active_household_id with Roomies
+  const hungryHousehold = hungryHouseholdId
+    ? (households.find(h => h.id === hungryHouseholdId) || activeHousehold)
+    : activeHousehold;
+
   return (
     <UserContext.Provider value={{
       user,
-      household: activeHousehold,
+      household: hungryHousehold,
       households,
       activeHousehold,
+      hungryHousehold,
+      hungryHouseholdId,
+      isHungryShared: !hungryHouseholdId,
+      handleSetHungrySpecificHousehold,
+      handleClearHungryHousehold,
       userName,
       userSettings,
       avatarUrl,
