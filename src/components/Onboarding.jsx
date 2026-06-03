@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
 const SCREENS = [
@@ -110,7 +110,7 @@ const SCREENS = [
         </div>
         <div>
           <h2 className="text-2xl font-black text-slate-800 mb-3">Look, No Hands.</h2>
-          <p className="text-sm text-slate-500 leading-relaxed max-w-xs">Step-by-step voice guidance for when your hands are covered in flour. Just say "Hungry, next step".</p>
+          <p className="text-sm text-slate-500 leading-relaxed max-w-xs">Step-by-step voice guidance for when your hands are covered in flour. Just say "Pantry, next step".</p>
         </div>
       </div>
     ),
@@ -119,7 +119,7 @@ const SCREENS = [
   {
     key: 'prefs',
     render: null, // rendered below separately
-    cta: 'Enter Hungry',
+    cta: 'Enter Pantry',
   },
 ];
 
@@ -152,7 +152,7 @@ export default function Onboarding({ user, onComplete }) {
   async function uploadOnboardingPhoto(file, type) {
     if (!user?.id || !file) return null;
     const ext = file.name.split('.').pop() || 'jpg';
-    const filename = type === 'global' ? `avatar.${ext}` : `hungry.${ext}`;
+    const filename = type === 'global' ? `avatar.${ext}` : `pantry.${ext}`;
     const path = `${user.id}/${filename}`;
     const { error } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true });
     if (error) return null;
@@ -179,16 +179,16 @@ export default function Onboarding({ user, onComplete }) {
       setPendingFile(file);
       setPhotoDialog('apply-all');
     } else {
-      // Chose a new Hungry-specific photo (declined import)
+      // Chose a new Pantry-specific photo (declined import)
       setPhotoUploading(true);
-      await uploadOnboardingPhoto(file, 'hungry');
+      await uploadOnboardingPhoto(file, 'pantry');
       setPhotoUploading(false);
       setPhotoDialog(null);
     }
   }
 
   async function handleImportGlobal() {
-    // Use global AppWare photo — nothing to upload; just show it
+    // Use global LyfeWare photo — nothing to upload; just show it
     setLocalPhotoUrl(existingGlobalUrl);
     setPhotoDialog(null);
   }
@@ -202,10 +202,10 @@ export default function Onboarding({ user, onComplete }) {
     setPhotoDialog(null);
   }
 
-  async function handleApplyHungryOnly() {
+  async function handleApplyPantryOnly() {
     if (!pendingFile) return;
     setPhotoUploading(true);
-    await uploadOnboardingPhoto(pendingFile, 'hungry');
+    await uploadOnboardingPhoto(pendingFile, 'pantry');
     setPendingFile(null);
     setPhotoUploading(false);
     setPhotoDialog(null);
@@ -317,7 +317,7 @@ export default function Onboarding({ user, onComplete }) {
               </div>
               {photoDialog === 'import-or-new' ? (
                 <div className="flex-1 bg-sky-50 border border-sky-200 rounded-2xl p-3 space-y-2">
-                  <p className="text-[11px] font-bold text-slate-700">Use your AppWare profile photo here?</p>
+                  <p className="text-[11px] font-bold text-slate-700">Use your LyfeWare profile photo here?</p>
                   <div className="flex gap-2">
                     <button type="button" onClick={handleImportGlobal} className="flex-1 bg-[#6BAEE0] text-white text-[10px] font-black py-1.5 rounded-xl">Yes, Use It</button>
                     <button type="button" onClick={() => { setPhotoDialog(null); photoInputRef.current?.click(); }} className="flex-1 bg-white border border-blue-100 text-slate-500 text-[10px] font-black py-1.5 rounded-xl">Choose Different</button>
@@ -325,10 +325,10 @@ export default function Onboarding({ user, onComplete }) {
                 </div>
               ) : photoDialog === 'apply-all' ? (
                 <div className="flex-1 bg-sky-50 border border-sky-200 rounded-2xl p-3 space-y-2">
-                  <p className="text-[11px] font-bold text-slate-700">Apply this photo to all AppWare apps?</p>
+                  <p className="text-[11px] font-bold text-slate-700">Apply this photo to all LyfeWare apps?</p>
                   <div className="flex gap-2">
                     <button type="button" onClick={handleApplyAll} className="flex-1 bg-[#6BAEE0] text-white text-[10px] font-black py-1.5 rounded-xl">Yes, All Apps</button>
-                    <button type="button" onClick={handleApplyHungryOnly} className="flex-1 bg-white border border-blue-100 text-slate-500 text-[10px] font-black py-1.5 rounded-xl">Just Hungry</button>
+                    <button type="button" onClick={handleApplyPantryOnly} className="flex-1 bg-white border border-blue-100 text-slate-500 text-[10px] font-black py-1.5 rounded-xl">Just Pantry</button>
                   </div>
                 </div>
               ) : (

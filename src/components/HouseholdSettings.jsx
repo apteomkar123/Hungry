@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Users, Copy, Plus, Home, Check, Trash2, DollarSign, Share2, Lock } from 'lucide-react';
 import { useUser } from './UserContext';
 
@@ -6,10 +6,10 @@ export default function HouseholdSettings() {
   const {
     households,
     activeHousehold,
-    hungryHouseholdId,
-    isHungryShared,
-    handleSetHungrySpecificHousehold,
-    handleClearHungryHousehold,
+    pantryHouseholdId,
+    isPantryShared,
+    handleSetPantrySpecificHousehold,
+    handleClearPantryHousehold,
     handleCreateHousehold: onCreate,
     handleJoinHousehold: onJoin,
     handleSetActiveHousehold: onSetActive,
@@ -40,38 +40,38 @@ export default function HouseholdSettings() {
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5 space-y-4">
         <h2 className="text-[14px] font-bold text-slate-400 flex items-center gap-2"><Share2 size={15} /> Household Mode</h2>
         <p className="text-[11px] text-slate-400 leading-relaxed">
-          By default, Hungry shares your active household with Roomies — including the grocery list.
-          Switch to a Hungry-specific household to keep them separate.
+          By default, Pantry shares your active household with HomeBase — including the grocery list.
+          Switch to a Pantry-specific household to keep them separate.
         </p>
         <div className="flex gap-2">
           <button
-            onClick={handleClearHungryHousehold}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[12px] font-black transition-all border ${isHungryShared ? 'bg-sky-500 text-white border-sky-500 shadow-md shadow-sky-100' : 'bg-white text-slate-500 border-blue-100 hover:bg-sky-50'}`}
+            onClick={handleClearPantryHousehold}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[12px] font-black transition-all border ${isPantryShared ? 'bg-sky-500 text-white border-sky-500 shadow-md shadow-sky-100' : 'bg-white text-slate-500 border-blue-100 hover:bg-sky-50'}`}
           >
-            <Share2 size={13} /> Shared with Roomies
+            <Share2 size={13} /> Shared with HomeBase
           </button>
           <button
             onClick={() => {
-              if (isHungryShared && households.length > 1) {
+              if (isPantryShared && households.length > 1) {
                 // Pick the first household that isn't the active one
                 const other = households.find(h => h.id !== activeHousehold?.id);
-                if (other) handleSetHungrySpecificHousehold(other.id);
+                if (other) handleSetPantrySpecificHousehold(other.id);
               }
             }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[12px] font-black transition-all border ${!isHungryShared ? 'bg-[#6BAEE0] text-white border-[#6BAEE0] shadow-md shadow-blue-100' : 'bg-white text-slate-500 border-blue-100 hover:bg-sky-50'}`}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-[12px] font-black transition-all border ${!isPantryShared ? 'bg-[#6BAEE0] text-white border-[#6BAEE0] shadow-md shadow-blue-100' : 'bg-white text-slate-500 border-blue-100 hover:bg-sky-50'}`}
           >
-            <Lock size={13} /> Hungry-Specific
+            <Lock size={13} /> Pantry-Specific
           </button>
         </div>
-        {!isHungryShared && households.length > 0 && (
+        {!isPantryShared && households.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hungry is using:</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pantry is using:</p>
             <div className="flex flex-wrap gap-2">
               {households.map(hh => (
                 <button
                   key={hh.id}
-                  onClick={() => handleSetHungrySpecificHousehold(hh.id)}
-                  className={`px-4 py-2 rounded-xl text-[11px] font-black border transition-all ${hungryHouseholdId === hh.id ? 'bg-[#6BAEE0] text-white border-[#6BAEE0]' : 'bg-white text-slate-600 border-blue-100 hover:bg-sky-50'}`}
+                  onClick={() => handleSetPantrySpecificHousehold(hh.id)}
+                  className={`px-4 py-2 rounded-xl text-[11px] font-black border transition-all ${pantryHouseholdId === hh.id ? 'bg-[#6BAEE0] text-white border-[#6BAEE0]' : 'bg-white text-slate-600 border-blue-100 hover:bg-sky-50'}`}
                 >
                   {hh.name}
                 </button>
@@ -79,9 +79,9 @@ export default function HouseholdSettings() {
             </div>
           </div>
         )}
-        {isHungryShared && households.length <= 1 && (
+        {isPantryShared && households.length <= 1 && (
           <p className="text-[11px] text-amber-500 font-semibold">
-            Add another household below to use a Hungry-specific one.
+            Add another household below to use a Pantry-specific one.
           </p>
         )}
       </section>

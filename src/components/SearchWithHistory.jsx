@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Search, Clock, X } from 'lucide-react';
 
-const HISTORY_KEY = 'hungry_search_history';
+const HISTORY_KEY = 'pantry_search_history';
 
 const getHistory = (namespace) => {
   try { return JSON.parse(localStorage.getItem(`${HISTORY_KEY}_${namespace}`) || '[]'); } catch { return []; }

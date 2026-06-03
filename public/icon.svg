@@ -1,15 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <style>@import url('https://fonts.googleapis.com/css2?family=Pacifico&amp;display=swap');</style>
+    <style>
+      @font-face {
+        font-family: 'Pacifico';
+        src: url('https://fonts.gstatic.com/s/pacifico/v22/FwZY7-Qmy14u9lezJ96A4sijpFu_.woff2') format('woff2');
+      }
+    </style>
   </defs>
   <rect width="512" height="512" rx="100" fill="#6BAEE0"/>
   <text
     x="256"
-    y="296"
+    y="300"
     text-anchor="middle"
     dominant-baseline="middle"
     font-family="Pacifico, cursive"
     font-size="108"
     fill="white"
-  >Hungry</text>
+  >Pantry</text>
 </svg>

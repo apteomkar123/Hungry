@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Sparkles, ShoppingBag, Loader2, ChevronDown } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
 
 export default function Header({ scrollToTop, onOpenNav }) {
-  const { user, userName, avatarUrl, hungryAvatarUrl, households, household: activeHousehold, handleSetActiveHousehold } = useUser();
+  const { user, userName, avatarUrl, pantryAvatarUrl, households, household: activeHousehold, handleSetActiveHousehold } = useUser();
   const { setIsAiPickerOpen, triggerStoreTripPlanner, aiGenerating } = useRecipes();
   const [greeting] = useState(() => {
     const h = new Date().getHours();
     return h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
   });
   const displayName = userName || user?.email?.split('@')[0] || 'Chef';
-  const photo = hungryAvatarUrl || avatarUrl;
+  const photo = pantryAvatarUrl || avatarUrl;
 
   return (
     <header
@@ -29,7 +29,7 @@ export default function Header({ scrollToTop, onOpenNav }) {
             }
           </button>
           <button className="flex flex-col text-left">
-            <h1 className="logo-text" style={{ fontSize: '1.4rem', lineHeight: '1', paddingBottom: '9px' }}>Hungry</h1>
+            <h1 className="logo-text" style={{ fontSize: '1.4rem', lineHeight: '1', paddingBottom: '9px' }}>Pantry</h1>
             <p className="text-slate-500 text-[11px] font-bold leading-none">{greeting}, <span className="text-[#1F6FB8]">{displayName}</span>!</p>
           </button>
         </div>

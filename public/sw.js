@@ -1,4 +1,4 @@
-const CACHE = 'hungry-v1';
+﻿const CACHE = 'pantry-v1';
 
 // On install: cache the app shell
 self.addEventListener('install', (event) => {

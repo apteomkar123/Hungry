@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import { useAppWareSSO } from '../hooks/useAppWareSSO';
+import { useLyfeWareSSO } from '../hooks/useLyfeWareSSO';
 
 export default function AuthManager() {
   const [authEmail, setAuthEmail] = useState('');
@@ -10,7 +10,7 @@ export default function AuthManager() {
   const [authLoading, setAuthLoading] = useState(false);
   const [isForgotPasswordView, setIsForgotPasswordView] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { triggerAppWareRedirect } = useAppWareSSO();
+  const { triggerLyfeWareRedirect } = useLyfeWareSSO();
 
   // Reset sub-views when the user hits browser back so sign-in buttons are always visible
   useEffect(() => {
@@ -54,22 +54,22 @@ export default function AuthManager() {
   return (
     <div className="bg-white border border-blue-100 p-10 rounded-[3rem] w-full max-w-md shadow-2xl relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-2 bg-[#6BAEE0]"></div>
-      <h2 className="logo-text text-5xl mb-6 text-[#1F6FB8] text-center">Hungry</h2>
+      <h2 className="logo-text text-5xl mb-6 text-[#1F6FB8] text-center">Pantry</h2>
       
       {!isForgotPasswordView && (
         <div className="mt-6 space-y-3 font-sans">
-          {/* AppWare SSO */}
-          <p className="text-center text-[10px] font-black text-[#6BAEE0] tracking-widest uppercase mb-1">Sync your AppWare apps!</p>
+          {/* LyfeWare SSO */}
+          <p className="text-center text-[10px] font-black text-[#6BAEE0] tracking-widest uppercase mb-1">Sync your LyfeWare apps!</p>
           <button
             type="button"
-            onClick={triggerAppWareRedirect}
+            onClick={triggerLyfeWareRedirect}
             className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-[#1F6FB8] to-[#6BAEE0] py-3.5 rounded-xl text-sm font-bold text-white shadow-md shadow-blue-200 transition-all hover:opacity-95 active:scale-[0.98]"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" fill="white" fillOpacity="0.25" />
               <path d="M8 12h8M12 8v8" stroke="white" strokeWidth="2" strokeLinecap="round" />
             </svg>
-            Continue with AppWare
+            Continue with LyfeWare
           </button>
 
           <div className="flex items-center gap-3 py-1">

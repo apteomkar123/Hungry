@@ -102,24 +102,28 @@ export const handler = async (event) => {
         return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true, meal }) };
       }
 
-      const prompt = 'Read this receipt image. Return ONLY a JSON object: { "storeName": "string", "items": ["array of food item strings"] }. No markdown, no explanation.';
+      const prompt = 'Read this receipt image. Classify each line item as food (edible items, beverages, produce, meat, dairy, etc.) or non-food (cleaning products, toiletries, paper goods, laundry, batteries, health/beauty, household supplies, etc.). Return ONLY a JSON object: { "storeName": "string", "foodItems": ["array of food/edible item name strings"], "nonFoodItems": ["array of non-food household item name strings"] }. No markdown, no explanation.';
       const rawText = await callGemini(
         apiKey,
         [{ text: prompt }, { inlineData: { data: rawBase64, mimeType: 'image/jpeg' } }],
         { temperature: 0.1 }
       );
 
-      let result = { storeName: 'General Grocery', items: [] };
+      let result = { storeName: 'General Grocery', foodItems: [], nonFoodItems: [] };
       try {
-        result = JSON.parse(rawText.replace(/```json/g, '').replace(/```/g, '').trim());
+        const parsed = JSON.parse(rawText.replace(/```json/g, '').replace(/```/g, '').trim());
+        result.storeName = parsed.storeName || 'General Grocery';
+        // Support both new format (foodItems/nonFoodItems) and legacy format (items)
+        result.foodItems = Array.isArray(parsed.foodItems) ? parsed.foodItems : (Array.isArray(parsed.items) ? parsed.items : []);
+        result.nonFoodItems = Array.isArray(parsed.nonFoodItems) ? parsed.nonFoodItems : [];
       } catch (e) {
         const m = rawText.match(/\[[\s\S]*?\]/);
-        if (m) try { result.items = JSON.parse(m[0]); } catch (_) {}
+        if (m) try { result.foodItems = JSON.parse(m[0]); } catch (_) {}
       }
 
       return {
         statusCode: 200, headers: HEADERS,
-        body: JSON.stringify({ success: true, added: Array.isArray(result.items) ? result.items : [], storeName: result.storeName || 'General Grocery' })
+        body: JSON.stringify({ success: true, added: result.foodItems, nonFoodItems: result.nonFoodItems, storeName: result.storeName })
       };
     }
 

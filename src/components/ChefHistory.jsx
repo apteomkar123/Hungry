@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { X, ChefHat, Camera, Star, Trash2, Check, Lock, Globe, ChevronDown, Clock, User, Wand2, Loader2, Music } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
@@ -203,7 +203,7 @@ function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePh
         )}
       </div>
 
-      {/* Feature #12: Soundtrack of My Life — show what was playing in Jukebox when cooked */}
+      {/* Feature #12: Soundtrack of My Life — show what was playing in Vinyl when cooked */}
       {entry.soundtrack && (
         <div className="px-6 mb-5">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-300 mb-2">🎵 Playing While Cooking</p>
@@ -213,7 +213,7 @@ function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePh
               <p className="text-xs font-black text-violet-700 truncate">{entry.soundtrack.track_title}</p>
               <p className="text-[10px] text-violet-400 truncate">{entry.soundtrack.artist}{entry.soundtrack.album ? ` · ${entry.soundtrack.album}` : ''}</p>
             </div>
-            <span className="text-[9px] font-black text-violet-300 uppercase tracking-widest shrink-0">{entry.soundtrack.platform || 'Jukebox'}</span>
+            <span className="text-[9px] font-black text-violet-300 uppercase tracking-widest shrink-0">{entry.soundtrack.platform || 'Vinyl'}</span>
           </div>
         </div>
       )}
@@ -263,7 +263,7 @@ export default function ChefHistory() {
 
   useEffect(() => {
     try {
-      setHistory(JSON.parse(localStorage.getItem('hungry_chef_history') || '[]'));
+      setHistory(JSON.parse(localStorage.getItem('pantry_chef_history') || '[]'));
     } catch {
       setHistory([]);
     }
@@ -271,7 +271,7 @@ export default function ChefHistory() {
 
   const persist = (next) => {
     setHistory(next);
-    try { localStorage.setItem('hungry_chef_history', JSON.stringify(next)); } catch {}
+    try { localStorage.setItem('pantry_chef_history', JSON.stringify(next)); } catch {}
   };
 
   const handleUpdateNotes = (id, notes) => persist(history.map(e => e.id === id ? { ...e, notes } : e));

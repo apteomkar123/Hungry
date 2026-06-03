@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Mic, MicOff, ChevronLeft, ChevronRight, RefreshCw, Loader2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
@@ -55,7 +55,7 @@ export default function CookingMode({ steps, ingredients, recipeName, cuisine, o
     if (!user?.id) return;
     supabase.from('cross_app_activity').insert({
       user_id: user.id,
-      app: 'hungry',
+      app: 'pantry',
       activity_type: 'cooking_started',
       is_public: false,
       payload: {

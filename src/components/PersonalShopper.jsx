@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+﻿import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { X, ShoppingCart, Check, ChevronDown, MapPin, Store, Sparkles, Loader2, Map, List } from 'lucide-react';
 import { categorizeItem } from './recipeUtils';
 import { supabase } from '../supabaseClient';
@@ -142,7 +142,7 @@ const FLOOR_PLAN = [
   { key: '_checkout',    label: 'Checkout',     emoji: '🛒', col: 3, row: 3, route: 11 },
 ];
 
-const CHECKED_KEY = 'hungry_shopper_checked';
+const CHECKED_KEY = 'pantry_shopper_checked';
 const loadChecked = () => { try { return new Set(JSON.parse(localStorage.getItem(CHECKED_KEY) || '[]')); } catch { return new Set(); } };
 const saveChecked = (set) => { try { localStorage.setItem(CHECKED_KEY, JSON.stringify([...set])); } catch {} };
 
@@ -180,7 +180,7 @@ export default function PersonalShopper({ shoppingList, onToggle, onClose }) {
   }, [subLoadingId, subResults, selectedStore, userSettings]);
 
   // Feature #11 + #7: Grocery Gig Status + Who's Home? Alerts
-  // Sets Roomies presence to "At the Store" immediately, then refines with the
+  // Sets HomeBase presence to "At the Store" immediately, then refines with the
   // actual store name once geolocation resolves (~1-2 seconds).
   useEffect(() => {
     if (!user?.id) return;
@@ -220,7 +220,7 @@ export default function PersonalShopper({ shoppingList, onToggle, onClose }) {
             if (atGroceryStore) {
               supabase.from('cross_app_activity').insert({
                 user_id: user.id,
-                app: 'hungry',
+                app: 'pantry',
                 activity_type: 'at_grocery_store',
                 is_public: false,
                 payload: {

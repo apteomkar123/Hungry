@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+﻿import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings, Clock, PlusCircle, X, UserRound, Share2, PartyPopper, Globe, User, Layers, SlidersHorizontal } from 'lucide-react';
 import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic, matchesRecipeFilter } from './components/recipeUtils';
@@ -28,16 +28,17 @@ import ChefHistory from './components/ChefHistory';
 import AddRecipeModal from './components/AddRecipeModal';
 import UserProfilePage from './components/UserProfilePage';
 import RestaurantSaved from './components/RestaurantSaved';
-import AppWareTab from './components/AppWareTab';
+import LyfeWareTab from './components/LyfeWareTab';
 
 function AppContent({ inventory }) {
-  const { user, household: activeHousehold, households, showTutorial, dismissTutorial } = useUser();
+  const { user, household: activeHousehold, households, showTutorial, dismissTutorial, handleSetActiveHousehold } = useUser();
   const {
     fridge,
     shoppingList,
     nutritionMetrics,
     receiptLoading,
     receiptMessage,
+    nonFoodMessage,
     barcodeLoading,
     barcodeResult,
     isScanningBarcode,
@@ -93,9 +94,9 @@ function AppContent({ inventory }) {
 
   const [activeTab, setActiveTab] = useState('pantry');
   const [isCookingMode, setIsCookingMode] = useState(false);
-  const [jukeboxMood, setJukeboxMood] = useState(null); // Features #6 + #10
+  const [vinylMood, setVinylMood] = useState(null); // Features #6 + #10
 
-  // Features #6 + #10: Read the most recent mood/late-night signal from Jukebox
+  // Features #6 + #10: Read the most recent mood/late-night signal from Vinyl
   useEffect(() => {
     if (!user?.id) return;
     const since = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(); // last 2 hours
@@ -112,7 +113,7 @@ function AppContent({ inventory }) {
         const mood = ev.activity_type === 'late_night_active'
           ? 'late_night'
           : ev.payload?.mood || null;
-        setJukeboxMood(mood);
+        setVinylMood(mood);
       });
   }, [user?.id]);
   const [isAddRecipeOpen, setIsAddRecipeOpen] = useState(false);
@@ -149,7 +150,6 @@ function AppContent({ inventory }) {
     else if (deltaX < -60 && navOpen) setNavOpen(false);
     touchStartX.current = null;
   }, [navOpen]);
-  const [shopHHFilter, setShopHHFilter] = useState(activeHousehold?.id || 'all');
   const [shopCategoryFilters, setShopCategoryFilters] = useState([]);
   const [shopDietFilters, setShopDietFilters] = useState([]);
   const [shopCuisineFilters, setShopCuisineFilters] = useState([]);
@@ -169,7 +169,7 @@ function AppContent({ inventory }) {
     { tab: 'household',   icon: <Users size={22} />,          label: 'Household' },
     { tab: 'potluck',     icon: <PartyPopper size={22} />,    label: 'Events' },
     { tab: 'community',   icon: <Globe size={22} />,          label: 'Explore' },
-    { tab: 'appware',     icon: <Layers size={22} />,         label: 'AppWare' },
+    { tab: 'lyfeware',     icon: <Layers size={22} />,         label: 'LyfeWare' },
     { tab: 'friends',     icon: <UserRound size={22} />,     label: 'Friends' },
     { tab: 'profile',     icon: <User size={22} />,          label: 'Profile' },
     { tab: 'settings',    icon: <Settings size={22} />,      label: 'Settings' },
@@ -198,7 +198,7 @@ function AppContent({ inventory }) {
       {/* ── Floating Bubble Nav ────────────────────────────────────────────── */}
       <nav className={`fixed left-3 top-3 z-[55] flex flex-col bg-white/30 backdrop-blur-3xl border border-white/50 shadow-2xl shadow-blue-900/20 rounded-[2rem] w-56 max-h-[92dvh] overflow-y-auto transition-all duration-300 ease-out ${navOpen ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 -translate-x-4 scale-95 pointer-events-none'}`}>
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/30">
-          <span className="logo-text text-xl">Hungry</span>
+          <span className="logo-text text-xl">Pantry</span>
           <button onClick={() => setNavOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
             <X size={16} />
           </button>
@@ -241,6 +241,7 @@ function AppContent({ inventory }) {
                 handleToggleItemHousehold={handleToggleItemHousehold}
                 receiptLoading={receiptLoading}
                 receiptMessage={receiptMessage}
+                nonFoodMessage={nonFoodMessage}
                 handleFileUpload={handleFileUpload}
                 barcodeInput={barcodeInput}
                 setBarcodeInput={setBarcodeInput}
@@ -254,22 +255,36 @@ function AppContent({ inventory }) {
                 setQuantityForItem={setQuantityForItem}
               />
             )}
-            {activeTab === 'recipes' && <RecipeExplorer initialMood={jukeboxMood} />}
+            {activeTab === 'recipes' && <RecipeExplorer initialMood={vinylMood} />}
             {activeTab === 'shopping' && (() => {
-              const filteredShoppingList = shopHHFilter === 'all'
-                ? shoppingList
-                : shoppingList.filter(i => i.household_id === shopHHFilter || (!i.household_id && shopHHFilter === 'personal'));
+              // Scoped to the active household — show that household's items plus any personal items
+              const hhId = activeHousehold?.id;
+              const householdShoppingList = hhId
+                ? shoppingList.filter(i => i.household_id === hhId || !i.household_id)
+                : shoppingList;
               return (
                 <>
+                  {/* Household switcher header */}
                   <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-                    {households?.length > 0 && (
-                      <div className="flex gap-1.5 overflow-x-auto scrollbar-hide flex-1">
-                        <button onClick={() => setShopHHFilter('all')} className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black transition-all ${shopHHFilter === 'all' ? 'bg-[#6BAEE0] text-white' : 'bg-white border border-blue-100 text-slate-500 hover:border-sky-300'}`}>All</button>
-                        {households.map(h => (
-                          <button key={h.id} onClick={() => setShopHHFilter(h.id)} className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black transition-all ${shopHHFilter === h.id ? 'bg-[#6BAEE0] text-white' : 'bg-white border border-blue-100 text-slate-500 hover:border-sky-300'}`}>{h.name}</button>
-                        ))}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 min-w-0">
+                      {households?.length > 1 ? (
+                        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+                          {households.map(h => (
+                            <button
+                              key={h.id}
+                              onClick={() => handleSetActiveHousehold(h.id)}
+                              className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black transition-all ${activeHousehold?.id === h.id ? 'bg-[#6BAEE0] text-white' : 'bg-white border border-blue-100 text-slate-500 hover:border-sky-300'}`}
+                            >
+                              {h.name}
+                            </button>
+                          ))}
+                        </div>
+                      ) : activeHousehold ? (
+                        <span className="text-xs font-black text-[#6BAEE0] bg-sky-50 border border-sky-200 px-3 py-1.5 rounded-full">{activeHousehold.name}</span>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">No household — items shown are personal</span>
+                      )}
+                    </div>
                     <button
                       onClick={() => setIsShopperOpen(true)}
                       className="flex items-center gap-2 bg-[#6BAEE0] text-white px-5 py-2.5 rounded-2xl text-xs font-black shadow-lg shadow-blue-100 active:scale-95 transition-all shrink-0"
@@ -278,7 +293,7 @@ function AppContent({ inventory }) {
                     </button>
                   </div>
                   <ShoppingListManager
-                    list={filteredShoppingList}
+                    list={householdShoppingList}
                     onAdd={handleAddShoppingItem}
                     onToggle={handleToggleShoppingCompleted}
                     onClear={handleClearShoppingItem}
@@ -313,7 +328,7 @@ function AppContent({ inventory }) {
             {activeTab === 'profile' && <UserProfilePage />}
             {activeTab === 'potluck' && <PotluckPage />}
             {activeTab === 'community' && <CommunityRecipes />}
-            {activeTab === 'appware' && <AppWareTab fridge={fridge} />}
+            {activeTab === 'lyfeware' && <LyfeWareTab fridge={fridge} />}
             {activeTab === 'settings' && <SettingsPage onNavigateFriends={() => switchTab('friends')} />}
             {activeTab === 'saved' && (
               <div className="space-y-6">
@@ -645,8 +660,8 @@ function AppContent({ inventory }) {
 }
 
 function MainApp() {
-  const { user, hungryHousehold, loading: authLoading } = useUser();
-  const inventory = useInventory(user, hungryHousehold);
+  const { user, pantryHousehold, loading: authLoading } = useUser();
+  const inventory = useInventory(user, pantryHousehold);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Show onboarding for users who haven't completed it

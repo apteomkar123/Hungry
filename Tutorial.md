@@ -1,4 +1,4 @@
-# Hungry: Comprehensive Interactive Tutorial Specification
+﻿# Pantry: Comprehensive Interactive Tutorial Specification
 
 ## 🎯 Objective
 Implement a step-by-step interactive walkthrough that triggers automatically for first-time users (after onboarding preferences are saved). The tutorial must use the "Liquid Glass" design system, utilizing `framer-motion` for pulsing highlights and `backdrop-blur-3xl` for callout overlays.
@@ -68,7 +68,7 @@ ADD COLUMN IF NOT EXISTS has_completed_tutorial BOOLEAN DEFAULT FALSE;
 - **Trigger:** Check `profile.has_completed_tutorial` in `UserContext.jsx`. If false, mount the `TutorialOverlay`.
 - **Component:** Create a `TutorialOverlay.jsx` that wraps the app. Use `framer-motion`'s `AnimatePresence`.
 - **Style:** 
-  - Use a pulsing `#6BAEE0` (Hungry Blue) ring for highlights.
+  - Use a pulsing `#6BAEE0` (Pantry Blue) ring for highlights.
   - Tooltips should use `backdrop-blur-3xl` and the `Yellowtail` font for headers.
 
 ### 3. Final Step

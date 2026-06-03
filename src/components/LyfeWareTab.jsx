@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Globe, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
 
-export default function AppWareTab({ fridge }) {
+export default function LyfeWareTab({ fridge }) {
   const { user } = useUser();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -20,7 +20,7 @@ export default function AppWareTab({ fridge }) {
         .eq('user_id', user.id)
         .gte('created_at', monthStart.toISOString());
 
-      const history = (() => { try { return JSON.parse(localStorage.getItem('hungry_chef_history') || '[]'); } catch { return []; } })();
+      const history = (() => { try { return JSON.parse(localStorage.getItem('pantry_chef_history') || '[]'); } catch { return []; } })();
       const thisMonth = history.filter(e => new Date(e.cookedAt) >= monthStart);
       const choresDone = (events || []).filter(e => e.activity_type === 'chore_completed').length;
       const billsPaid  = (events || []).some(e => e.activity_type === 'all_bills_paid');
@@ -50,7 +50,7 @@ export default function AppWareTab({ fridge }) {
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="bg-gradient-to-br from-violet-50 to-sky-50 border border-violet-100 p-6 rounded-[2.5rem] shadow-xl">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-[14px] font-bold text-violet-500 flex items-center gap-2"><Globe size={15} /> AppWare Monthly Wrap</h3>
+          <h3 className="text-[14px] font-bold text-violet-500 flex items-center gap-2"><Globe size={15} /> LyfeWare Monthly Wrap</h3>
           <button onClick={load} disabled={loading} className="p-2 text-violet-400 hover:text-violet-600 transition-colors disabled:opacity-50">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -89,7 +89,7 @@ export default function AppWareTab({ fridge }) {
             )}
             {data.currentlyPlaying && (
               <div className="bg-white/80 rounded-2xl px-4 py-3 border border-violet-100 flex items-center justify-between gap-3">
-                <p className="text-xs font-bold text-slate-500 shrink-0">🎵 Now on Jukebox</p>
+                <p className="text-xs font-bold text-slate-500 shrink-0">🎵 Now on Vinyl</p>
                 <p className="text-xs font-black text-violet-500 truncate">{data.currentlyPlaying}</p>
               </div>
             )}

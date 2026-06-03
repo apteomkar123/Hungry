@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { X, ChefHat, Star, Clock, Globe, Lock } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useRecipes } from './RecipeContext';
@@ -22,7 +22,7 @@ export default function UserProfileModal({ user: profileUser, onClose }) {
 
     // Fetch public chef history from localStorage (only what they've shared publicly)
     try {
-      const history = JSON.parse(localStorage.getItem(`hungry_chef_history_${profileUser.id}`) || '[]');
+      const history = JSON.parse(localStorage.getItem(`pantry_chef_history_${profileUser.id}`) || '[]');
       setCookHistory(history.filter(e => !e.isPrivate));
     } catch { setCookHistory([]); }
   }, [profileUser?.id]);

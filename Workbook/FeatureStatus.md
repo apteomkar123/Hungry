@@ -1,4 +1,4 @@
-# Hungry — Feature Status
+﻿# Pantry — Feature Status
 
 A living document tracking what's shipped, what works, and what's blocked until the iOS app is ready.
 
@@ -10,15 +10,16 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - Email / password sign in and sign up
 - Show/hide password toggle (eye icon) on password field
 - Forgot password (email reset link)
-- **Sign in with AppWare** — "Sync your AppWare apps!" tagline above button; redirects to SSO portal, returns with session token; browser back resets sign-in view correctly
+- **Sign in with LyfeWare** — "Sync your LyfeWare apps!" tagline above button; redirects to SSO portal, returns with session token; browser back resets sign-in view correctly
 - **Stay signed in** — Supabase client explicitly configured with `persistSession: true` + `autoRefreshToken: true`; session restored from localStorage on every page load so users never have to sign in again
-- Google and Apple sign-in removed (replaced by AppWare SSO)
+- Google and Apple sign-in removed (replaced by LyfeWare SSO)
 - Onboarding flow — 5-screen liquid-glass intro + preferences sheet (name, dietary restrictions, nutrition goal), written to Supabase on completion; dietary restrictions now show full set (Vegetarian, Vegan, Gluten-Free, Halal, Kosher, Dairy-Free, Nut-Free, Low-Carb, High-Protein) matching Settings; nutrition goals multi-select matching Settings (Balanced, High Protein, Low Carb, Low Fat, Build Muscle, Lose Weight)
 - **Interactive Tutorial** — runs automatically on first login (after onboarding); also writes completion to user auth metadata so tutorial won't re-appear if the `hungry_tutorial_done` DB column is missing; skip or dismiss marks it complete; Re-run Tutorial button in Settings; confetti on finish
 
 ### Pantry
 - Add items manually
 - Scan a grocery receipt via photo upload (AI parsing)
+- **Non-food item cross-app sync** — Receipt scan and barcode lookup now classify items as food vs non-food; non-food items (cleaning supplies, toiletries, paper goods, laundry, etc.) are automatically inserted into HomeBase `household_inventory` and a violet toast notification "X non-food items added to HomeBase inventory" appears. Works for both receipt scan and camera/manual barcode lookup.
 - Barcode lookup (Open Food Facts API) — barcode input now uses a Plus button (like manual add) instead of a symbol bar
 - Edit item details inline
 - Remove items
@@ -174,7 +175,7 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - Readiness progress bar; backed by `potluck_events` + `potluck_items` Supabase tables
 - View Full Details card shows each attendee's dietary restrictions (pulled from their profile settings)
 - RSVP view shows who's bringing what, unclaimed items, and the user's own dietary restrictions
-- **Tappable claimer profiles**: claimed_by names in both the item list and the detail card open the claimer's full Hungry profile (UserProfileModal) when tapped; profile is fetched from Supabase and cached
+- **Tappable claimer profiles**: claimed_by names in both the item list and the detail card open the claimer's full Pantry profile (UserProfileModal) when tapped; profile is fetched from Supabase and cached
 - **Smart Suggestions**: per-event "✨ Smart Suggestions" button calls AI with event name + attendee dietary restrictions to generate 10 food/drink suggestions; **tapping a chip now instantly adds the item to the event list** (no pre-fill step needed); **X button** closes the suggestions panel; dietary restrictions respected but not overridden for minority-only restrictions
 - **Recipe cards on item tap**: tapping an event item name opens its recipe card using cascading match logic (exact → contains → word overlap) — prevents mismatches like Margherita Pizza opening the wrong recipe; ChefHat icon next to each item name indicates recipe availability
 
@@ -191,35 +192,35 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - Mic pulses red when active; screen stay-awake via Wake Lock API
 
 ### Profile Photos
-- **AppWare Global Photo** — Upload in Settings → Profile Photos → "AppWare Global" tile; syncs to all apps via `profiles.avatar_url`
-- **Hungry-specific Photo** — Upload in Settings → Profile Photos → "Hungry Photo" tile; shows only in Hungry; falls back to global photo if not set
-- **Avatar in Header** — Header shows the Hungry photo (or global fallback) as a 36px rounded avatar next to the greeting
+- **LyfeWare Global Photo** — Upload in Settings → Profile Photos → "LyfeWare Global" tile; syncs to all apps via `profiles.avatar_url`
+- **Pantry-specific Photo** — Upload in Settings → Profile Photos → "Pantry Photo" tile; shows only in Pantry; falls back to global photo if not set
+- **Avatar in Header** — Header shows the Pantry photo (or global fallback) as a 36px rounded avatar next to the greeting
 
-### AppWare Ecosystem Features
-- **#1 Kitchen Concert** — when Cooking Mode opens, writes a `cooking_started` event to `cross_app_activity` with a genre seed mapped from recipe cuisine (Italian → classical, Indian → world-music, etc.) so Jukebox can queue a matching playlist
-- **#3 Smart Grocery Split** — Household tab → Settle Up section now includes a "Split $X in Roomies" button that pushes the total household shopping list cost directly to Roomies Finance as a `Groceries` transaction, split equally among all household members
+### LyfeWare Ecosystem Features
+- **#1 Kitchen Concert** — when Cooking Mode opens, writes a `cooking_started` event to `cross_app_activity` with a genre seed mapped from recipe cuisine (Italian → classical, Indian → world-music, etc.) so Vinyl can queue a matching playlist
+- **#3 Smart Grocery Split** — Household tab → Settle Up section now includes a "Split $X in HomeBase" button that pushes the total household shopping list cost directly to HomeBase Finance as a `Groceries` transaction, split equally among all household members
 - **#4 Potluck Planner** — "✨ Smart Suggestions" button in the Household → Potluck panel fetches each member's `hungry_settings.dietary_restrictions` and generates a filtered item suggestion list (vegan/vegetarian/meat-safe); also writes `potluck_created` signal to `cross_app_activity`
-- **#5 AppWare Wrap** — new "🌐 Wrap" tab in Analytics dashboard; shows monthly cross-app stats: recipes cooked, chores done (Roomies), bills paid (Roomies), top cuisine, pantry value, and currently playing track (Jukebox `now_playing` table)
-- **#6 Mood-Food Matching** — on app load, reads most recent `mood_signal` event from `cross_app_activity` (written by Jukebox) and pre-selects the matching mood in Recipe Explorer
-- **#7 Who's Home? Shopping Alerts** — Household tab shows an amber banner when any household member has their Roomies presence set to "🛒 At the Store" (written by Hungry's Personal Shopper mode)
-- **#10 Late-Night Snack Mode** — on app load, reads most recent `late_night_active` event from Jukebox (past 2 hours) and pre-selects "late_night" mood in Recipe Explorer
-- **#11 Grocery Gig Status** — Personal Shopper sets Roomies `user_presence` to `status='Away', custom_text='🛒 At the Store'` on open; resets to `Available` when closed
-- **#12 Soundtrack of My Life** — when a recipe is marked as Cooked, queries the Jukebox `now_playing` table and saves the current track (`track_title`, `artist`, `album`, `artwork_url`, `platform`) into `chef_history.soundtrack`; the saved track is now displayed in the expanded Chef History card as a "🎵 Playing While Cooking" purple pill
-- **#14 Nutritional BPM (write side)** — when the Analytics page loads and the user's macro breakdown is below their stated goal (e.g. protein < 20g on High Protein goal), writes a `nutrition_shortfall` event to `cross_app_activity` so Jukebox can suggest a workout playlist and Roomies can surface high-effort chores first
+- **#5 LyfeWare Wrap** — new "🌐 Wrap" tab in Analytics dashboard; shows monthly cross-app stats: recipes cooked, chores done (HomeBase), bills paid (HomeBase), top cuisine, pantry value, and currently playing track (Vinyl `now_playing` table)
+- **#6 Mood-Food Matching** — on app load, reads most recent `mood_signal` event from `cross_app_activity` (written by Vinyl) and pre-selects the matching mood in Recipe Explorer
+- **#7 Who's Home? Shopping Alerts** — Household tab shows an amber banner when any household member has their HomeBase presence set to "🛒 At the Store" (written by Pantry's Personal Shopper mode)
+- **#10 Late-Night Snack Mode** — on app load, reads most recent `late_night_active` event from Vinyl (past 2 hours) and pre-selects "late_night" mood in Recipe Explorer
+- **#11 Grocery Gig Status** — Personal Shopper sets HomeBase `user_presence` to `status='Away', custom_text='🛒 At the Store'` on open; resets to `Available` when closed
+- **#12 Soundtrack of My Life** — when a recipe is marked as Cooked, queries the Vinyl `now_playing` table and saves the current track (`track_title`, `artist`, `album`, `artwork_url`, `platform`) into `chef_history.soundtrack`; the saved track is now displayed in the expanded Chef History card as a "🎵 Playing While Cooking" purple pill
+- **#14 Nutritional BPM (write side)** — when the Analytics page loads and the user's macro breakdown is below their stated goal (e.g. protein < 20g on High Protein goal), writes a `nutrition_shortfall` event to `cross_app_activity` so Vinyl can suggest a workout playlist and HomeBase can surface high-effort chores first
 
 ### Session 19 (2026-06-02)
 - **Nutrition breakdown card position fix** — card container changed from `max-h-[90vh]` to `max-h-[72vh]` with `pt-16` top padding so the card no longer clips above the visible area on phones with notches / safe-area insets
-- **App icon updated** — `public/icon.svg` replaced with a solid #6BAEE0 blue rounded-rect containing "Hungry" in Pacifico (loaded via Google Fonts `@import`); correct brand color replaces old blue gradient
+- **App icon updated** — `public/icon.svg` replaced with a solid #6BAEE0 blue rounded-rect containing "Pantry" in Pacifico (loaded via Google Fonts `@import`); correct brand color replaces old blue gradient
 - **Recipes load immediately** — static recipes now set into `masterRecipes` before the slow MealDB / Spoonacular fetches begin; user sees recipes within ~100ms instead of waiting up to a minute for 26 parallel API calls
-- **Household Mode simplified** — large "Household Mode" section replaced with a single compact badge line ("Shared with Roomies" or "Hungry-Specific") with a "Change" tap target; both Create Household forms now include a two-button type selector (Shared with Roomies / Hungry-Specific)
+- **Household Mode simplified** — large "Household Mode" section replaced with a single compact badge line ("Shared with HomeBase" or "Pantry-Specific") with a "Change" tap target; both Create Household forms now include a two-button type selector (Shared with HomeBase / Pantry-Specific)
 - **Header no longer scrolls to top on tap** — removed `onClick={scrollToTop}` from the `<header>` element so tapping the header no longer forces scroll-to-top; native iOS status-bar tap still scrolls to top
 - **Celsius-to-Fahrenheit conversion in recipe steps** — added `convertCelsiusInText()` utility to `recipeUtils.js`; handles `180°C`, `180 °C`, `180C` (no gap, plausible cooking temp 40–350°C), and `180 degrees Celsius/Centigrade`; applied inside `_cleanStep` so every recipe step from any source (MealDB, Spoonacular, static) is converted automatically
 
 ### Session 18 (2026-06-02)
 - **Temperature units** — all Celsius temperatures in `staticRecipes.js` converted to Fahrenheit (150°C→302°F, 160°C→320°F, 170°C→338°F, 175°C→347°F, 180°C→356°F, 190°C→374°F, 200°C→392°F, 210°C→410°F, 220°C→428°F, 230°C→446°F)
 - **Scroll to top on header tap** — tapping anywhere on the sticky header bar scrolls to the top; profile pic and right-side action buttons use `e.stopPropagation()` to preserve their existing behavior
-- **Household member profile pictures** — member query now fetches `avatar_url` and `hungry_avatar_url`; member avatar in Members list and Settle Up section shows the user's Hungry photo (or AppWare global photo fallback) instead of initials
-- **Link AppWare Account button** — "Merge AppWare Account" section now shows a single "Link AppWare Account" button that redirects to the AppWare SSO portal (via `useAppWareSSO.triggerAppWareRedirect`), replacing the old Google-specific link flow
+- **Household member profile pictures** — member query now fetches `avatar_url` and `hungry_avatar_url`; member avatar in Members list and Settle Up section shows the user's Pantry photo (or LyfeWare global photo fallback) instead of initials
+- **Link LyfeWare Account button** — "Merge LyfeWare Account" section now shows a single "Link LyfeWare Account" button that redirects to the LyfeWare SSO portal (via `useLyfeWareSSO.triggerLyfeWareRedirect`), replacing the old Google-specific link flow
 - **Recipe image tap opens recipe card** — in the Saved Recipes tab, tapping the recipe image now opens the recipe modal (the text row below was already clickable; now the image is too)
 
 ### Infrastructure
@@ -254,17 +255,17 @@ These features are intentionally deferred until a native iOS app exists. The rea
 | **Geofencing / Pantry Proximity Alerts** | The planned feature: when a household member is detected near a grocery store (via GPS), all other members receive a notification — "Omkar is at Whole Foods. Anything to add to the list before they check out?" Web Geolocation API can get a one-off position but cannot run geofence monitoring in the background when the browser/PWA is not open. Requires native `CLLocationManager` with `CLCircularRegion` monitoring, which keeps running even when the app is backgrounded. Also depends on push notifications being working (see below). |
 | **Haptic feedback** | The Web Vibration API is disabled on iOS Safari. The app calls `triggerHaptic()` on tab switches and other actions but it silently no-ops on iOS. True pattern haptics (`UIImpactFeedbackGenerator`, `UINotificationFeedbackGenerator`) require native Swift/RN code. |
 | **Push notifications** | iOS blocks web push in installed PWAs on older versions; even on iOS 16.4+ with web push support, APNs delivery is unreliable without a native app. Full reliability requires a native app + APNs certificate configured in the backend. Also a hard dependency for geofencing alerts and expiry reminders to actually reach the user. |
-| **Voice guidance in Cooking Mode ("Hungry, next step")** | `SpeechRecognition` is partially implemented in CookingMode but is unsupported in iOS WKWebView and unreliable in iOS Safari PWA. `SpeechSynthesis` (text-to-speech) also cuts out mid-sentence on iOS when the screen locks. Continuous hands-free listening requires native `SFSpeechRecognizer` + `AVAudioEngine`, and keeping the screen awake during cooking requires a native app (the Web Screen Wake Lock API is not honoured by iOS when the screen locks). |
+| **Voice guidance in Cooking Mode ("Pantry, next step")** | `SpeechRecognition` is partially implemented in CookingMode but is unsupported in iOS WKWebView and unreliable in iOS Safari PWA. `SpeechSynthesis` (text-to-speech) also cuts out mid-sentence on iOS when the screen locks. Continuous hands-free listening requires native `SFSpeechRecognizer` + `AVAudioEngine`, and keeping the screen awake during cooking requires a native app (the Web Screen Wake Lock API is not honoured by iOS when the screen locks). |
 | **Live Activities & Dynamic Island (Cooking Mode)** | When the user enters Cooking Mode, the plan is to show the current step, a timer, and the next ingredient on the Lock Screen and in the Dynamic Island so they never have to touch their phone with messy hands. This is an iOS 16.1+ exclusive feature (`ActivityKit`) with no web equivalent. |
 | **Barcode scanning via camera (reliable)** | `html5-qrcode` is partially implemented but camera access in iOS PWA home screen mode is broken on many iOS versions. A native `AVCaptureSession` / `Vision` framework scanner is far more reliable and supports a much wider range of barcode formats. |
 | **Home Screen & Lock Screen Widgets** | Requires native iOS WidgetKit extension — not possible on web. Planned widgets: expiring pantry items, today's recipe suggestion, shopping list item count. |
-| **Siri Shortcuts** | Requires native SiriKit integration. Planned intents: "Hey Siri, what can I cook tonight?", "Add milk to Hungry", "Start cooking [recipe name]". |
+| **Siri Shortcuts** | Requires native SiriKit integration. Planned intents: "Hey Siri, what can I cook tonight?", "Add milk to Pantry", "Start cooking [recipe name]". |
 | **Face ID / Touch ID biometric sign-in** | Requires native `LocalAuthentication` framework or a reliable WebAuthn platform authenticator. Web passkeys are partially supported but inconsistent across iOS versions. |
 | **App Clips** | Native iOS feature — allows instant access to a subset of the app (e.g. scanning a receipt or joining a household) without requiring a full install. No web equivalent. |
 | **Background pantry sync & expiry reminders** | iOS aggressively kills PWA background processes. Reliable background sync (e.g. checking for items expiring tomorrow and firing a reminder) requires a native app with `BackgroundTasks` framework and scheduled `BGAppRefreshTask`. |
 | **NFC tag scanning** | Not accessible from iOS Safari / PWA. Planned use case: NFC stickers on fridge shelves or pantry bins that auto-open the correct pantry category when tapped. Requires native `CoreNFC`. |
 | **Leftover Recon (camera-based meal identification)** | Planned feature: the user snaps a photo of a Tupperware container, the AI identifies it as "Leftover Pasta", asks for the date, and tracks it as a Prepared Meal in the pantry. Requires reliable camera access (blocked in iOS PWA — see barcode scanning above) and a vision AI pipeline. |
-| **"Walk-in" continuous voice inventory** | The basic tap-to-talk voice input (say "2 bananas, 3 tomatoes") works on the web app. The planned "walk-in mode" goes further: the user walks through the house putting groceries away and speaks continuously without tapping anything — "Hungry, I'm adding two gallons of milk, a pack of blueberries, and some Greek yogurt" — and the pantry populates in bulk. This needs continuous `SpeechRecognition` running in the foreground without any interaction, which is completely blocked on iOS (Safari and PWA mode do not support `SpeechRecognition` at all). Requires native `SFSpeechRecognizer` + `AVAudioEngine` with always-on microphone permission. |
+| **"Walk-in" continuous voice inventory** | The basic tap-to-talk voice input (say "2 bananas, 3 tomatoes") works on the web app. The planned "walk-in mode" goes further: the user walks through the house putting groceries away and speaks continuously without tapping anything — "Pantry, I'm adding two gallons of milk, a pack of blueberries, and some Greek yogurt" — and the pantry populates in bulk. This needs continuous `SpeechRecognition` running in the foreground without any interaction, which is completely blocked on iOS (Safari and PWA mode do not support `SpeechRecognition` at all). Requires native `SFSpeechRecognizer` + `AVAudioEngine` with always-on microphone permission. |
 | **Screen stays awake during Cooking Mode** | `navigator.wakeLock.request('screen')` is already implemented in `CookingMode.jsx` to keep the display on while following a recipe. iOS Safari does not support the Screen Wake Lock API — the call silently fails and the screen dims and locks after 30 seconds, breaking the hands-free cooking experience entirely. Keeping the screen on requires native `UIApplication.shared.isIdleTimerDisabled = true` in Swift. |
 | **Drag-and-drop pantry category sorting** | Pantry items already have `draggable`, `onDragStart`, `onDragOver`, and `onDrop` handlers in `PantryManager.jsx`, with a visible `GripVertical` handle icon and the label "drag to move between categories." The HTML5 Drag and Drop API does not fire touch events on iOS — drag handles are completely non-functional on any iOS device. Requires native `UIDragInteraction` / `UIDropInteraction` or a touch-based drag library wired into a native app. |
 
@@ -331,7 +332,7 @@ These features are intentionally deferred until a native iOS app exists. The rea
 **Bugs fixed:**
 - Potluck "Events table not set up" persisting after migration — `fetchEvents`, `handleCreate`, `handleJoin` used Supabase join syntax `*, potluck_items(*)` which fails when `potluck_items` existed with old schema (no `event_id`). Fixed all three to use separate queries. New migration `006_potluck_items_event_id.sql` adds `event_id` column to existing `potluck_items`.
 - Star save from Explore/Community page silently failing — "My Saved Recipes" button passed `undefined` so `onSaveRecipe` read localStorage default (possibly a household UUID); fixed to pass `null` explicitly. "Already saved" guard also blocked personal saves when recipe existed only as household-saved; fixed to check `!r.household_id`.
-- "Hungry" logo descenders overlapping greeting text — fixed with `lineHeight: 1.2` and `paddingBottom: 2px` on h1.
+- "Pantry" logo descenders overlapping greeting text — fixed with `lineHeight: 1.2` and `paddingBottom: 2px` on h1.
 - CommunityRecipes dietary substitution not applying — `cleanedIngredients` was set to raw MealDB capitalized strings; `MEAT_PATTERN` has no `/i` flag so checks always returned false; fixed by mapping `cleanIngredientLocally` for `cleanedIngredients`.
 - Recipe title constrained by buttons on same row — restructured RecipeModal: buttons moved to their own sticky bar, title now takes full modal width below.
 - Custom recipe generator button going off screen — input and button stacked vertically now; button full-width centered.
@@ -343,7 +344,7 @@ These features are intentionally deferred until a native iOS app exists. The rea
 
 ### Session 15 (2026-06-01)
 **Features added:**
-- **Merge AppWare Account** — "Merge AppWare Account" section added to Settings. Shows connected sign-in methods (email, Google) fetched live from Supabase `getUser()`. "Link Google Account" button calls `supabase.auth.linkIdentity({ provider: 'google' })`, which starts an OAuth redirect to Google; on return, Google is linked to the existing account so the user can sign in with either method.
+- **Merge LyfeWare Account** — "Merge LyfeWare Account" section added to Settings. Shows connected sign-in methods (email, Google) fetched live from Supabase `getUser()`. "Link Google Account" button calls `supabase.auth.linkIdentity({ provider: 'google' })`, which starts an OAuth redirect to Google; on return, Google is linked to the existing account so the user can sign in with either method.
 
 ### Session 14 (2026-06-01)
 **Bugs fixed:**
@@ -407,12 +408,12 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - **Recipe title duplicating dietary restriction** — `locallyAdaptRecipe` in recipeUtils now checks if the recipe name already starts with the diet word before prepending it (e.g. "Vegetarian Chilli" → no second "Vegetarian" prefix).
 - **Household data polling every 5 seconds** — members, shopping list, and recipes now refresh every 5 s via `setInterval` in HouseholdTab, so changes from other users appear quickly.
 - **Share recipe dropdown covered** — removed `overflow-hidden` from the saved-recipe card container; the share dropdown now floats above correctly at `z-50`.
-- **AppWare account already linked** — SettingsPage now fetches `user_metadata.appware_linked`; if true, shows a "✓ AppWare Account Linked" badge instead of the Link button. `useAppWareSSO` sets `appware_linked: true` in metadata on successful SSO ingest.
+- **LyfeWare account already linked** — SettingsPage now fetches `user_metadata.lyfeware_linked`; if true, shows a "✓ LyfeWare Account Linked" badge instead of the Link button. `useLyfeWareSSO` sets `lyfeware_linked: true` in metadata on successful SSO ingest.
 - **Name mandatory in onboarding** — `handleNext` now validates `chefName.trim()` on the prefs screen; shows an alert and returns early if empty.
 - **Expiry dates more accurate** — `getEstimatedExpiry` fully rewritten with research-backed shelf-life data: cottage cheese (14d), Greek yogurt (21d), fresh chicken (3d), raw seafood (2d), eggs (35d), hard cheese (30d), etc. Covers 50+ ingredient categories.
 - **Household invite as deep link** — share button now shares `${origin}?join=CODE` URL; tapping the link auto-joins the invitee's household. `UserContext` reads `?join=CODE` on load and runs `handleJoinHousehold` automatically.
 - **Adding items to household shopping list** — HouseholdTab now inserts directly via Supabase with `household_id`, bypassing the localStorage preference hack that could misroute items.
-- **AppWare display name auto-pulled** — `loadUserState` now falls back to `profiles.display_name` if user metadata has no `name`; syncs it back to metadata so subsequent loads are instant.
+- **LyfeWare display name auto-pulled** — `loadUserState` now falls back to `profiles.display_name` if user metadata has no `name`; syncs it back to metadata so subsequent loads are instant.
 - **Settle Up includes pantry items** — `householdPantryItems` fetched from `fridge_inventory` per household; settle-up total = shopping list costs + priced pantry items. Breakdown shows Shopping + Pantry lines separately.
 - **"Change" button removed** — (see above)
 
@@ -425,16 +426,22 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - **Auto-create solo household on onboarding** — if a new user doesn't already have a household, onboarding creates a `[Name]'s Kitchen` solo household automatically, so everything is always household-scoped.
 - **Pantry defaults to active household** — PantryManager now pre-selects the active household (not personal/null) and syncs with active household changes; shows household selector only when user has more than one household.
 
-*Last updated: 2026-06-02 (session 21)*
+### Session 22 (2026-06-03)
+**Bugs fixed:**
+- **Shopping list all/household toggle removed** — shopping list is now filtered directly by the active household (no "All" toggle); if the user has multiple households, pill buttons in the header switch which household is shown; single-household shows a badge; no-household shows informational text. The global active household drives the view rather than a per-tab filter.
+- **Nutrient analysis card going off screen** — root cause: `backdrop-filter: blur()` on the parent `<section>` creates a new CSS containing block for `fixed`-positioned children, so `fixed inset-0` was relative to the section, not the viewport. Fixed by moving the modal outside all backdrop-filter containers and using inline `style={{ backdropFilter }}` instead of Tailwind class for the overlay.
+- **iOS home screen icon wrong font** — `icon.svg` updated: changed `@import url()` to `@font-face { src: url('...woff2') }` for reliable font loading; corrected text from "Hungry" to "Pantry". Added `generate-icons.html` (one-time browser tool) for regenerating `icon-192.png` and `icon-512.png` with the correct Pacifico font via Canvas API.
+
+*Last updated: 2026-06-03 (session 22)*
 
 ### Session 20 (2026-06-02)
 **Bugs fixed:**
-- **AppWare sign-in redirecting back to login page** — `useAppWareSSO.ingestIncomingSession` called `window.location.reload()` after `setSession`, which was unnecessary (Supabase's `onAuthStateChange` handles state transition) and created a window for race conditions if localStorage hadn't fully persisted. Removed `reload()`. Also: `setSession` errors were silently swallowed — added try/catch with a user-visible alert and proper console error. Also: only the URL hash was checked for tokens; now checks query params too (covers PKCE / manual portal redirects that use `?access_token=...`). `window.history.replaceState` moved to `finally` block so tokens are always cleaned regardless of outcome.
+- **LyfeWare sign-in redirecting back to login page** — `useLyfeWareSSO.ingestIncomingSession` called `window.location.reload()` after `setSession`, which was unnecessary (Supabase's `onAuthStateChange` handles state transition) and created a window for race conditions if localStorage hadn't fully persisted. Removed `reload()`. Also: `setSession` errors were silently swallowed — added try/catch with a user-visible alert and proper console error. Also: only the URL hash was checked for tokens; now checks query params too (covers PKCE / manual portal redirects that use `?access_token=...`). `window.history.replaceState` moved to `finally` block so tokens are always cleaned regardless of outcome.
 - **Loading state race with SSO redirect** — `UserContext` only called `setLoading(false)` inside `getSession().then()`. If Supabase's `detectSessionInUrl` set the session after `getSession()` already resolved with null, the app briefly showed the login page and `onAuthStateChange` had no path to clear `loading`. Fixed: `setLoading(false)` is now called via a one-shot `doneLoading()` closure in both `getSession().then()` and `onAuthStateChange`, whichever fires first.
 
 ### Session 19 (2026-06-02)
 **Bugs fixed:**
-- **Household Mode not visible** — `HouseholdSettings.jsx` had the Household Mode toggle but was never rendered; `HouseholdTab.jsx` is what's shown on the Household tab. Added the Household Mode section (Shared with Roomies / Hungry-Specific toggle + household picker) directly to `HouseholdTab.jsx` so it appears at the top of the Household page.
+- **Household Mode not visible** — `HouseholdSettings.jsx` had the Household Mode toggle but was never rendered; `HouseholdTab.jsx` is what's shown on the Household tab. Added the Household Mode section (Shared with HomeBase / Pantry-Specific toggle + household picker) directly to `HouseholdTab.jsx` so it appears at the top of the Household page.
 
 *Last updated: 2026-06-02 (session 20)*
 
@@ -442,10 +449,10 @@ These features are intentionally deferred until a native iOS app exists. The rea
 
 ### Session 16 (2026-06-02)
 **Features added:**
-- **Shared Grocery List with Roomies** — `useInventory` cross-reads from Roomies `shopping_items` for the shared household; items show a ROOMIES badge. Toggle/delete/rename/clear-all all work across both tables.
-- **Household Mode toggle** — new card in Household Settings: Shared with Roomies (default) or Hungry-Specific. Stored as `profiles.hungry_household_id`; `UserContext` exposes `hungryHousehold`, `isHungryShared`, and mode-switch handlers.
-- **Ecosystem tutorial steps** — 3 new steps: AppWare Ecosystem, Shared Grocery List, Kitchen Concert & Mood Food.
-- **Hungry-style nav in Roomies** — floating glass drawer with hamburger + swipe + Lucide icons, replaces fixed sidebar.
+- **Shared Grocery List with HomeBase** — `useInventory` cross-reads from HomeBase `shopping_items` for the shared household; items show a HOMEBASE badge. Toggle/delete/rename/clear-all all work across both tables.
+- **Household Mode toggle** — new card in Household Settings: Shared with HomeBase (default) or Pantry-Specific. Stored as `profiles.hungry_household_id`; `UserContext` exposes `pantryHousehold`, `isPantryShared`, and mode-switch handlers.
+- **Ecosystem tutorial steps** — 3 new steps: LyfeWare Ecosystem, Shared Grocery List, Kitchen Concert & Mood Food.
+- **Pantry-style nav in HomeBase** — floating glass drawer with hamburger + swipe + Lucide icons, replaces fixed sidebar.
 
 **DB migration:** `009_hungry_household_id.sql`
 

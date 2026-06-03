@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
 const UserContext = createContext();
@@ -13,12 +13,12 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [households, setHouseholds] = useState([]);
   const [activeHousehold, setActiveHousehold] = useState(null);
-  const [hungryHouseholdId, setHungryHouseholdId] = useState(null);
+  const [pantryHouseholdId, setPantryHouseholdId] = useState(null);
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(null);
-  const [hungryAvatarUrl, setHungryAvatarUrl] = useState(null);
+  const [pantryAvatarUrl, setPantryAvatarUrl] = useState(null);
 
   const fetchHouseholds = async (ids, activeId) => {
     if (!ids || ids.length === 0) {
@@ -56,7 +56,7 @@ export const UserProvider = ({ children }) => {
     }
     setUser(authUser);
     const meta = authUser.user_metadata || {};
-    // If no name in Hungry metadata, try to pull from AppWare profiles table
+    // If no name in Pantry metadata, try to pull from LyfeWare profiles table
     let resolvedName = meta.name || '';
     if (!resolvedName && authUser.id) {
       const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', authUser.id).single();
@@ -109,9 +109,9 @@ export const UserProvider = ({ children }) => {
     }
 
     // Auto-join from invite link if a join code was stored
-    const pendingJoin = sessionStorage.getItem('hungry_pending_join');
+    const pendingJoin = sessionStorage.getItem('pantry_pending_join');
     if (pendingJoin && authUser) {
-      sessionStorage.removeItem('hungry_pending_join');
+      sessionStorage.removeItem('pantry_pending_join');
       const meta2 = authUser.user_metadata || {};
       const currentIds2 = meta2.household_ids || (meta2.household_id ? [meta2.household_id] : []);
       supabase.from('households').select('*').eq('invite_code', pendingJoin).single().then(async ({ data: hh }) => {
@@ -139,10 +139,10 @@ export const UserProvider = ({ children }) => {
           const metaDone = authUser.user_metadata?.hungry_tutorial_done === true;
           if (!metaDone && (data.hungry_tutorial_done === false || data.hungry_tutorial_done == null)) setShowTutorial(true);
           setAvatarUrl(data.avatar_url || null);
-          setHungryAvatarUrl(data.hungry_avatar_url || null);
-          // Load Hungry-specific household override if set
-          if (data.hungry_household_id) setHungryHouseholdId(data.hungry_household_id);
-          else setHungryHouseholdId(null);
+          setPantryAvatarUrl(data.hungry_avatar_url || null);
+          // Load Pantry-specific household override if set
+          if (data.hungry_household_id) setPantryHouseholdId(data.hungry_household_id);
+          else setPantryHouseholdId(null);
           // Generate friend code if the profile doesn't have one yet
           if (!data.friend_code) {
             const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -158,7 +158,7 @@ export const UserProvider = ({ children }) => {
     const joinCode = params.get('join');
     if (!joinCode) return;
     // Store in sessionStorage so we can act after auth loads
-    sessionStorage.setItem('hungry_pending_join', joinCode.toUpperCase());
+    sessionStorage.setItem('pantry_pending_join', joinCode.toUpperCase());
     window.history.replaceState(null, '', window.location.pathname);
   }, []);
 
@@ -251,18 +251,18 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // Set a Hungry-specific household (overrides shared active_household_id for Hungry only)
-  const handleSetHungrySpecificHousehold = async (householdId) => {
+  // Set a Pantry-specific household (overrides shared active_household_id for Pantry only)
+  const handleSetPantrySpecificHousehold = async (householdId) => {
     if (!user) return;
     const { error } = await supabase.from('profiles').update({ hungry_household_id: householdId }).eq('id', user.id);
-    if (!error) setHungryHouseholdId(householdId);
+    if (!error) setPantryHouseholdId(householdId);
   };
 
-  // Clear Hungry-specific override — go back to sharing active_household_id with Roomies
-  const handleClearHungryHousehold = async () => {
+  // Clear Pantry-specific override — go back to sharing active_household_id with HomeBase
+  const handleClearPantryHousehold = async () => {
     if (!user) return;
     const { error } = await supabase.from('profiles').update({ hungry_household_id: null }).eq('id', user.id);
-    if (!error) setHungryHouseholdId(null);
+    if (!error) setPantryHouseholdId(null);
   };
 
   const handleUpdateBudgetLimit = async (newLimit, householdId) => {
@@ -335,25 +335,25 @@ export const UserProvider = ({ children }) => {
 
   const handleSignOut = async () => { await supabase.auth.signOut(); };
 
-  // Clear the Hungry-specific photo so the global AppWare photo shows instead
-  const clearHungryAvatar = async () => {
+  // Clear the Pantry-specific photo so the global LyfeWare photo shows instead
+  const clearPantryAvatar = async () => {
     if (!user) return;
     await supabase.from('profiles').update({ hungry_avatar_url: null }).eq('id', user.id);
-    setHungryAvatarUrl(null);
+    setPantryAvatarUrl(null);
   };
 
-  // type: 'global' | 'hungry'
+  // type: 'global' | 'pantry'
   const handleUpdateAvatar = async (file, type = 'global') => {
     if (!file || !user) return;
     const ext = file.name.split('.').pop() || 'jpg';
-    const filename = type === 'hungry' ? `hungry.${ext}` : `avatar.${ext}`;
+    const filename = type === 'pantry' ? `pantry.${ext}` : `avatar.${ext}`;
     const path = `${user.id}/${filename}`;
     const { error } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true });
     if (error) return;
     const { data: { publicUrl } } = supabase.storage.from('user-avatars').getPublicUrl(path);
-    const col = type === 'hungry' ? 'hungry_avatar_url' : 'avatar_url';
+    const col = type === 'pantry' ? 'hungry_avatar_url' : 'avatar_url';
     await supabase.from('profiles').upsert({ id: user.id, [col]: publicUrl });
-    if (type === 'hungry') setHungryAvatarUrl(publicUrl);
+    if (type === 'pantry') setPantryAvatarUrl(publicUrl);
     else setAvatarUrl(publicUrl);
   };
 
@@ -363,29 +363,29 @@ export const UserProvider = ({ children }) => {
     setShowTutorial(true);
   };
 
-  // hungryHousehold: the effective household Hungry uses for pantry + shopping
-  // If the user set a Hungry-specific household, use that; otherwise share active_household_id with Roomies
-  const hungryHousehold = hungryHouseholdId
-    ? (households.find(h => h.id === hungryHouseholdId) || activeHousehold)
+  // pantryHousehold: the effective household Pantry uses for pantry + shopping
+  // If the user set a Pantry-specific household, use that; otherwise share active_household_id with HomeBase
+  const pantryHousehold = pantryHouseholdId
+    ? (households.find(h => h.id === pantryHouseholdId) || activeHousehold)
     : activeHousehold;
 
   return (
     <UserContext.Provider value={{
       user,
-      household: hungryHousehold,
+      household: pantryHousehold,
       households,
       activeHousehold,
-      hungryHousehold,
-      hungryHouseholdId,
-      isHungryShared: !hungryHouseholdId,
-      handleSetHungrySpecificHousehold,
-      handleClearHungryHousehold,
+      pantryHousehold,
+      pantryHouseholdId,
+      isPantryShared: !pantryHouseholdId,
+      handleSetPantrySpecificHousehold,
+      handleClearPantryHousehold,
       userName,
       userSettings,
       avatarUrl,
-      hungryAvatarUrl,
+      pantryAvatarUrl,
       handleUpdateAvatar,
-      clearHungryAvatar,
+      clearPantryAvatar,
       handleUpdateProfileName,
       handleUpdateSettings,
       handleJoinHousehold,

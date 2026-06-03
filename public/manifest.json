@@ -1,6 +1,6 @@
-{
-  "name": "Hungry",
-  "short_name": "Hungry",
+﻿{
+  "name": "Pantry",
+  "short_name": "Pantry",
   "description": "Smart fridge and recipe manager",
   "start_url": "/",
   "display": "standalone",

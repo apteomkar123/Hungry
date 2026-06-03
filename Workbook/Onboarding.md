@@ -1,8 +1,8 @@
-# Hungry: Onboarding Experience Specification
+﻿# Pantry: Onboarding Experience Specification
 
 ## 🎨 Design Language & System
 - **Theme:** "Liquid Glass" (Apple-inspired depth).
-- **Primary Color:** `#6BAEE0` (The Hungry Blue).
+- **Primary Color:** `#6BAEE0` (The Pantry Blue).
 - **Secondary Color:** `rgba(255, 255, 255, 0.4)` (Frosted Glass).
 - **Typography:** 
   - Branding: `Yellowtail` (Cursive, free-flowing).
@@ -41,7 +41,7 @@
 ### Screen 5: Hands-Free Cooking
 **Visual:** A microphone icon pulsing gently with a "Liquid Glass" ripple effect.
 **Header:** "Look, No Hands."
-**Body:** "Step-by-step voice guidance for when your hands are covered in flour. Just say 'Hungry, next step'."
+**Body:** "Step-by-step voice guidance for when your hands are covered in flour. Just say 'Pantry, next step'."
 
 ---
 

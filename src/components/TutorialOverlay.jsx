@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ChevronRight, ChevronLeft, PartyPopper, Play, Mic, ChefHat } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
@@ -151,15 +151,15 @@ const STEPS = [
     ],
   },
   {
-    title: 'AppWare Ecosystem',
+    title: 'LyfeWare Ecosystem',
     tab: 'household',
     emoji: '🌐',
     selector: null,
     scrollTop: true,
     lines: [
-      'Hungry, Roomies, and Jukebox are connected — sharing households, grocery lists, and musical moments.',
-      'In Household Settings, choose Shared with Roomies (default) or set a Hungry-specific household to keep them separate.',
-      'Open the AppWare tab to see a live cross-app dashboard: chores, bills, cooking activity, and now-playing.',
+      'Pantry, HomeBase, and Vinyl are connected — sharing households, grocery lists, and musical moments.',
+      'In Household Settings, choose Shared with HomeBase (default) or set a Pantry-specific household to keep them separate.',
+      'Open the LyfeWare tab to see a live cross-app dashboard: chores, bills, cooking activity, and now-playing.',
     ],
   },
   {
@@ -169,9 +169,9 @@ const STEPS = [
     selector: null,
     scrollTop: true,
     lines: [
-      'Items added to the household list in Hungry appear in Roomies automatically — and vice versa.',
-      'Roomies items show a ROOMIES badge. You can check them off or delete from either app.',
-      'In Household → Settle Up, tap Split in Roomies to push the grocery total to Roomies Finance for an equal split.',
+      'Items added to the household list in Pantry appear in HomeBase automatically — and vice versa.',
+      'HomeBase items show a HOMEBASE badge. You can check them off or delete from either app.',
+      'In Household → Settle Up, tap Split in HomeBase to push the grocery total to HomeBase Finance for an equal split.',
     ],
   },
   {
@@ -181,9 +181,9 @@ const STEPS = [
     selector: null,
     scrollTop: true,
     lines: [
-      'When you Start Cooking, Hungry signals Jukebox to queue a genre-matched playlist based on the recipe\'s cuisine.',
-      'When you mark a recipe Cooked, the currently-playing Jukebox track is saved in your Chef History as a music memory.',
-      'Jukebox sends your current mood back to Hungry — the Recipe Explorer pre-selects the matching filter for you.',
+      'When you Start Cooking, Pantry signals Vinyl to queue a genre-matched playlist based on the recipe\'s cuisine.',
+      'When you mark a recipe Cooked, the currently-playing Vinyl track is saved in your Chef History as a music memory.',
+      'Vinyl sends your current mood back to Pantry — the Recipe Explorer pre-selects the matching filter for you.',
     ],
   },
 ];

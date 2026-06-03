@@ -1,7 +1,28 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { cleanIngredientLocally, triggerHaptic, getEstimatedExpiry, toTitleCase } from './recipeUtils';
 import { put, getAll, remove, OBJECT_STORES } from '../dbUtils';
+
+// Map a non-food item name to the closest HomeBase supply category
+const classifyNonFoodCategory = (name) => {
+  const lower = (name || '').toLowerCase();
+  if (/clean|bleach|detergent|disinfect|mop|broom|sponge|scrub|wipe|floor/.test(lower)) return 'Cleaning';
+  if (/toilet paper|paper towel|tissue|napkin|foil|wrap|garbage bag|trash bag|zip bag|paper bag|parchment/.test(lower)) return 'Paper Goods';
+  if (/shampoo|conditioner|body wash|soap|lotion|deodorant|toothpaste|toothbrush|razor|perfume|cologne|cosmetic|makeup|sunscreen|moisturizer|face wash|hand wash/.test(lower)) return 'Toiletries';
+  if (/laundry|fabric softener|dryer sheet|washing powder|detergent.*cloth/.test(lower)) return 'Laundry';
+  return 'Other';
+};
+
+// Determine if an Open Food Facts product is non-food based on categories/name
+const isNonFoodProduct = (product) => {
+  const cats = [...(product.categories_tags || []), ...(product.categories_hierarchy || [])].join(' ').toLowerCase();
+  const nonFoodCatPattern = /household|cleaning|beauty|cosmetic|hygiene|personal.care|laundry|non.food/;
+  if (nonFoodCatPattern.test(cats)) return true;
+  const name = (product.product_name || '').toLowerCase();
+  const nonFoodNamePattern = /shampoo|conditioner|body wash|hand soap|detergent|toothpaste|deodorant|lotion|bleach|fabric softener|paper towel|toilet paper|tissue|diaper|razor|batteries|cosmetic/;
+  const hasNoNutrition = !product.nutriments?.['energy-kcal_100g'] && !product.nutriments?.['energy_100g'];
+  return hasNoNutrition && nonFoodNamePattern.test(name);
+};
 
 export const useInventory = (user, household) => {
   const [fridge, setFridge] = useState([]);
@@ -9,7 +30,7 @@ export const useInventory = (user, household) => {
   const [shoppingList, setShoppingList] = useState([]);
   const shoppingListRef = useRef([]);
   const [quantities, setQuantities] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('hungry_quantities') || '{}'); } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem('pantry_quantities') || '{}'); } catch { return {}; }
   });
   const [nutritionMetrics, setNutritionMetrics] = useState({ protein: 0, carbs: 0, fat: 0 });
   const [loading, setLoading] = useState(true);
@@ -20,6 +41,7 @@ export const useInventory = (user, household) => {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [storeName, setStoreName] = useState('General Grocery');
   const [receiptMessage, setReceiptMessage] = useState('');
+  const [nonFoodMessage, setNonFoodMessage] = useState('');
   const [error, setError] = useState(null);
 
   const calculateMacroMetrics = useCallback((tokens) => {
@@ -35,8 +57,8 @@ export const useInventory = (user, household) => {
 
   // Hydrate from LocalStorage on first mount for instant offline display
   useEffect(() => {
-    const cachedFridge = localStorage.getItem('hungry_pantry_v1');
-    const cachedShopping = localStorage.getItem('hungry_shopping_v1');
+    const cachedFridge = localStorage.getItem('pantry_pantry_v1');
+    const cachedShopping = localStorage.getItem('pantry_shopping_v1');
     try {
       if (cachedFridge) setFridge(JSON.parse(cachedFridge));
       if (cachedShopping) setShoppingList(JSON.parse(cachedShopping));
@@ -46,12 +68,12 @@ export const useInventory = (user, household) => {
   // Sync fridge to ref (for stale-closure-safe reads) and localStorage
   useEffect(() => {
     fridgeRef.current = fridge;
-    localStorage.setItem('hungry_pantry_v1', JSON.stringify(fridge));
+    localStorage.setItem('pantry_pantry_v1', JSON.stringify(fridge));
   }, [fridge]);
 
   useEffect(() => {
     shoppingListRef.current = shoppingList;
-    localStorage.setItem('hungry_shopping_v1', JSON.stringify(shoppingList));
+    localStorage.setItem('pantry_shopping_v1', JSON.stringify(shoppingList));
   }, [shoppingList]);
 
   const performMutation = useCallback(async (table, action, data, id_value = null) => {
@@ -151,7 +173,7 @@ export const useInventory = (user, household) => {
 
       const inventory = [...(personal || []), ...shared];
       let storedQtys = {};
-      try { storedQtys = JSON.parse(localStorage.getItem('hungry_quantities') || '{}'); } catch {}
+      try { storedQtys = JSON.parse(localStorage.getItem('pantry_quantities') || '{}'); } catch {}
       const normalizedFridge = inventory.map(row => ({
         id: row.id,
         raw_name: row.item_name,
@@ -182,16 +204,16 @@ export const useInventory = (user, household) => {
         shopItems = [...shopItems, ...(hhShop || [])];
       }
 
-      // Cross-app: also fetch Roomies shopping_items for the same household (shared grocery list)
+      // Cross-app: also fetch HomeBase shopping_items for the same household (shared grocery list)
       if (household?.id) {
-        const { data: roomiesItems } = await supabase
+        const { data: homebaseItems } = await supabase
           .from('shopping_items').select('*')
           .eq('household_id', household.id)
           .order('created_at', { ascending: true });
-        const mapped = (roomiesItems || []).map(item => ({
-          id: `roomies_${item.id}`,
-          _roomies_id: item.id,
-          _source: 'roomies',
+        const mapped = (homebaseItems || []).map(item => ({
+          id: `homebase_${item.id}`,
+          _homebase_id: item.id,
+          _source: 'homebase',
           user_id: item.added_by,
           household_id: item.household_id,
           item_name: item.title,
@@ -219,7 +241,7 @@ export const useInventory = (user, household) => {
       setError(err.message);
       // Keep whatever is in localStorage — don't blank the UI on a failed fetch
       try {
-        const cached = localStorage.getItem('hungry_shopping_v1');
+        const cached = localStorage.getItem('pantry_shopping_v1');
         if (cached) setShoppingList(JSON.parse(cached));
       } catch {}
     } finally {
@@ -247,7 +269,7 @@ export const useInventory = (user, household) => {
       setQuantities(prev => {
         const currentQty = prev[existing.id] || existing.quantity || 1;
         const next = { ...prev, [existing.id]: currentQty + addQty };
-        try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+        try { localStorage.setItem('pantry_quantities', JSON.stringify(next)); } catch {}
         return next;
       });
       return;
@@ -275,7 +297,7 @@ export const useInventory = (user, household) => {
     if (qty > 1) {
       setQuantities(prev => {
         const next = { ...prev, [tempId]: qty };
-        try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+        try { localStorage.setItem('pantry_quantities', JSON.stringify(next)); } catch {}
         return next;
       });
     }
@@ -296,7 +318,7 @@ export const useInventory = (user, household) => {
         setQuantities(prev => {
           const next = { ...prev, [savedData.id]: qty };
           delete next[tempId];
-          try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+          try { localStorage.setItem('pantry_quantities', JSON.stringify(next)); } catch {}
           return next;
         });
       }
@@ -309,13 +331,13 @@ export const useInventory = (user, household) => {
     await performMutation('fridge_inventory', 'UPDATE', { household_id: newHouseholdId }, id);
 
     // Feature #3: Smart Grocery Split — when a priced item is shared to a household,
-    // push it as a Groceries transaction so Roomies can split the cost automatically.
+    // push it as a Groceries transaction so HomeBase can split the cost automatically.
     if (newHouseholdId && item?.price > 0 && user?.id) {
       supabase.from('transactions').insert({
         household_id: newHouseholdId,
         paid_by: user.id,
         amount: item.price,
-        memo: `${item.raw_name || item.item_name} (from Hungry)`,
+        memo: `${item.raw_name || item.item_name} (from Pantry)`,
         category: 'Groceries',
       }).then(() => {});
     }
@@ -338,7 +360,7 @@ export const useInventory = (user, household) => {
     if (alreadyLocal) return; // silent skip — batch adds shouldn't alert
 
     // Respect user's default destination preference
-    const defaultDest = localStorage.getItem('hungry_default_shopping_dest') || 'personal';
+    const defaultDest = localStorage.getItem('pantry_default_shopping_dest') || 'personal';
     const householdId = defaultDest === 'personal' ? null : defaultDest;
 
     const tempId = `temp-${Date.now()}-${Math.random()}`;
@@ -363,8 +385,8 @@ export const useInventory = (user, household) => {
   const handleMoveShoppingItem = useCallback(async (id, newHouseholdId) => {
     const item = shoppingListRef.current.find(i => i.id === id);
     setShoppingList(prev => prev.map(i => i.id === id ? { ...i, household_id: newHouseholdId } : i));
-    if (item?._source === 'roomies') {
-      await performMutation('shopping_items', 'UPDATE', { household_id: newHouseholdId }, item._roomies_id);
+    if (item?._source === 'homebase') {
+      await performMutation('shopping_items', 'UPDATE', { household_id: newHouseholdId }, item._homebase_id);
     } else {
       await performMutation('shopping_list', 'UPDATE', { household_id: newHouseholdId }, id);
     }
@@ -373,8 +395,8 @@ export const useInventory = (user, household) => {
   const handleToggleShoppingCompleted = useCallback(async (id, currentStatus) => {
     const item = shoppingListRef.current.find(i => i.id === id);
     setShoppingList(prev => prev.map(i => i.id === id ? { ...i, is_completed: !currentStatus } : i));
-    if (item?._source === 'roomies') {
-      await performMutation('shopping_items', 'UPDATE', { purchased: !currentStatus }, item._roomies_id);
+    if (item?._source === 'homebase') {
+      await performMutation('shopping_items', 'UPDATE', { purchased: !currentStatus }, item._homebase_id);
     } else {
       await performMutation('shopping_list', 'UPDATE', { is_completed: !currentStatus }, id);
     }
@@ -383,8 +405,8 @@ export const useInventory = (user, household) => {
   const handleClearShoppingItem = useCallback(async (id) => {
     const item = shoppingListRef.current.find(i => i.id === id);
     setShoppingList(prev => prev.filter(i => i.id !== id));
-    if (item?._source === 'roomies') {
-      await performMutation('shopping_items', 'DELETE', null, item._roomies_id);
+    if (item?._source === 'homebase') {
+      await performMutation('shopping_items', 'DELETE', null, item._homebase_id);
     } else {
       await performMutation('shopping_list', 'DELETE', null, id);
     }
@@ -394,8 +416,8 @@ export const useInventory = (user, household) => {
     if (!newName.trim()) return;
     const item = shoppingListRef.current.find(i => i.id === id);
     setShoppingList(prev => prev.map(i => i.id === id ? { ...i, item_name: newName.trim() } : i));
-    if (item?._source === 'roomies') {
-      await performMutation('shopping_items', 'UPDATE', { title: newName.trim() }, item._roomies_id);
+    if (item?._source === 'homebase') {
+      await performMutation('shopping_items', 'UPDATE', { title: newName.trim() }, item._homebase_id);
     } else {
       await performMutation('shopping_list', 'UPDATE', { item_name: newName.trim() }, id);
     }
@@ -405,8 +427,8 @@ export const useInventory = (user, household) => {
     const items = [...shoppingListRef.current];
     setShoppingList([]);
     for (const item of items) {
-      if (item._source === 'roomies') {
-        await performMutation('shopping_items', 'DELETE', null, item._roomies_id);
+      if (item._source === 'homebase') {
+        await performMutation('shopping_items', 'DELETE', null, item._homebase_id);
       } else {
         await performMutation('shopping_list', 'DELETE', null, item.id);
       }
@@ -417,8 +439,8 @@ export const useInventory = (user, household) => {
     const pending = shoppingListRef.current.filter(i => !i.is_completed);
     setShoppingList(prev => prev.map(i => ({ ...i, is_completed: true })));
     for (const item of pending) {
-      if (item._source === 'roomies') {
-        await performMutation('shopping_items', 'UPDATE', { purchased: true }, item._roomies_id);
+      if (item._source === 'homebase') {
+        await performMutation('shopping_items', 'UPDATE', { purchased: true }, item._homebase_id);
       } else {
         await performMutation('shopping_list', 'UPDATE', { is_completed: true }, item.id);
       }
@@ -457,10 +479,29 @@ export const useInventory = (user, household) => {
         } catch (_) {}
 
         if (name) {
-          await handleAddManualItem(name, null, { nutrition, price, store_name: storeName !== 'General Grocery' ? storeName : null });
-          const nutritionText = nutrition ? ` · ${nutrition.kcal} kcal/100g` : '';
-          const priceText = price > 0 ? ` · $${Number(price).toFixed(2)}` : '';
-          setBarcodeResult(`Added: ${name}${nutritionText}${priceText}`);
+          if (isNonFoodProduct(data.product)) {
+            // Route non-food items to HomeBase household_inventory
+            if (household?.id && user?.id) {
+              await supabase.from('household_inventory').insert({
+                household_id: household.id,
+                added_by: user.id,
+                name,
+                category: classifyNonFoodCategory(name),
+                quantity: 1,
+                unit: null,
+              });
+              setBarcodeResult(`"${name}" added to HomeBase inventory`);
+              setNonFoodMessage(`"${name}" added to HomeBase inventory`);
+              setTimeout(() => setNonFoodMessage(''), 6000);
+            } else {
+              setBarcodeResult(`"${name}" is a non-food item — join a household to sync to HomeBase inventory`);
+            }
+          } else {
+            await handleAddManualItem(name, null, { nutrition, price, store_name: storeName !== 'General Grocery' ? storeName : null });
+            const nutritionText = nutrition ? ` · ${nutrition.kcal} kcal/100g` : '';
+            const priceText = price > 0 ? ` · $${Number(price).toFixed(2)}` : '';
+            setBarcodeResult(`Added: ${name}${nutritionText}${priceText}`);
+          }
           setTimeout(() => setBarcodeResult(''), 8000);
           try { await new Audio('/sounds/success.mp3').play(); } catch (e) {}
           triggerHaptic(100);
@@ -479,7 +520,7 @@ export const useInventory = (user, household) => {
     } finally {
       setBarcodeLoading(false);
     }
-  }, [handleAddManualItem]);
+  }, [handleAddManualItem, household, user]);
 
   const handleFileUpload = useCallback(async (file) => {
     if (!file) return;
@@ -513,11 +554,26 @@ export const useInventory = (user, household) => {
           for (const item of data.added) {
             await handleAddManualItem(item, null, { store_name: receiptStore });
           }
-          setReceiptMessage(`Added ${data.added.length} item${data.added.length !== 1 ? 's' : ''} from receipt${receiptStore ? ` (${receiptStore})` : ''}`);
+          setReceiptMessage(`Added ${data.added.length} food item${data.added.length !== 1 ? 's' : ''} from receipt${receiptStore ? ` (${receiptStore})` : ''}`);
         } else {
           setReceiptMessage('Receipt scanned — no food items found. Try a clearer photo.');
         }
         setTimeout(() => setReceiptMessage(''), 6000);
+
+        // Cross-app: send non-food items to HomeBase household_inventory
+        if (Array.isArray(data.nonFoodItems) && data.nonFoodItems.length > 0 && household?.id && user?.id) {
+          const inserts = data.nonFoodItems.map(item => ({
+            household_id: household.id,
+            added_by: user.id,
+            name: item,
+            category: classifyNonFoodCategory(item),
+            quantity: 1,
+            unit: null,
+          }));
+          await supabase.from('household_inventory').insert(inserts);
+          setNonFoodMessage(`${data.nonFoodItems.length} non-food item${data.nonFoodItems.length !== 1 ? 's' : ''} added to HomeBase inventory`);
+          setTimeout(() => setNonFoodMessage(''), 6000);
+        }
       } catch (e) {
         console.error(e);
         setReceiptMessage(`Scan failed: ${e.message || 'Please try again.'}`);
@@ -527,7 +583,7 @@ export const useInventory = (user, household) => {
       }
     };
     img.onerror = () => setReceiptLoading(false);
-  }, [handleAddManualItem]);
+  }, [handleAddManualItem, household, user]);
 
   const handleUpdateInlineItem = useCallback(async (id, newName) => {
     const sanitized = cleanIngredientLocally(newName);
@@ -565,7 +621,7 @@ export const useInventory = (user, household) => {
     setQuantities(prev => {
       const current = prev[id] || 1;
       const next = { ...prev, [id]: Math.max(1, current + delta) };
-      try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+      try { localStorage.setItem('pantry_quantities', JSON.stringify(next)); } catch {}
       return next;
     });
     setFridge(prev => prev.map(item => item.id === id
@@ -577,7 +633,7 @@ export const useInventory = (user, household) => {
     const v = Math.max(1, qty);
     setQuantities(prev => {
       const next = { ...prev, [id]: v };
-      try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+      try { localStorage.setItem('pantry_quantities', JSON.stringify(next)); } catch {}
       return next;
     });
     setFridge(prev => prev.map(item => item.id === id ? { ...item, quantity: v } : item));
@@ -631,7 +687,7 @@ export const useInventory = (user, household) => {
       const next = { ...prev };
       toRemove.forEach(id => delete next[id]);
       toUpdate.forEach(({ id, qty }) => { next[id] = qty; });
-      try { localStorage.setItem('hungry_quantities', JSON.stringify(next)); } catch {}
+      try { localStorage.setItem('pantry_quantities', JSON.stringify(next)); } catch {}
       return next;
     });
 
@@ -644,7 +700,7 @@ export const useInventory = (user, household) => {
       return u ? { ...item, quantity: u.qty } : item;
     }));
 
-    // Feature #12: Soundtrack of My Life — capture what's playing in Jukebox right now
+    // Feature #12: Soundtrack of My Life — capture what's playing in Vinyl right now
     let soundtrack = null;
     if (user?.id) {
       try {
@@ -676,7 +732,7 @@ export const useInventory = (user, household) => {
 
     // Log to Chef History in localStorage
     try {
-      const history = JSON.parse(localStorage.getItem('hungry_chef_history') || '[]');
+      const history = JSON.parse(localStorage.getItem('pantry_chef_history') || '[]');
       history.unshift({
         id: `cooked-${Date.now()}`,
         recipeId: String(recipe.id),
@@ -691,7 +747,7 @@ export const useInventory = (user, household) => {
         photos: [],
         soundtrack,
       });
-      localStorage.setItem('hungry_chef_history', JSON.stringify(history.slice(0, 100)));
+      localStorage.setItem('pantry_chef_history', JSON.stringify(history.slice(0, 100)));
     } catch {}
   }, [fridge, quantities, handleRemoveItem]);
 
@@ -716,6 +772,7 @@ export const useInventory = (user, household) => {
     error,
     receiptLoading,
     receiptMessage,
+    nonFoodMessage,
     barcodeLoading,
     barcodeResult,
     isScanningBarcode,

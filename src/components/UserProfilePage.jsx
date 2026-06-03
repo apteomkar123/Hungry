@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { UserRound, Lock, Globe, ChefHat, Clock, Star, BarChart3, Camera, MessageSquare, Save, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
@@ -29,24 +29,24 @@ export default function UserProfilePage() {
   const { user, userName, userSettings } = useUser();
   const { savedRecipes } = useRecipes();
   const [privacy, setPrivacy] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('hungry_profile_privacy') || '{}'); } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem('pantry_profile_privacy') || '{}'); } catch { return {}; }
   });
   const [recipePrivacy, setRecipePrivacy] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('hungry_recipe_privacy') || '{}'); } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem('pantry_recipe_privacy') || '{}'); } catch { return {}; }
   });
   const [saved, setSaved] = useState(false);
   const [showRecipes, setShowRecipes] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
   const displayName = userName || user?.email?.split('@')[0] || 'Chef';
-  const cookCount = parseInt(localStorage.getItem('hungry_cook_count') || '0', 10);
+  const cookCount = parseInt(localStorage.getItem('pantry_cook_count') || '0', 10);
 
   const toggle = (key) => setPrivacy(prev => ({ ...prev, [key]: !prev[key] }));
   const toggleRecipe = (recipeId) => setRecipePrivacy(prev => ({ ...prev, [recipeId]: !prev[recipeId] }));
 
   const savePrivacy = async () => {
-    localStorage.setItem('hungry_profile_privacy', JSON.stringify(privacy));
-    localStorage.setItem('hungry_recipe_privacy', JSON.stringify(recipePrivacy));
+    localStorage.setItem('pantry_profile_privacy', JSON.stringify(privacy));
+    localStorage.setItem('pantry_recipe_privacy', JSON.stringify(recipePrivacy));
     if (user) {
       const settings = { ...(userSettings || {}), profile_privacy: privacy, recipe_privacy: recipePrivacy };
       await supabase.from('profiles').upsert({ id: user.id, hungry_settings: settings });

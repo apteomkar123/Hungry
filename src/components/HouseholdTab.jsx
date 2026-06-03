@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Users, Star, ShoppingCart, Plus, Trash2, Check, X, ChevronDown, DollarSign, Edit2, UserPlus, UserCheck, CreditCard, ExternalLink, MapPin, ChevronRight, Home, Copy, Share2, Lock } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
@@ -8,7 +8,7 @@ import UserProfileModal from './UserProfileModal';
 
 
 export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDeleteHhItem }) {
-  const { households, household: activeHousehold, handleUpdateBudgetLimit, user, hungryHouseholdId, isHungryShared, handleSetHungrySpecificHousehold, handleClearHungryHousehold } = useUser();
+  const { households, household: activeHousehold, handleUpdateBudgetLimit, user, pantryHouseholdId, isPantryShared, handleSetPantrySpecificHousehold, handleClearPantryHousehold } = useUser();
   const { savedRecipes, setActiveModalRecipe, onSaveRecipe, onRemoveSavedRecipe, masterRecipes } = useRecipes();
 
   const [selectedHHId, setSelectedHHId] = useState(activeHousehold?.id || null);
@@ -44,10 +44,10 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
   const [sentRequests, setSentRequests] = useState(new Set());
   const [memberPresence, setMemberPresence] = useState({}); // profileId → {status, custom_text}
   const [showAddHH, setShowAddHH] = useState(false);
-  const [pushingToRoomies, setPushingToRoomies] = useState(false);
-  const [roomiesPushMsg, setRoomiesPushMsg] = useState('');
+  const [pushingToHomeBase, setPushingToHomeBase] = useState(false);
+  const [homebasePushMsg, setHomeBasePushMsg] = useState('');
   const [newHHName, setNewHHName] = useState('');
-  const [newHHType, setNewHHType] = useState('shared'); // 'shared' | 'hungry-specific'
+  const [newHHType, setNewHHType] = useState('shared'); // 'shared' | 'pantry-specific'
   const [joinHHCode, setJoinHHCode] = useState('');
 
   const selectedHH = households.find(h => h.id === selectedHHId) || activeHousehold;
@@ -175,10 +175,10 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
       setLocalShopItems(prev => [...prev, newRow]);
       // Also notify the main hook so Shopping tab reflects the new item
       if (onAddShoppingItem) {
-        const prevDest = localStorage.getItem('hungry_default_shopping_dest');
-        localStorage.setItem('hungry_default_shopping_dest', selectedHHId);
+        const prevDest = localStorage.getItem('pantry_default_shopping_dest');
+        localStorage.setItem('pantry_default_shopping_dest', selectedHHId);
         // Re-fetch to sync rather than double-insert
-        localStorage.setItem('hungry_default_shopping_dest', prevDest ?? 'personal');
+        localStorage.setItem('pantry_default_shopping_dest', prevDest ?? 'personal');
       }
     }
   };
@@ -214,18 +214,18 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
     setEditingBudget(false);
   };
 
-  // Feature #3: Smart Grocery Split — push household list total to Roomies expense tracker
-  const pushToRoomies = async () => {
-    if (!user || !selectedHHId || members.length < 2 || pushingToRoomies) return;
+  // Feature #3: Smart Grocery Split — push household list total to HomeBase expense tracker
+  const pushToHomeBase = async () => {
+    if (!user || !selectedHHId || members.length < 2 || pushingToHomeBase) return;
     const totalSpend = localShopItems.reduce((s, i) => s + (i.price || 0), 0);
-    if (totalSpend <= 0) { setRoomiesPushMsg('No priced items to split yet.'); setTimeout(() => setRoomiesPushMsg(''), 4000); return; }
-    setPushingToRoomies(true);
+    if (totalSpend <= 0) { setHomeBasePushMsg('No priced items to split yet.'); setTimeout(() => setHomeBasePushMsg(''), 4000); return; }
+    setPushingToHomeBase(true);
     try {
       const { data: tx } = await supabase.from('transactions').insert({
         household_id: selectedHHId,
         paid_by: user.id,
         amount: totalSpend,
-        memo: `Grocery run – Hungry App`,
+        memo: `Grocery run – Pantry App`,
         category: 'Groceries',
       }).select().single();
       if (tx) {
@@ -235,12 +235,12 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
           others.map(m => ({ transaction_id: tx.id, debtor_id: m.id, amount_owed: Math.round(share * 100) / 100 }))
         );
       }
-      setRoomiesPushMsg(`✓ $${totalSpend.toFixed(2)} split pushed to Roomies Finance!`);
+      setHomeBasePushMsg(`✓ $${totalSpend.toFixed(2)} split pushed to HomeBase Finance!`);
     } catch {
-      setRoomiesPushMsg('Could not push to Roomies. Try again.');
+      setHomeBasePushMsg('Could not push to HomeBase. Try again.');
     }
-    setPushingToRoomies(false);
-    setTimeout(() => setRoomiesPushMsg(''), 5000);
+    setPushingToHomeBase(false);
+    setTimeout(() => setHomeBasePushMsg(''), 5000);
   };
 
   const { handleCreateHousehold, handleJoinHousehold } = useUser();
@@ -248,10 +248,10 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
   const handleCreateHH = async () => {
     if (!newHHName.trim()) return;
     await handleCreateHousehold(newHHName.trim());
-    if (newHHType === 'hungry-specific') {
+    if (newHHType === 'pantry-specific') {
       // The new household id won't be immediately available; the context will refresh households.
       // We store the preference flag; once households refresh the user can toggle from the line.
-      handleClearHungryHousehold && handleClearHungryHousehold(false);
+      handleClearPantryHousehold && handleClearPantryHousehold(false);
     }
     setNewHHName('');
     setNewHHType('shared');
@@ -283,10 +283,10 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
             </div>
             <div className="flex gap-2">
               <button onClick={() => setNewHHType('shared')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[11px] font-black border transition-all ${newHHType === 'shared' ? 'bg-sky-500 text-white border-sky-500' : 'bg-white text-slate-500 border-blue-100'}`}>
-                <Share2 size={11} /> Shared with Roomies
+                <Share2 size={11} /> Shared with HomeBase
               </button>
-              <button onClick={() => setNewHHType('hungry-specific')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[11px] font-black border transition-all ${newHHType === 'hungry-specific' ? 'bg-[#6BAEE0] text-white border-[#6BAEE0]' : 'bg-white text-slate-500 border-blue-100'}`}>
-                <Lock size={11} /> Hungry-Specific
+              <button onClick={() => setNewHHType('pantry-specific')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[11px] font-black border transition-all ${newHHType === 'pantry-specific' ? 'bg-[#6BAEE0] text-white border-[#6BAEE0]' : 'bg-white text-slate-500 border-blue-100'}`}>
+                <Lock size={11} /> Pantry-Specific
               </button>
             </div>
           </div>
@@ -308,9 +308,9 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
 
       {/* ── Household Mode (single-line badge) ── */}
       <div className="flex items-center gap-2 bg-white/80 backdrop-blur-lg px-5 py-3 rounded-4xl border border-white/20 shadow-lg shadow-blue-900/5">
-        {isHungryShared ? <Share2 size={13} className="text-sky-500" /> : <Lock size={13} className="text-[#6BAEE0]" />}
+        {isPantryShared ? <Share2 size={13} className="text-sky-500" /> : <Lock size={13} className="text-[#6BAEE0]" />}
         <span className="text-[11px] font-black text-slate-500">
-          {isHungryShared ? 'Shared with Roomies' : 'Hungry-Specific'}
+          {isPantryShared ? 'Shared with HomeBase' : 'Pantry-Specific'}
         </span>
       </div>
 
@@ -342,7 +342,7 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
                   const code = selectedHH.invite_code;
                   const joinUrl = `${window.location.origin}?join=${code}`;
                   if (navigator.share) {
-                    navigator.share({ title: `Join ${selectedHH.name} on Hungry`, text: `Tap the link to instantly join my household on Hungry!`, url: joinUrl }).catch(() => {});
+                    navigator.share({ title: `Join ${selectedHH.name} on Pantry`, text: `Tap the link to instantly join my household on Pantry!`, url: joinUrl }).catch(() => {});
                   } else {
                     navigator.clipboard?.writeText(joinUrl).then(() => alert('Invite link copied!')).catch(() => {});
                   }
@@ -465,7 +465,7 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
             const pantrySpend = householdPantryItems.reduce((s, i) => s + (i.price || 0), 0);
             const totalSpend = shopSpend + pantrySpend;
             const perPerson = members.length > 0 ? totalSpend / members.length : 0;
-            const note = encodeURIComponent(`Hungry App: Grocery Split — ${selectedHH?.name || 'Household'}`);
+            const note = encodeURIComponent(`Pantry App: Grocery Split — ${selectedHH?.name || 'Household'}`);
             const amount = perPerson.toFixed(2);
             const venmoUrl = `https://venmo.com/?txn=charge&amount=${amount}&note=${note}`;
             const splitwiseUrl = `https://secure.splitwise.com/`;
@@ -530,15 +530,15 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
                   className="flex items-center justify-center gap-2 w-full text-[11px] font-black text-slate-400 hover:text-[#6BAEE0] border border-slate-100 hover:border-sky-200 rounded-2xl py-2.5 transition-all">
                   <ExternalLink size={12} /> Open Splitwise
                 </a>
-                {/* Feature #3: Smart Grocery Split — push directly to Roomies */}
+                {/* Feature #3: Smart Grocery Split — push directly to HomeBase */}
                 <button
-                  onClick={pushToRoomies}
-                  disabled={pushingToRoomies}
+                  onClick={pushToHomeBase}
+                  disabled={pushingToHomeBase}
                   className="flex items-center justify-center gap-2 w-full text-[11px] font-black text-white bg-violet-500 hover:bg-violet-600 disabled:opacity-60 rounded-2xl py-3 transition-all shadow-md"
                 >
-                  <DollarSign size={13} /> {pushingToRoomies ? 'Pushing…' : 'Split $' + totalSpend.toFixed(2) + ' in Roomies'}
+                  <DollarSign size={13} /> {pushingToHomeBase ? 'Pushing…' : 'Split $' + totalSpend.toFixed(2) + ' in HomeBase'}
                 </button>
-                {roomiesPushMsg && <p className="text-[10px] font-bold text-center text-violet-600">{roomiesPushMsg}</p>}
+                {homebasePushMsg && <p className="text-[10px] font-bold text-center text-violet-600">{homebasePushMsg}</p>}
               </div>
             );
           })()}
@@ -599,10 +599,10 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
             </div>
             <div className="flex gap-2">
               <button onClick={() => setNewHHType('shared')} className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-2xl text-[11px] font-black border transition-all ${newHHType === 'shared' ? 'bg-sky-500 text-white border-sky-500' : 'bg-white text-slate-500 border-blue-100'}`}>
-                <Share2 size={11} /> Shared with Roomies
+                <Share2 size={11} /> Shared with HomeBase
               </button>
-              <button onClick={() => setNewHHType('hungry-specific')} className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-2xl text-[11px] font-black border transition-all ${newHHType === 'hungry-specific' ? 'bg-[#6BAEE0] text-white border-[#6BAEE0]' : 'bg-white text-slate-500 border-blue-100'}`}>
-                <Lock size={11} /> Hungry-Specific
+              <button onClick={() => setNewHHType('pantry-specific')} className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-2xl text-[11px] font-black border transition-all ${newHHType === 'pantry-specific' ? 'bg-[#6BAEE0] text-white border-[#6BAEE0]' : 'bg-white text-slate-500 border-blue-100'}`}>
+                <Lock size={11} /> Pantry-Specific
               </button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User, GripVertical, ChevronRight, Mic, MicOff, UtensilsCrossed, Check } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { estimateNutrition, categorizeItem, CATEGORY_ICONS, toTitleCase, getEstimatedExpiry } from './recipeUtils';
@@ -210,7 +210,7 @@ function CategorySheet({ category, items, onClose, onItemTap, onRemove, househol
     if (!itemId) return;
     setCategoryOverrides(prev => {
       const next = { ...prev, [itemId]: targetCat };
-      localStorage.setItem('hungry_cat_overrides', JSON.stringify(next));
+      localStorage.setItem('pantry_cat_overrides', JSON.stringify(next));
       return next;
     });
     setDragOverCat(null);
@@ -341,7 +341,7 @@ function CategorySheet({ category, items, onClose, onItemTap, onRemove, househol
 export default function PantryManager({
   fridge, activeHousehold, households = [],
   handleAddManualItem, handleUpdateItem, handleRemoveItem, handleToggleItemHousehold,
-  receiptLoading, receiptMessage, handleFileUpload,
+  receiptLoading, receiptMessage, nonFoodMessage, handleFileUpload,
   barcodeInput, setBarcodeInput, handleBarcodeLookup,
   barcodeLoading, barcodeResult, isScanningBarcode, setIsScanningBarcode,
   quantities = {}, adjustQuantity, setQuantityForItem,
@@ -365,7 +365,7 @@ export default function PantryManager({
   const [hhPickerItemId, setHhPickerItemId] = useState(null);
   const [activeIngredient, setActiveIngredient] = useState(null);
   const [categoryOverrides, setCategoryOverrides] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('hungry_cat_overrides') || '{}'); } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem('pantry_cat_overrides') || '{}'); } catch { return {}; }
   });
   const hasScannedRef = useRef(false);
 
@@ -560,7 +560,7 @@ export default function PantryManager({
       const newOverrides = { ...categoryOverrides };
       if (updates.categoryOverride === null) delete newOverrides[id];
       else newOverrides[id] = updates.categoryOverride;
-      localStorage.setItem('hungry_cat_overrides', JSON.stringify(newOverrides));
+      localStorage.setItem('pantry_cat_overrides', JSON.stringify(newOverrides));
       setCategoryOverrides(newOverrides);
     }
     if (updates.quantity !== undefined && setQuantityForItem) {
@@ -596,6 +596,12 @@ export default function PantryManager({
       {addToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 bg-emerald-500 text-white text-xs font-black rounded-2xl shadow-xl shadow-emerald-300/40 animate-in fade-in slide-in-from-bottom-2 duration-300 whitespace-nowrap">
           ✓ {addToast.text}
+        </div>
+      )}
+      {/* ── Cross-app Non-Food Toast ────────────────────────────────────── */}
+      {nonFoodMessage && (
+        <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 bg-violet-500 text-white text-xs font-black rounded-2xl shadow-xl shadow-violet-300/40 animate-in fade-in slide-in-from-bottom-2 duration-300 whitespace-nowrap flex items-center gap-2">
+          🏠 {nonFoodMessage}
         </div>
       )}
       {/* ── Input Section ─────────────────────────────────────────────────── */}

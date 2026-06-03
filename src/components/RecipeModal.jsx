@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+﻿import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw, Dumbbell, ChefHat, ShoppingCart, Users, ChevronDown, ChevronLeft, ChevronRight, Mic, BookOpen } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
@@ -219,8 +219,8 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     const shareUrl = `${window.location.origin}?recipe=${recipe.id}`;
 
     const shareData = {
-      title: `Hungry: ${recipe.name}`,
-      text: `I found this amazing ${recipe.name} recipe on Hungry!`,
+      title: `Pantry: ${recipe.name}`,
+      text: `I found this amazing ${recipe.name} recipe on Pantry!`,
       url: shareUrl,
     };
     try {

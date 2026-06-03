@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
 import {
@@ -15,7 +15,7 @@ import { STATIC_RECIPES } from './staticRecipes';
 
 const RecipeContext = createContext();
 
-const MEALDB_CACHE_KEY = 'hungry_mealdb_v8'; // bumped: added image field from strMealThumb
+const MEALDB_CACHE_KEY = 'pantry_mealdb_v8'; // bumped: added image field from strMealThumb
 
 // Words that appear BEFORE a comma as adjective/modifier — don't split here
 const _INGREDIENT_MODIFIERS = /^(boneless|skinless|fresh|dried|frozen|canned|large|small|medium|extra|lean|ground|minced|diced|chopped|sliced|shredded|peeled|halved|quartered|cubed|cube|julienned|roughly|finely|coarsely|thinly|thickly|packed|heaping|level|softened|beaten|rinsed|drained|trimmed|deveined|pitted|seeded|lightly|plain|reduced|low|full|whole|firm|extra-firm|room\s+temperature|fat-free|sugar-free|gluten-free)$/i;
@@ -86,7 +86,7 @@ export const RecipeProvider = ({ children, fridge }) => {
   const [isMealPrepOpen, setIsMealPrepOpen] = useState(false);
   const [prepLoading, setPrepLoading] = useState(false);
   const [savedMealPlans, setSavedMealPlans] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('hungry_meal_plans_v1')) || []; } catch { return []; }
+    try { return JSON.parse(localStorage.getItem('pantry_meal_plans_v1')) || []; } catch { return []; }
   });
 
   useEffect(() => {
@@ -153,7 +153,7 @@ export const RecipeProvider = ({ children, fridge }) => {
 
   const fetchSpoonacularRecipes = async () => {
     try {
-      const cacheKey = 'hungry_spoon_v3';
+      const cacheKey = 'pantry_spoon_v3';
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         try { return JSON.parse(cached); } catch {}
@@ -217,7 +217,7 @@ export const RecipeProvider = ({ children, fridge }) => {
           setSavedMealPlans(prev => {
             const existingIds = new Set(prev.map(p => p.id));
             const merged = [...prev, ...cloudPlans.filter(p => !existingIds.has(p.id))];
-            try { localStorage.setItem('hungry_meal_plans_v1', JSON.stringify(merged)); } catch {}
+            try { localStorage.setItem('pantry_meal_plans_v1', JSON.stringify(merged)); } catch {}
             return merged;
           });
         }
@@ -371,7 +371,7 @@ export const RecipeProvider = ({ children, fridge }) => {
     if (!user) return false;
     // If no householdId passed, use the user's default recipe destination preference
     if (householdId === undefined) {
-      const defaultDest = localStorage.getItem('hungry_default_recipe_dest') || 'personal';
+      const defaultDest = localStorage.getItem('pantry_default_recipe_dest') || 'personal';
       householdId = defaultDest === 'personal' ? null : defaultDest;
     }
     const recipeIdStr = String(recipe.id);
@@ -476,7 +476,7 @@ export const RecipeProvider = ({ children, fridge }) => {
     const newPlan = { ...plan, id: `plan-${Date.now()}`, savedAt: Date.now() };
     setSavedMealPlans(prev => {
       const next = [newPlan, ...prev];
-      try { localStorage.setItem('hungry_meal_plans_v1', JSON.stringify(next)); } catch {}
+      try { localStorage.setItem('pantry_meal_plans_v1', JSON.stringify(next)); } catch {}
       return next;
     });
     // Backup to Supabase for persistence across devices/sessions
@@ -497,7 +497,7 @@ export const RecipeProvider = ({ children, fridge }) => {
   const removeMealPlan = async (id) => {
     setSavedMealPlans(prev => {
       const next = prev.filter(p => p.id !== id);
-      try { localStorage.setItem('hungry_meal_plans_v1', JSON.stringify(next)); } catch {}
+      try { localStorage.setItem('pantry_meal_plans_v1', JSON.stringify(next)); } catch {}
       return next;
     });
     if (user) {

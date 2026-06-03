@@ -1,5 +1,5 @@
--- ============================================================
---  Hungry × AppWare Ecosystem — Supabase Schema
+﻿-- ============================================================
+--  Pantry × LyfeWare Ecosystem — Supabase Schema
 --  Safe to run on a fresh project OR an existing one.
 --  Paste into the Supabase SQL Editor and click Run.
 -- ============================================================

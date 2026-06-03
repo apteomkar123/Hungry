@@ -1,6 +1,6 @@
-// src/utils/dbUtils.js
+﻿// src/utils/dbUtils.js
 
-const DB_NAME = 'hungryAppDB';
+const DB_NAME = 'pantryAppDB';
 const DB_VERSION = 1; // Increment this version number if you change the schema
 export const OBJECT_STORES = {
   RECEIPT_IMAGES: 'receiptImages',

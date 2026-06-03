@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import { Plus, Trash2, MapPin, UtensilsCrossed, Star, Search, Loader2, Navigation } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
@@ -24,7 +24,7 @@ const VIBE_CATEGORIES = [
   { key: 'healthy', label: 'Healthy', emoji: '🥗' },
 ];
 
-const STORAGE_KEY = 'hungry_restaurant_dishes';
+const STORAGE_KEY = 'pantry_restaurant_dishes';
 
 const load = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; } };
 const save = (d) => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {} };

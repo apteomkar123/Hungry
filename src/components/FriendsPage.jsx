@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Users, UserPlus, Copy, ChefHat, Check, Loader2, Star, Globe, Lock, Search, X, UserCheck, Bell } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
@@ -139,7 +139,7 @@ export default function FriendsPage() {
 
   const getFriendFeed = (friendId) => {
     try {
-      return JSON.parse(localStorage.getItem(`hungry_chef_history_${friendId}`) || '[]').filter(e => !e.isPrivate);
+      return JSON.parse(localStorage.getItem(`pantry_chef_history_${friendId}`) || '[]').filter(e => !e.isPrivate);
     } catch { return []; }
   };
 

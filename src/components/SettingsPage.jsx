@@ -1,22 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Settings, DollarSign, UserPlus, ShoppingCart, Star, BookOpen, Camera, Link, LogOut } from 'lucide-react';
 import { useUser } from './UserContext';
 import { supabase } from '../supabaseClient';
-import { useAppWareSSO } from '../hooks/useAppWareSSO';
+import { useLyfeWareSSO } from '../hooks/useLyfeWareSSO';
 
 const DIETARY_OPTIONS = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Halal', 'Kosher', 'Dairy-Free', 'Nut-Free', 'Low-Carb'];
 const NUTRITION_GOALS = ['Balanced', 'High Protein', 'Low Carb', 'Low Fat', 'Build Muscle', 'Lose Weight'];
 
 export default function SettingsPage({ onNavigateFriends }) {
-  const { triggerAppWareRedirect } = useAppWareSSO();
+  const { triggerLyfeWareRedirect } = useLyfeWareSSO();
   const {
     userName: profileName,
     userSettings,
     households,
     avatarUrl,
-    hungryAvatarUrl,
+    pantryAvatarUrl,
     handleUpdateAvatar,
-    clearHungryAvatar,
+    clearPantryAvatar,
     handleUpdateProfileName: onUpdateName,
     handleUpdateSettings,
     handleUpdatePersonalBudget,
@@ -25,19 +25,19 @@ export default function SettingsPage({ onNavigateFriends }) {
   } = useUser();
 
   const [identities, setIdentities] = useState([]);
-  const [appwareLinkStatus, setAppwareLinkStatus] = useState(null); // null=loading, true=linked, false=not
+  const [lyfewareLinkStatus, setAppwareLinkStatus] = useState(null); // null=loading, true=linked, false=not
   const [linkLoading, setLinkLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.identities) setIdentities(user.identities);
-      setAppwareLinkStatus(user?.user_metadata?.appware_linked === true);
+      setAppwareLinkStatus(user?.user_metadata?.lyfeware_linked === true);
     });
   }, []);
 
-  const linkAppWare = () => {
+  const linkLyfeWare = () => {
     setLinkLoading(true);
-    triggerAppWareRedirect();
+    triggerLyfeWareRedirect();
   };
 
   // 'import-or-new' = user has global photo, ask if they want it here
@@ -47,7 +47,7 @@ export default function SettingsPage({ onNavigateFriends }) {
   const [photoUploading, setPhotoUploading] = useState(false);
   const fileInputRef = useRef(null);
 
-  const displayedAvatar = hungryAvatarUrl || avatarUrl;
+  const displayedAvatar = pantryAvatarUrl || avatarUrl;
 
   function handleAvatarButtonClick() {
     if (avatarUrl) {
@@ -66,18 +66,18 @@ export default function SettingsPage({ onNavigateFriends }) {
       setPendingFile(file);
       setPhotoDialog('apply-all');
     } else {
-      // Chose a new Hungry-specific photo (said "no" to import)
+      // Chose a new Pantry-specific photo (said "no" to import)
       setPhotoUploading(true);
-      await handleUpdateAvatar(file, 'hungry');
+      await handleUpdateAvatar(file, 'pantry');
       setPhotoUploading(false);
       setPhotoDialog(null);
     }
   }
 
   async function handleImportGlobal() {
-    // Use the AppWare global photo here — clear any Hungry-specific override
+    // Use the LyfeWare global photo here — clear any Pantry-specific override
     setPhotoUploading(true);
-    await clearHungryAvatar();
+    await clearPantryAvatar();
     setPhotoUploading(false);
     setPhotoDialog(null);
   }
@@ -85,16 +85,16 @@ export default function SettingsPage({ onNavigateFriends }) {
   async function handleApplyAll() {
     if (!pendingFile) return;
     setPhotoUploading(true);
-    await handleUpdateAvatar(pendingFile, 'global'); // saves as global, hungry falls back to it
+    await handleUpdateAvatar(pendingFile, 'global'); // saves as global, pantry falls back to it
     setPendingFile(null);
     setPhotoUploading(false);
     setPhotoDialog(null);
   }
 
-  async function handleApplyHungryOnly() {
+  async function handleApplyPantryOnly() {
     if (!pendingFile) return;
     setPhotoUploading(true);
-    await handleUpdateAvatar(pendingFile, 'hungry');
+    await handleUpdateAvatar(pendingFile, 'pantry');
     setPendingFile(null);
     setPhotoUploading(false);
     setPhotoDialog(null);
@@ -119,15 +119,15 @@ export default function SettingsPage({ onNavigateFriends }) {
   const [budgetInput, setBudgetInput] = useState('');
   const personalBudget = userSettings?.personal_budget_limit || 0;
   const [defaultShoppingDest, setDefaultShoppingDest] = useState(() =>
-    localStorage.getItem('hungry_default_shopping_dest') || 'personal'
+    localStorage.getItem('pantry_default_shopping_dest') || 'personal'
   );
   const [defaultRecipeDest, setDefaultRecipeDest] = useState(() =>
-    localStorage.getItem('hungry_default_recipe_dest') || 'personal'
+    localStorage.getItem('pantry_default_recipe_dest') || 'personal'
   );
 
   const saveDefaultDests = (shopping, recipe) => {
-    localStorage.setItem('hungry_default_shopping_dest', shopping);
-    localStorage.setItem('hungry_default_recipe_dest', recipe);
+    localStorage.setItem('pantry_default_shopping_dest', shopping);
+    localStorage.setItem('pantry_default_recipe_dest', recipe);
   };
 
   useEffect(() => { setDisplayName(profileName || ''); }, [profileName]);
@@ -204,7 +204,7 @@ export default function SettingsPage({ onNavigateFriends }) {
           {/* Smart dialog panel */}
           {photoDialog === 'import-or-new' && (
             <div className="flex-1 bg-sky-50 border border-sky-200 rounded-2xl p-3 space-y-2">
-              <p className="text-[11px] font-bold text-slate-700">You already have an AppWare photo. Use it here?</p>
+              <p className="text-[11px] font-bold text-slate-700">You already have an LyfeWare photo. Use it here?</p>
               <div className="flex gap-2">
                 <button onClick={handleImportGlobal} className="flex-1 bg-[#6BAEE0] text-white text-[10px] font-black py-2 rounded-xl">Yes, Use It</button>
                 <button onClick={() => { setPhotoDialog(null); fileInputRef.current?.click(); }} className="flex-1 bg-white border border-blue-100 text-slate-500 text-[10px] font-black py-2 rounded-xl">Choose Different</button>
@@ -215,10 +215,10 @@ export default function SettingsPage({ onNavigateFriends }) {
 
           {photoDialog === 'apply-all' && (
             <div className="flex-1 bg-sky-50 border border-sky-200 rounded-2xl p-3 space-y-2">
-              <p className="text-[11px] font-bold text-slate-700">Apply this photo to all your AppWare apps?</p>
+              <p className="text-[11px] font-bold text-slate-700">Apply this photo to all your LyfeWare apps?</p>
               <div className="flex gap-2">
                 <button onClick={handleApplyAll} className="flex-1 bg-[#6BAEE0] text-white text-[10px] font-black py-2 rounded-xl">Yes, All Apps</button>
-                <button onClick={handleApplyHungryOnly} className="flex-1 bg-white border border-blue-100 text-slate-500 text-[10px] font-black py-2 rounded-xl">Just Hungry</button>
+                <button onClick={handleApplyPantryOnly} className="flex-1 bg-white border border-blue-100 text-slate-500 text-[10px] font-black py-2 rounded-xl">Just Pantry</button>
               </div>
               <button onClick={() => { setPhotoDialog(null); setPendingFile(null); }} className="w-full text-[10px] text-slate-400 hover:text-slate-600">Cancel</button>
             </div>
@@ -227,7 +227,7 @@ export default function SettingsPage({ onNavigateFriends }) {
           {!photoDialog && (
             <p className="text-[10px] text-slate-400 leading-relaxed flex-1">
               Tap your photo to update it.<br/>
-              {avatarUrl ? <span className="text-slate-500">Your AppWare photo is already active here.</span> : <span>You can apply it to all your AppWare apps at once.</span>}
+              {avatarUrl ? <span className="text-slate-500">Your LyfeWare photo is already active here.</span> : <span>You can apply it to all your LyfeWare apps at once.</span>}
             </p>
           )}
         </div>
@@ -445,7 +445,7 @@ export default function SettingsPage({ onNavigateFriends }) {
       {/* Invite Friends */}
       <button
         onClick={async () => {
-          const msg = { title: 'Join me on Hungry!', text: 'I use Hungry to track my pantry, discover recipes, and plan meals. Join me!', url: import.meta.env.VITE_APP_URL || window.location.origin };
+          const msg = { title: 'Join me on Pantry!', text: 'I use Pantry to track my pantry, discover recipes, and plan meals. Join me!', url: import.meta.env.VITE_APP_URL || window.location.origin };
           try {
             if (navigator.share) await navigator.share(msg);
             else { await navigator.clipboard.writeText(msg.url); alert('App link copied to clipboard!'); }
@@ -453,7 +453,7 @@ export default function SettingsPage({ onNavigateFriends }) {
         }}
         className="w-full flex items-center justify-center gap-2 bg-white/80 backdrop-blur-lg border border-white/20 shadow-xl shadow-blue-900/5 py-4 rounded-[2rem] text-sm font-black text-[#6BAEE0] hover:bg-sky-50 transition-all"
       >
-        <UserPlus size={18} /> Invite Friends to Hungry
+        <UserPlus size={18} /> Invite Friends to Pantry
       </button>
 
       {/* Re-run Tutorial */}
@@ -464,11 +464,11 @@ export default function SettingsPage({ onNavigateFriends }) {
         <BookOpen size={18} /> Re-run App Tutorial
       </button>
 
-      {/* Merge AppWare Account */}
+      {/* Merge LyfeWare Account */}
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <Link className="text-[#6BAEE0]" size={16} />
-          <h3 className="text-[13px] font-bold text-slate-400">Merge AppWare Account</h3>
+          <h3 className="text-[13px] font-bold text-slate-400">Merge LyfeWare Account</h3>
         </div>
         <p className="text-[11px] text-slate-400 leading-relaxed">
           Link another sign-in method to your account. Once linked, you can sign in with either method and all your data stays in one place.
@@ -488,18 +488,18 @@ export default function SettingsPage({ onNavigateFriends }) {
           ))}
         </div>
 
-        {appwareLinkStatus ? (
+        {lyfewareLinkStatus ? (
           <div className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 text-[12px] font-black">
-            <span>✓</span> AppWare Account Linked
+            <span>✓</span> LyfeWare Account Linked
           </div>
         ) : (
           <button
-            onClick={linkAppWare}
+            onClick={linkLyfeWare}
             disabled={linkLoading}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[#6BAEE0] text-white text-[12px] font-black hover:opacity-90 shadow-sm transition-all"
           >
             <Link size={14} />
-            {linkLoading ? 'Redirecting…' : 'Link AppWare Account'}
+            {linkLoading ? 'Redirecting…' : 'Link LyfeWare Account'}
           </button>
         )}
 

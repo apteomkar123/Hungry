@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Loader2, X, Globe, ChevronLeft, ArrowRight } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
@@ -23,7 +23,7 @@ const CATEGORY_ROWS = [
   { key: 'quick',      label: '⚡ Quick & Easy',        endpoint: '/filter.php?c=Miscellaneous', dietType: 'neutral' },
 ];
 
-const CACHE_KEY = 'hungry_community_';
+const CACHE_KEY = 'pantry_community_';
 const SCROLL_LIMIT = 8;
 
 function MealCard({ meal, onOpen }) {

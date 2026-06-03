@@ -1,4 +1,4 @@
-Swiping left on the fillers should not open nav
+﻿Swiping left on the fillers should not open nav
 
 Some ingredients are still messing up, when the recipe calls for cubed tofu it puts the tofu and the cubed part as separate ingredients
 
@@ -74,13 +74,13 @@ Improve the chef's hat image in the animation, it looks so ugly and weird right 
 
 Add that share pill button to saved recipes as well
 
-The app logo is still the same, I don't want it to have that weird black background. Get rid of it. When I add it to the home screen on iOS, it should just be showing the blue box with the white "Hungry" inside
+The app logo is still the same, I don't want it to have that weird black background. Get rid of it. When I add it to the home screen on iOS, it should just be showing the blue box with the white "Pantry" inside
 
 The saved recipes are going off screen
 
 Use proper capitalization for the recipes in the Explore section. It should be just Capitalizing the first letter of each word, same with the ingredients in the pantry
 
-Sign in with appware takes the user to Site not found. it should be routing to authappware.netlify.app
+Sign in with lyfeware takes the user to Site not found. it should be routing to authlyfeware.netlify.app
 
 Don't turn items added to the shopping list to lower case
 
@@ -94,7 +94,7 @@ Household members still aren't showing up in the household tab, it should show e
 
 The recipes still aren't splitting type of meal and cuisine properly, and it's causing the taste profile feature to mess up. For example, I cooked aloo paratha, but the tag in taste profile is showing up as "breakfast Indian", even though those two should be split.
 
-Events are not being created, the create button does nothing. When events are added to the list, the event should pull up a card when tapped on, and the card should have all the information about the event, including who's coming, who's bringing what, dietary restrictions, the date, time, venue, and whatever other information there is. The list of people should show each users public profile, which of course should be able to be tapped on to view the users Hungry profile.
+Events are not being created, the create button does nothing. When events are added to the list, the event should pull up a card when tapped on, and the card should have all the information about the event, including who's coming, who's bringing what, dietary restrictions, the date, time, venue, and whatever other information there is. The list of people should show each users public profile, which of course should be able to be tapped on to view the users Pantry profile.
 
 The substituting ingredients and changing recipes feature should also apply to the recipes in the explore section. If there are substitions made, don't show a picture of the original recipe, and instead just have a tag on top that says "(whatever the user's dietary restriction is) substitution made"
 
@@ -122,7 +122,7 @@ When there's only one household, the dropdown to select household duplicates the
 
 Move the household budget set to the bottom of the page as its own card, and make the invite code bigger with a share button to it that other users can tap to automatically join the household.
 
-Hungry should over time learn what time of foods and flavors the user enjoys, and build a list on the recipes page that says "Your Taste"
+Pantry should over time learn what time of foods and flavors the user enjoys, and build a list on the recipes page that says "Your Taste"
 
 Recipe pictures if available should also show up in the saved recipes.
 

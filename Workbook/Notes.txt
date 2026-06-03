@@ -1,4 +1,4 @@
-
+﻿
 
 
 
@@ -14,7 +14,7 @@ When adding an ingredient to your shopping list through a recipe card, it should
 In the santized versions of the the items in the pantry stock, don't include ammounts, just the name of the item. Also, use the internet and context clues to figure out what the food is. For example, shredded pepper jack is obviosuly cheese, so the santized version should be cheese.
 Change the "buy" to "add" next to ingrediesnt in recipes. Add an animation when the add is clicked, and once clicked, the button should go away.
 Procesure should look better, better font, and not all caps. Overall the "Preparation Progression Matrix" and other subtitle fonts need to be changed too, something more pleasing to the eye.
-Change the app name to Hungry.\
+Change the app name to Pantry.\
 Units need to be american Units
 Items added to list from the recipe should only add the ingredient, not the amount, and should not be able to be added more than once. If it's already in the list, then show the user a message that says already in list. 
 The AI recipe generator is just showing the top suggested recipe instead of actually generating one.
@@ -43,7 +43,7 @@ The add manually feature is not working for the pantry stock or the shopping car
 The receipt scan feature isn't working
 There are no suggested recipes according to ingredients available in the pantry.
 The bag icon in the top right corner does nothing.
-The "Hungry" text should be in the blue color, not white, it's not showing up in the grey containers. Make the containers white, and the header more rounded.
+The "Pantry" text should be in the blue color, not white, it's not showing up in the grey containers. Make the containers white, and the header more rounded.
 Add a feature to add your name to it.
 The name of the app at the top needs to be in the blue color, not white.
 Add the scan receipt feature back in.
@@ -179,11 +179,11 @@ AI Sensory Input (Voice & Vision)
 Move beyond simple barcode/receipt scanning.
 
 The Feature: "Leftover Recon." The user snaps a photo of a Tupperware container. The AI identifies it as "Leftover Pasta" and asks for the date. It then tracks it as a "Prepared Meal" in the pantry.
-The Feature: "Voice Inventory." A "walk-in" mode where a user can simply talk while putting groceries away: "Hungry, I'm adding two gallons of milk, a pack of blueberries, and some Greek yogurt." The AI parses the speech and populates the inventory in bulk.
+The Feature: "Voice Inventory." A "walk-in" mode where a user can simply talk while putting groceries away: "Pantry, I'm adding two gallons of milk, a pack of blueberries, and some Greek yogurt." The AI parses the speech and populates the inventory in bulk.
 The vegetarian and vegan filtes still aren't working, for example mincemeat and anchovies are showing up in vegetarian, neither of which are vegetarian.
 There are no recipes showing up under Indian and many other cusines, pull 50 dishes each for all the cuisnes.
 The monthly budget save button doesn't work, the monthly budget stays 0.
-The font in which it says "hungry" in the header looks to techy and futuristic, make it something cursive and more free following.
+The font in which it says "pantry" in the header looks to techy and futuristic, make it something cursive and more free following.
 Properly capitalize the ingredient and recipe names, capitalize them proper nouns are done.
 
 All units throughout the whole app should be in American units
@@ -210,7 +210,7 @@ Household monthly income isn't getting updated. This should be editable from bot
 The store feature in shopping list isn't really doing anything, it just says pantry
 Potato chips are still showing up under vegetables. Do better
 Meal prep feature when I go through AI recipe generator pulls up the meal plan in a tiny window at the bottom. It should take up the whole screen as a card, and then each meal plan should open a new card on top, and then each recipe in the meal plan should pull up its own card. Both the meal plan and recipes should be addable to the recipe list. Build a separate meal plan section on the saved recipe list
-The "Hungry" in the header is bleeding into the greeting, create more space.
+The "Pantry" in the header is bleeding into the greeting, create more space.
 The recipes in the meal plans from the smart meal prep feature should open up as a normal recipe card. The meal prep plans should also be saveable to the list.
 There should be 3 filter categories for both suggested recipes and saved recipes: One with (Breakfast, Lunch, Dinner, Snack, Dessert), one with (Vegetarian, Vegan, Meat, Fish), and then one with all cuisines
 When scrolled down on the page, tapping at the very top should scroll back all the way to the top 
@@ -242,7 +242,7 @@ IMPLEMENTED (session 2026-05-28):
 - Voice input now parses numeric quantities (e.g. "2 bananas, 4 tomatoes") and shows x badge
 - "Mark Cooked" button added to recipe modal -- subtracts ingredients from pantry
 - Chef History feature added to Saved tab -- view cooked recipes, add notes, add photos
-- Voice quantities now persist to localStorage (hungry_quantities) -- temp ID migrated to real DB ID on save
+- Voice quantities now persist to localStorage (pantry_quantities) -- temp ID migrated to real DB ID on save
 - Category regexes updated to match plural forms (bananas, apples, tomatoes, onions, etc.)
 - Ingredient grouping fixed -- entries containing newlines or comma+number patterns are split into separate items; MealDB cache bumped to v5
 - Chef History moved to its own dedicated tab (Clock icon in bottom nav)
@@ -281,7 +281,7 @@ FEATURES:
 - Household Settings embedded inside Settings page (no longer a standalone nav item replaced by household tab)
 - Personal Shopper: full-screen shopping mode, store selector (TJs/Walmart/etc.), items grouped by category with store-specific aisle names
 - Add Recipe modal: Public/Private toggle + Save To personal or household selector
-- Friends page: share 'Add me on Hungry' link, search users by name, friend list, public cooking feed from Chef History
+- Friends page: share 'Add me on Pantry' link, search users by name, friend list, public cooking feed from Chef History
 BUGS IMPLEMENTED (session 2026-05-28 v5):
 - Nav: swipe right anywhere opens, swipe left anywhere closes, glassy bg-white/40 backdrop-blur-3xl
 - Shopping list: always shows categorized by aisle (Snacks + Bakery split); list/store toggle removed; persistence fixed (fetches personal + household items separately); "Move to household" button per item
@@ -308,7 +308,7 @@ BUGS:
 - Placeholder text global CSS rule: font-size 11px opacity 0.6 across all inputs/textareas
 - Ingredient matching: isInPantry now requires ALL significant tokens (len>2) to match -- prevents garlic clove / garlic powder false positive; single-token uses fuzzy match; user can click dot to manually override any ingredient check
 - Plus button: uses stripIngredientNotes(ing) for consistent cleaned key; hidden when item is in pantry
-- Personal Shopper: native full-screen layout, sticky category headers with store aisle info, progress bar, checked state persists in localStorage (hungry_shopper_checked), checking an item calls onToggle to sync to shopping list
+- Personal Shopper: native full-screen layout, sticky category headers with store aisle info, progress bar, checked state persists in localStorage (pantry_shopper_checked), checking an item calls onToggle to sync to shopping list
 - Pantry subtraction: parses numeric quantity from recipe ingredient string (e.g. 2 mushrooms -> subtract 2); uses neededQty map per ingredient
 - 'Mark as Cooked' -> 'Cooked!' button label
 
@@ -329,7 +329,7 @@ BUGS:
 
 FEATURES:
 - Recipe modal header (title, star, share, X) is now sticky — locks at top as user scrolls through ingredients and steps
-- Nav "Hungry" text now uses same Pacifico logo-text font as the app header
+- Nav "Pantry" text now uses same Pacifico logo-text font as the app header
 
 IMPLEMENTED (session 2026-05-29 session 5):
 BUGS:
@@ -349,7 +349,7 @@ BUGS:
 - Household member list now queries both active_household_id and household_id (old schema) so all members show
 - Saved recipes cards: reduced padding, added overflow-hidden, fixed share dropdown direction (top-full) so it doesn't bleed off screen
 - AuthManager: popstate listener resets forgot-password and sign-up state so sign-in buttons reappear after browser back
-- Removed Google and Apple sign-in buttons; sign-in via AppWare SSO only
+- Removed Google and Apple sign-in buttons; sign-in via LyfeWare SSO only
 
 FEATURES:
 - Potluck / Event panel in Household tab: add items needed for an event, claim them, live readiness progress bar (localStorage-persisted per household)
@@ -364,7 +364,7 @@ BUGS:
 
 FEATURES:
 - Potluck page: standalone top-level nav section; create events with invite codes, share via URL ?potluck=CODE, claim items, readiness bar; backed by potluck_events + potluck_items Supabase tables
-- appware-schema.sql: added household_members, potluck_events, potluck_items tables with RLS policies
+- lyfeware-schema.sql: added household_members, potluck_events, potluck_items tables with RLS policies
 - Pantry item capitalization: toTitleCase already applied in handleAddManualItem (raw_name); Open Food Facts nutritional lookup already runs for barcode scans
 
 IMPLEMENTED (session 2026-05-30 session 8):
@@ -373,11 +373,11 @@ BUGS:
 - AddRecipeModal: proper res.ok check + HTML response guard before JSON.parse; shows user-friendly error if URL is inaccessible
 - RecipeModal: shows recipe image (strMealThumb from MealDB, image from Spoonacular) as a banner above the sticky header
 - App icon: SVG icon created at public/icon.svg (blue gradient, Pacifico font, no black background); manifest updated to include SVG icon
-- Auth: "Sync your AppWare apps!" tagline added above Sign in with AppWare button
+- Auth: "Sync your LyfeWare apps!" tagline added above Sign in with LyfeWare button
 - Settings: Invite Friends button now uses native share sheet / clipboard copy for the app URL instead of navigating to Friends page
 
 FEATURES:
-- TutorialOverlay: 8-step interactive tutorial auto-shown on first login; skip/complete writes has_completed_tutorial to profiles table; Re-run Tutorial button in Settings; confetti on final step; appware-schema.sql patched to add has_completed_tutorial column
+- TutorialOverlay: 8-step interactive tutorial auto-shown on first login; skip/complete writes has_completed_tutorial to profiles table; Re-run Tutorial button in Settings; confetti on final step; lyfeware-schema.sql patched to add has_completed_tutorial column
 - CommunityRecipes: new "Explore" nav section with 14 category rows (Trending, Healthy, Comfort Food…), horizontal scroll, recipe photos, search; all backed by TheMealDB with 6h localStorage cache
 - UserProfileModal: tapping any friend or search result opens a full profile modal showing their avatar, cuisine mastery, public chef history feed, and saved favorites tab
 
@@ -408,7 +408,7 @@ NOT DONE / DEFERRED:
 IMPLEMENTED (session 2026-05-31 session 11):
 BUGS FIXED:
 - Tutorial broken: z-200 is invalid Tailwind (should be z-[200]) — fixed; removed confusing "👆 HERE" pill label that looked like a tappable button; replaced 14 step-dot indicators with a simple "N / 14" counter; removed backdrop blur so background isn't blurry
-- Header "Hungry" bleeding into greeting: added flex-col + leading-none + mt-0.5 on greeting line to properly separate
+- Header "Pantry" bleeding into greeting: added flex-col + leading-none + mt-0.5 on greeting line to properly separate
 - Header logo taps open nav: Header now accepts onOpenNav prop; App.jsx passes setNavOpen(true)
 - RecipeModal Start Cooking button too large: changed to flex-1 with text-sm, side by side with serving size selector
 - RecipeModal serving size: added 3x option (now 1x 2x 3x 4x)
@@ -418,7 +418,7 @@ BUGS FIXED:
 - Explore: adaptation label updated to "✅ Vegetarian Adaptation Applied" (properly capitalized)
 - ChefHistory expanded card: wrapped in onClick handler — tapping outside buttons/text closes the card
 - ChefHistory ingredient pills: improved stripping regex removes fractions, measure units, and parentheticals; null labels filtered out; capitalize CSS applied
-- Analytics "Wrap" tab crowded: removed from Analytics; created standalone AppWareTab.jsx; added "AppWare" nav item (Layers icon) that auto-loads data on mount
+- Analytics "Wrap" tab crowded: removed from Analytics; created standalone LyfeWareTab.jsx; added "LyfeWare" nav item (Layers icon) that auto-loads data on mount
 - Settings nutrition goal: changed from single-select to multi-select (any combination allowed; at least one must stay selected)
 - Settings bio: added bio text field; synced to handleUpdateSettings and displayed on Profile page
 - Potluck venue: made clickable — opens Google Maps search URL; on iPhone shows native confirm dialog letting user choose Google Maps or Apple Maps
@@ -435,7 +435,7 @@ FEATURES ADDED:
 - 3x serving size in RecipeModal
 - Bio field in Settings (displayed on Profile page)
 - Multiple nutrition goals selection
-- AppWare nav section (standalone Wrap stats page)
+- LyfeWare nav section (standalone Wrap stats page)
 - Potluck venue → Google Maps / Apple Maps deep link
 - CommunityRecipes full-page category view on View More
 - Restaurant dish auto-recipe fetch on save
@@ -489,7 +489,7 @@ DONE (Session 13 / 2026-06-01)
 --------------------------------
 Potluck "events table not set up" still showing after migration was run — root cause: potluck_events and potluck_items queries used Supabase join syntax (*, potluck_items(*)) which fails when potluck_items already existed with old schema missing event_id. Fixed by using two separate queries in fetchEvents, handleCreate, and handleJoin. New migration 006_potluck_items_event_id.sql adds event_id column to existing potluck_items.
 Star save from Explore/Community not persisting — two bugs: (1) "My Saved Recipes" button passed undefined householdId so localStorage default (possibly a household UUID) was used; fixed by passing null explicitly. (2) "already saved" guard blocked personal saves when recipe was already saved to a household; fixed to only block when saved_recipes has a matching personal (household_id = null) record.
-"Hungry" logo bleeding into greeting text — Pacifico descenders overlapped with mt-1 spacing; fixed by setting lineHeight:1.2 and paddingBottom:2px on h1, removing redundant leading-none.
+"Pantry" logo bleeding into greeting text — Pacifico descenders overlapped with mt-1 spacing; fixed by setting lineHeight:1.2 and paddingBottom:2px on h1, removing redundant leading-none.
 CommunityRecipes dietary substitution not applying — openMeal set cleanedIngredients to raw MealDB strings (e.g. "Chicken Breast" capitalized), but MEAT_PATTERN has no /i flag so matchesRecipeFilter returned true for chicken recipes and locallyAdaptRecipe was never called; fixed by mapping cleanIngredientLocally over ingredients for cleanedIngredients field.
 
 ADDITIONAL BUGS (reported mid-session 13)
@@ -550,21 +550,21 @@ DONE (Session 18 / 2026-06-02)
 Temperature units: all Celsius values in staticRecipes.js converted to Fahrenheit
 Scroll to top: tapping anywhere on the sticky header now scrolls to page top; profile pic / AI / shopping buttons use stopPropagation
 Household member profile pictures: member query fetches avatar_url and hungry_avatar_url; shows profile pic (or initials fallback) in Members list and Settle Up section
-Link AppWare Account: Settings "Merge AppWare Account" section now has a single "Link AppWare Account" button using useAppWareSSO.triggerAppWareRedirect (removed Google-specific linkIdentity flow)
+Link LyfeWare Account: Settings "Merge LyfeWare Account" section now has a single "Link LyfeWare Account" button using useLyfeWareSSO.triggerLyfeWareRedirect (removed Google-specific linkIdentity flow)
 Recipe image tap: in the Saved Recipes tab, tapping the recipe image now opens the recipe modal
 
 DONE (Session 19 / 2026-06-02)
 --------------------------------
 Nutrition breakdown card going off screen at top: fixed — card max-h reduced to 72vh, container now has pt-16 so card can't clip above safe area
-App icon: updated icon.svg to solid #6BAEE0 box with Hungry in Pacifico font
+App icon: updated icon.svg to solid #6BAEE0 box with Pantry in Pacifico font
 Recipes loading slowly: static recipes now rendered immediately; MealDB/Spoonacular still load in background and merge in
-Household mode section: collapsed to single-line badge showing current mode; type selector (Shared with Roomies / Hungry-Specific) added to both create-household forms
+Household mode section: collapsed to single-line badge showing current mode; type selector (Shared with HomeBase / Pantry-Specific) added to both create-household forms
 Header scroll-to-top on tap: removed — header click no longer triggers scroll-to-top; native iOS status-bar tap still works
 Celsius temperatures in recipes: added convertCelsiusInText() to recipeUtils.js; converts 180°C, 180C, 180 degrees Celsius etc. → °F in all recipe steps at parse time
 
 DONE (Session 20 / 2026-06-02)
 --------------------------------
-AppWare SSO sign-in redirect bug: removed window.location.reload() from ingestIncomingSession (unnecessary — onAuthStateChange handles transition); added try/catch with user-visible alert for setSession errors; added query-param fallback for access_token (PKCE redirects); moved history.replaceState to finally block so tokens are always cleaned.
+LyfeWare SSO sign-in redirect bug: removed window.location.reload() from ingestIncomingSession (unnecessary — onAuthStateChange handles transition); added try/catch with user-visible alert for setSession errors; added query-param fallback for access_token (PKCE redirects); moved history.replaceState to finally block so tokens are always cleaned.
 UserContext loading race with SSO: setLoading(false) now fires from a one-shot doneLoading() closure called by both getSession().then() and onAuthStateChange — whichever resolves first clears loading, preventing a stuck loading state when detectSessionInUrl sets the session after getSession resolved with null.
 
 
@@ -572,18 +572,18 @@ BUGS TO FIX (Session 21 / 2026-06-02) — COMPLETED
 ---------------------------------------------------
 When a nutrition number in the nutritional analysis is tapped, the card that shows up is still going off screen off the top
 Icon on iOS Home Screen still not updated to the Pacifico text logo
-If AppWare account is already linked, it shouldn't show the button in settings
+If LyfeWare account is already linked, it shouldn't show the button in settings
 Take out high protein from dietary restrictions
 When a user joins the household, they don't get added to the member list on the creator of the household's app immediately, refresh every 5 seconds
 The dropdown for choosing a household shouldn't show up if the user only has household
 Can't add items to shared shopping list from the household section, only able to add from personal shopping list
 Household shopping list and recipes aren't showing for other users in the household instantly, refresh more often, every 5 seconds.
-If user has set a name on AppWare, Hungry should automatically pull that it as the name.
+If user has set a name on LyfeWare, Pantry should automatically pull that it as the name.
 Dropdown to share recipes in saved recipes isn't showing up correctly, it's getting covered. It should be at the front layer
 When a pantry item is added to a household, the settle up in household doesn't get updated
 Changes made by one user in a household take forever to reflect on the other users app
 Do better on expiry dates on all ingredients. Look up each pantry items and figure out their expiry dates. They feel random right now, cottage cheese for example definetly does not expire in 7 days.
-Take out the little button that says change next to the "shared with roomies" bubble at the top of the household section
+Take out the little button that says change next to the "shared with homebase" bubble at the top of the household section
 Swiping to the right anywhere on the screen should pull up the nav
 Sometimes, when a substitution is made for dietary restrictions, the recipe title has the dietary restriction twice, like "vegetarian vegetarian chilli prawn linguine"
 
