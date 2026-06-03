@@ -136,10 +136,13 @@ export const locallyAdaptRecipe = (recipe, targetDiet) => {
     return s;
   });
 
+  const dietLabel = toTitleCase(diet);
+  const existingName = recipe.name || '';
+  const nameAlreadyHasDiet = existingName.toLowerCase().startsWith(diet.toLowerCase());
   const adapted = {
     ...recipe,
     id: `adapted-local-${recipe.id}`,
-    name: `${toTitleCase(diet)} ${recipe.name}`,
+    name: nameAlreadyHasDiet ? existingName : `${dietLabel} ${existingName}`,
     ingredients: updatedIngredients,
     cleanedIngredients: updatedIngredients.map(cleanIngredientLocally).filter(Boolean),
     steps: updatedSteps,
@@ -517,32 +520,90 @@ export const getEstimatedExpiry = (itemName) => {
   const today = new Date();
   const addDays = (d) => { const dt = new Date(today); dt.setDate(dt.getDate() + d); return dt.toISOString().split('T')[0]; };
 
-  if (/\b(chicken|beef|pork|lamb|turkey|mince|steak|ground meat|fresh fish|shrimp|prawn)\b/.test(n)) return addDays(2);
-  if (/\b(avocado)\b/.test(n)) return addDays(3);
-  if (/\b(milk|cream|sour cream|heavy cream)\b/.test(n)) return addDays(7);
-  if (/\b(yogurt|kefir)\b/.test(n)) return addDays(14);
-  if (/\b(egg|eggs)\b/.test(n)) return addDays(28);
+  // Meat & seafood — raw is very short-lived
+  if (/\b(ground beef|ground meat|minced meat|mince|raw chicken|raw beef|raw pork|raw lamb|raw fish)\b/.test(n)) return addDays(2);
+  if (/\b(chicken|beef|pork|lamb|turkey|steak|veal|duck|venison)\b/.test(n)) return addDays(3);
+  if (/\b(fresh fish|shrimp|prawn|salmon|tuna|cod|halibut|scallop|mussel|clam|oyster|crab|lobster|seafood)\b/.test(n)) return addDays(2);
+  if (/\b(deli meat|lunch meat|cold cut|ham|salami|pepperoni|chorizo|sausage)\b/.test(n)) return addDays(5);
+  if (/\b(bacon)\b/.test(n)) return addDays(7);
+  // Dairy
+  if (/\b(cottage cheese)\b/.test(n)) return addDays(14);
+  if (/\b(ricotta|mascarpone|cream cheese)\b/.test(n)) return addDays(10);
+  if (/\b(mozzarella|brie|camembert|feta)\b/.test(n)) return addDays(14);
+  if (/\b(cheddar|gouda|parmesan|gruyere|hard cheese)\b/.test(n)) return addDays(30);
+  if (/\b(cheese)\b/.test(n)) return addDays(21);
+  if (/\b(whole milk|skim milk|2% milk|milk)\b/.test(n)) return addDays(10);
+  if (/\b(heavy cream|whipping cream|double cream|half and half)\b/.test(n)) return addDays(14);
+  if (/\b(sour cream|creme fraiche)\b/.test(n)) return addDays(14);
+  if (/\b(cream)\b/.test(n)) return addDays(10);
+  if (/\b(greek yogurt|yogurt|kefir)\b/.test(n)) return addDays(21);
   if (/\b(butter)\b/.test(n)) return addDays(30);
-  if (/\b(cheese|mozzarella|brie|ricotta|cottage)\b/.test(n)) return addDays(14);
-  if (/\b(cheddar|parmesan|gouda|hard cheese)\b/.test(n)) return addDays(30);
-  if (/\b(bread|toast|bun|bagel|loaf|roll)\b/.test(n)) return addDays(5);
-  if (/\b(strawberry|blueberry|raspberry|berry|grape)\b/.test(n)) return addDays(4);
-  if (/\b(banana)\b/.test(n)) return addDays(5);
-  if (/\b(apple|pear|orange|mango|peach|plum|kiwi|fig)\b/.test(n)) return addDays(7);
-  if (/\b(lemon|lime)\b/.test(n)) return addDays(14);
-  if (/\b(spinach|lettuce|kale|herb|cilantro|parsley|basil|mint|arugula)\b/.test(n)) return addDays(5);
-  if (/\b(broccoli|cauliflower|green bean|asparagus|zucchini|cucumber|celery)\b/.test(n)) return addDays(7);
-  if (/\b(tomato|bell pepper|mushroom|eggplant)\b/.test(n)) return addDays(7);
-  if (/\b(carrot|potato|onion|garlic|yam|beetroot|cabbage|squash)\b/.test(n)) return addDays(21);
-  if (/\b(juice|smoothie)\b/.test(n)) return addDays(7);
-  if (/\b(soda|sparkling|water|beverage|drink)\b/.test(n)) return addDays(180);
-  if (/\b(frozen|ice cream|gelato)\b/.test(n)) return addDays(180);
-  if (/\b(canned|can|jar|pickle|preserved|sauce|ketchup|mayo|mustard|condiment)\b/.test(n)) return addDays(180);
-  if (/\b(pasta|rice|flour|sugar|oat|cereal|grain|lentil|bean|chickpea|quinoa|couscous)\b/.test(n)) return addDays(365);
-  if (/\b(oil|vinegar|soy sauce|hot sauce|spice|salt|pepper|seasoning)\b/.test(n)) return addDays(365);
-  if (/\b(chip|crisp|cracker|cookie|biscuit|candy|chocolate|snack|nut|almond|cashew)\b/.test(n)) return addDays(60);
-  if (/\b(coffee|tea)\b/.test(n)) return addDays(180);
   if (/\b(ghee|clarified butter)\b/.test(n)) return addDays(90);
+  if (/\b(egg|eggs)\b/.test(n)) return addDays(35);
+  if (/\b(paneer)\b/.test(n)) return addDays(5);
+  // Bread & bakery
+  if (/\b(sourdough|artisan bread|fresh bread|homemade bread)\b/.test(n)) return addDays(4);
+  if (/\b(bread|loaf|baguette|focaccia|brioche)\b/.test(n)) return addDays(7);
+  if (/\b(toast|bun|bagel|roll|pita|naan|tortilla|wrap)\b/.test(n)) return addDays(7);
+  if (/\b(croissant|pastry|danish|muffin)\b/.test(n)) return addDays(3);
+  if (/\b(cake|pie|tart|brownie|cupcake)\b/.test(n)) return addDays(5);
+  // Fruits
+  if (/\b(strawberry|raspberry|blackberry|blueberry|cherry)\b/.test(n)) return addDays(5);
+  if (/\b(grape|fig|peach|plum|nectarine|apricot)\b/.test(n)) return addDays(7);
+  if (/\b(avocado)\b/.test(n)) return addDays(4);
+  if (/\b(banana)\b/.test(n)) return addDays(6);
+  if (/\b(mango|papaya|guava|passion fruit|lychee)\b/.test(n)) return addDays(5);
+  if (/\b(pineapple|watermelon|melon|cantaloupe)\b/.test(n)) return addDays(5);
+  if (/\b(apple|pear|kiwi)\b/.test(n)) return addDays(21);
+  if (/\b(orange|grapefruit|mandarin|tangerine|clementine)\b/.test(n)) return addDays(14);
+  if (/\b(lemon|lime)\b/.test(n)) return addDays(21);
+  if (/\b(coconut)\b/.test(n)) return addDays(7);
+  // Vegetables
+  if (/\b(spinach|arugula|mixed greens|salad greens|watercress)\b/.test(n)) return addDays(5);
+  if (/\b(lettuce|kale|chard|bok choy|collard)\b/.test(n)) return addDays(7);
+  if (/\b(basil|cilantro|parsley|mint|dill|chives|tarragon|herb)\b/.test(n)) return addDays(5);
+  if (/\b(thyme|rosemary|sage|oregano)\b/.test(n)) return addDays(14);
+  if (/\b(mushroom)\b/.test(n)) return addDays(7);
+  if (/\b(corn|sweet corn)\b/.test(n)) return addDays(3);
+  if (/\b(asparagus|green bean|snap pea|snow pea|pea)\b/.test(n)) return addDays(5);
+  if (/\b(broccoli|cauliflower|brussels sprout)\b/.test(n)) return addDays(7);
+  if (/\b(zucchini|courgette|cucumber|summer squash)\b/.test(n)) return addDays(10);
+  if (/\b(bell pepper|capsicum|pepper)\b/.test(n)) return addDays(10);
+  if (/\b(tomato)\b/.test(n)) return addDays(7);
+  if (/\b(eggplant|aubergine|okra)\b/.test(n)) return addDays(10);
+  if (/\b(celery|fennel|leek)\b/.test(n)) return addDays(14);
+  if (/\b(carrot|parsnip|turnip|radish)\b/.test(n)) return addDays(21);
+  if (/\b(beetroot|beet)\b/.test(n)) return addDays(21);
+  if (/\b(sweet potato|yam)\b/.test(n)) return addDays(21);
+  if (/\b(potato)\b/.test(n)) return addDays(28);
+  if (/\b(onion|shallot)\b/.test(n)) return addDays(30);
+  if (/\b(garlic)\b/.test(n)) return addDays(30);
+  if (/\b(cabbage|winter squash|butternut squash|acorn squash|pumpkin)\b/.test(n)) return addDays(30);
+  // Beverages
+  if (/\b(fresh juice|cold pressed juice|smoothie)\b/.test(n)) return addDays(3);
+  if (/\b(orange juice|apple juice|juice)\b/.test(n)) return addDays(10);
+  if (/\b(soda|sparkling water|water|beverage|drink|kombucha)\b/.test(n)) return addDays(365);
+  // Frozen & shelf stable
+  if (/\b(frozen|ice cream|gelato|sorbet|popsicle)\b/.test(n)) return addDays(180);
+  if (/\b(canned|tinned|can)\b/.test(n)) return addDays(730);
+  if (/\b(jar|pickle|preserved|preserves|jam|jelly)\b/.test(n)) return addDays(365);
+  if (/\b(sauce|ketchup|mayo|mayonnaise|mustard|hot sauce|soy sauce|oyster sauce|fish sauce|hoisin|teriyaki|condiment|dressing|vinaigrette)\b/.test(n)) return addDays(180);
+  if (/\b(pasta|spaghetti|penne|rigatoni|linguine|noodle)\b/.test(n)) return addDays(730);
+  if (/\b(rice|flour|sugar|oat|oatmeal|cereal|grain|couscous|bulgur|quinoa)\b/.test(n)) return addDays(365);
+  if (/\b(lentil|bean|chickpea|split pea|black bean|kidney bean)\b/.test(n)) return addDays(730);
+  if (/\b(oil|olive oil|vegetable oil|canola oil|sesame oil|coconut oil)\b/.test(n)) return addDays(365);
+  if (/\b(vinegar|balsamic)\b/.test(n)) return addDays(730);
+  if (/\b(spice|salt|pepper|cumin|turmeric|paprika|cinnamon|oregano|thyme|seasoning)\b/.test(n)) return addDays(730);
+  if (/\b(chip|crisp|cracker|cookie|biscuit|snack)\b/.test(n)) return addDays(60);
+  if (/\b(candy|chocolate|cocoa)\b/.test(n)) return addDays(180);
+  if (/\b(nut|almond|cashew|walnut|peanut|pistachio|pecan)\b/.test(n)) return addDays(90);
+  if (/\b(peanut butter|almond butter|nut butter)\b/.test(n)) return addDays(90);
+  if (/\b(coffee|espresso)\b/.test(n)) return addDays(30);
+  if (/\b(tea)\b/.test(n)) return addDays(365);
+  if (/\b(protein powder|whey)\b/.test(n)) return addDays(365);
+  if (/\b(honey|maple syrup|agave)\b/.test(n)) return addDays(730);
+  if (/\b(baking powder|baking soda|yeast)\b/.test(n)) return addDays(365);
+  if (/\b(tofu|tempeh)\b/.test(n)) return addDays(7);
   return addDays(14); // default 2 weeks
 };
 

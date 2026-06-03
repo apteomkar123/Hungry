@@ -22,6 +22,8 @@ export function useAppWareSSO() {
           refresh_token: refreshToken,
         });
         if (error) throw error;
+        // Mark account as AppWare-linked in user metadata
+        await supabase.auth.updateUser({ data: { appware_linked: true } });
       } catch (err) {
         console.error('AppWare SSO error:', err.message);
         alert('Could not sign in with AppWare. Please try again or use email/password.');

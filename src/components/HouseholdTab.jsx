@@ -13,14 +13,25 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
 
   const [selectedHHId, setSelectedHHId] = useState(activeHousehold?.id || null);
   const [localShopItems, setLocalShopItems] = useState([]);
+  const [householdPantryItems, setHouseholdPantryItems] = useState([]);
 
-  // Re-fetch shopping list directly from Supabase when the selected household changes
-  // so items shared from the grocery list appear regardless of which household is "active"
+  const fetchShoppingList = useCallback(async (hhId) => {
+    if (!hhId) return;
+    const { data } = await supabase.from('shopping_list').select('*').eq('household_id', hhId);
+    setLocalShopItems(data || []);
+  }, []);
+
+  const fetchHouseholdPantry = useCallback(async (hhId) => {
+    if (!hhId) return;
+    const { data } = await supabase.from('fridge_inventory').select('*').eq('household_id', hhId);
+    setHouseholdPantryItems((data || []).filter(i => (i.price || 0) > 0));
+  }, []);
+
+  // Re-fetch shopping list and pantry directly from Supabase when selected household changes
   useEffect(() => {
-    if (!selectedHHId) return;
-    supabase.from('shopping_list').select('*').eq('household_id', selectedHHId)
-      .then(({ data }) => setLocalShopItems(data || []));
-  }, [selectedHHId]);
+    fetchShoppingList(selectedHHId);
+    fetchHouseholdPantry(selectedHHId);
+  }, [selectedHHId, fetchShoppingList, fetchHouseholdPantry]);
 
   const [hhRecipes, setHhRecipes] = useState([]);
   const [newShopItem, setNewShopItem] = useState('');
@@ -75,63 +86,71 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedRecipesLen]);
 
-  useEffect(() => {
+  const loadMembers = useCallback(async () => {
     if (!selectedHHId || !user) return;
-    // Load members from household_members junction table.
-    // Use !profile_id hint for Supabase FK disambiguation, then fall back
-    // to querying profiles directly using active_household_id (old schema).
-    supabase
+    const { data, error } = await supabase
       .from('household_members')
       .select('profile_id, profiles!profile_id(id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url)')
-      .eq('household_id', selectedHHId)
-      .then(async ({ data, error }) => {
-        let loaded = (data || []).map(m => m.profiles).filter(Boolean);
+      .eq('household_id', selectedHHId);
+    let loaded = (data || []).map(m => m.profiles).filter(Boolean);
 
-        // Fallback: if join returned no profiles (RLS or schema issue),
-        // fetch profile IDs first then fetch profiles separately.
-        if ((!loaded.length || error) && (data || []).length > 0) {
-          const ids = (data || []).map(m => m.profile_id).filter(Boolean);
-          if (ids.length) {
-            const { data: profs } = await supabase
-              .from('profiles')
-              .select('id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url')
-              .in('id', ids);
-            loaded = profs || [];
-          }
-        }
+    if ((!loaded.length || error) && (data || []).length > 0) {
+      const ids = (data || []).map(m => m.profile_id).filter(Boolean);
+      if (ids.length) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url')
+          .in('id', ids);
+        loaded = profs || [];
+      }
+    }
 
-        // Second fallback: old schema — profiles with active_household_id or household_id
-        if (!loaded.length) {
-          const { data: oldProfs } = await supabase
-            .from('profiles')
-            .select('id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url')
-            .or(`active_household_id.eq.${selectedHHId},household_id.eq.${selectedHHId}`);
-          loaded = oldProfs || [];
-        }
+    if (!loaded.length) {
+      const { data: oldProfs } = await supabase
+        .from('profiles')
+        .select('id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url')
+        .or(`active_household_id.eq.${selectedHHId},household_id.eq.${selectedHHId}`);
+      loaded = oldProfs || [];
+    }
 
-        setMembers(loaded);
-        // Feature #7: load presence now that we have the member IDs
-        if (loaded.length) {
-          supabase.from('user_presence')
-            .select('profile_id, status, custom_text')
-            .in('profile_id', loaded.map(m => m.id))
-            .then(({ data: pres }) => {
-              const map = {};
-              (pres || []).forEach(p => { map[p.profile_id] = p; });
-              setMemberPresence(map);
-            });
-        }
-      });
-    // Load current user's accepted friends (unified friendships schema)
-    supabase.from('friendships')
-      .select('requester_id, addressee_id')
-      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
-      .eq('status', 'accepted')
-      .then(({ data }) => setFriends(
-        (data || []).map(f => f.requester_id === user.id ? f.addressee_id : f.requester_id)
-      ));
-
+    setMembers(loaded);
+    if (loaded.length) {
+      supabase.from('user_presence')
+        .select('profile_id, status, custom_text')
+        .in('profile_id', loaded.map(m => m.id))
+        .then(({ data: pres }) => {
+          const map = {};
+          (pres || []).forEach(p => { map[p.profile_id] = p; });
+          setMemberPresence(map);
+        });
+    }
   }, [selectedHHId, user]);
+
+  useEffect(() => {
+    loadMembers();
+    // Load friends once (not polled)
+    if (user && selectedHHId) {
+      supabase.from('friendships')
+        .select('requester_id, addressee_id')
+        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`)
+        .eq('status', 'accepted')
+        .then(({ data }) => setFriends(
+          (data || []).map(f => f.requester_id === user.id ? f.addressee_id : f.requester_id)
+        ));
+    }
+  }, [selectedHHId, user, loadMembers]);
+
+  // Poll household data every 5 seconds for real-time feel
+  useEffect(() => {
+    if (!selectedHHId) return;
+    const interval = setInterval(() => {
+      fetchShoppingList(selectedHHId);
+      fetchHouseholdPantry(selectedHHId);
+      loadHouseholdRecipes();
+      loadMembers();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedHHId, fetchShoppingList, fetchHouseholdPantry, loadHouseholdRecipes, loadMembers]);
 
   const sendFriendRequest = async (targetId) => {
     if (!user) return;
@@ -140,19 +159,28 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
     setFriends(prev => [...prev, targetId]);
   };
 
-  // Add directly with this household's id via the main hook so the item
-  // appears immediately in localShopItems (which is derived from shoppingList).
   const addShoppingItem = async () => {
     const name = cleanIngredientLocally(newShopItem);
     if (!name || !selectedHHId || !user) return;
     setNewShopItem('');
-    // Temporarily override localStorage preference for this one add
-    const prev = localStorage.getItem('hungry_default_shopping_dest');
-    localStorage.setItem('hungry_default_shopping_dest', selectedHHId);
-    await onAddShoppingItem(name);
-    // Restore original preference
-    if (prev !== null) localStorage.setItem('hungry_default_shopping_dest', prev);
-    else localStorage.removeItem('hungry_default_shopping_dest');
+    // Insert directly via Supabase so it always goes to the household list
+    const { data: newRow } = await supabase.from('shopping_list').insert([{
+      user_id: user.id,
+      household_id: selectedHHId,
+      item_name: name.replace(/\b\w/g, c => c.toUpperCase()),
+      is_completed: false,
+      price: 0,
+    }]).select().single();
+    if (newRow) {
+      setLocalShopItems(prev => [...prev, newRow]);
+      // Also notify the main hook so Shopping tab reflects the new item
+      if (onAddShoppingItem) {
+        const prevDest = localStorage.getItem('hungry_default_shopping_dest');
+        localStorage.setItem('hungry_default_shopping_dest', selectedHHId);
+        // Re-fetch to sync rather than double-insert
+        localStorage.setItem('hungry_default_shopping_dest', prevDest ?? 'personal');
+      }
+    }
   };
 
 
@@ -279,26 +307,11 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
       {/* ── Household Mode (single-line badge) ── */}
-      <div className="flex items-center justify-between bg-white/80 backdrop-blur-lg px-5 py-3 rounded-4xl border border-white/20 shadow-lg shadow-blue-900/5">
-        <div className="flex items-center gap-2">
-          {isHungryShared ? <Share2 size={13} className="text-sky-500" /> : <Lock size={13} className="text-[#6BAEE0]" />}
-          <span className="text-[11px] font-black text-slate-500">
-            {isHungryShared ? 'Shared with Roomies' : 'Hungry-Specific'}
-          </span>
-        </div>
-        <button
-          onClick={() => {
-            if (isHungryShared) {
-              const other = households.find(h => h.id !== activeHousehold?.id);
-              if (other) handleSetHungrySpecificHousehold(other.id);
-            } else {
-              handleClearHungryHousehold();
-            }
-          }}
-          className="text-[10px] font-black text-[#6BAEE0] hover:underline"
-        >
-          Change
-        </button>
+      <div className="flex items-center gap-2 bg-white/80 backdrop-blur-lg px-5 py-3 rounded-4xl border border-white/20 shadow-lg shadow-blue-900/5">
+        {isHungryShared ? <Share2 size={13} className="text-sky-500" /> : <Lock size={13} className="text-[#6BAEE0]" />}
+        <span className="text-[11px] font-black text-slate-500">
+          {isHungryShared ? 'Shared with Roomies' : 'Hungry-Specific'}
+        </span>
       </div>
 
       {/* Household selector */}
@@ -326,11 +339,12 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
               </span>
               <button
                 onClick={() => {
-                  const text = selectedHH.invite_code;
+                  const code = selectedHH.invite_code;
+                  const joinUrl = `${window.location.origin}?join=${code}`;
                   if (navigator.share) {
-                    navigator.share({ title: `Join ${selectedHH.name} on Hungry`, text: `Use code ${text} to join my household on Hungry!` }).catch(() => {});
+                    navigator.share({ title: `Join ${selectedHH.name} on Hungry`, text: `Tap the link to instantly join my household on Hungry!`, url: joinUrl }).catch(() => {});
                   } else {
-                    navigator.clipboard?.writeText(text).then(() => alert('Code copied!')).catch(() => {});
+                    navigator.clipboard?.writeText(joinUrl).then(() => alert('Invite link copied!')).catch(() => {});
                   }
                 }}
                 className="flex flex-col items-center gap-1 bg-[#6BAEE0] text-white px-4 py-3 rounded-2xl shadow-md active:scale-95 transition-all"
@@ -339,7 +353,7 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
                 <span className="text-[9px] font-black">Share</span>
               </button>
             </div>
-            <p className="text-[9px] text-slate-400 mt-1.5 text-center">Share this code so others can join automatically</p>
+            <p className="text-[9px] text-slate-400 mt-1.5 text-center">Share the link — invitees tap it to join automatically</p>
           </div>
         </div>
       )}
@@ -419,37 +433,6 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
         </section>
       )}
 
-      {/* Shared Shopping List */}
-      <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
-        <h2 className="text-[14px] font-bold text-slate-400 mb-4 flex items-center gap-2"><ShoppingCart size={15} /> Shared Shopping List</h2>
-
-        <form onSubmit={e => { e.preventDefault(); addShoppingItem(); }} className="flex gap-2 mb-4">
-          <input
-            type="text" value={newShopItem} onChange={e => setNewShopItem(e.target.value)}
-            placeholder="Add to household list…"
-            className="flex-1 bg-blue-50/50 border border-blue-100 px-4 py-3 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none"
-          />
-          <button type="submit" className="bg-[#6BAEE0] text-white p-3 rounded-2xl shadow-md"><Plus size={18} /></button>
-        </form>
-
-        {localShopItems.length === 0 ? (
-          <p className="text-xs text-slate-300 italic text-center py-4">No items yet</p>
-        ) : (
-          <div className="space-y-2">
-            {localShopItems.map(item => (
-              <div key={item.id} className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all ${item.is_completed ? 'bg-emerald-50 border-emerald-100' : 'bg-blue-50/50 border-blue-100'}`}>
-                <button onClick={() => toggleShopItemLocal(item.id, item.is_completed)}
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${item.is_completed ? 'bg-emerald-400 border-emerald-400' : 'border-blue-200'}`}>
-                  {item.is_completed && <Check size={10} className="text-white" />}
-                </button>
-                <span className={`flex-1 text-xs font-bold ${item.is_completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>{item.item_name}</span>
-                <button onClick={() => removeShopItem(item.id)} className="text-slate-200 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
       {/* Shared Recipes */}
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
         <h2 className="text-[14px] font-bold text-slate-400 mb-4 flex items-center gap-2"><Star size={15} /> Shared Recipes</h2>
@@ -474,11 +457,13 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
       </section>
 
       {/* Settle Up */}
-      {members.length > 1 && localShopItems.length > 0 && (
+      {members.length > 1 && (localShopItems.length > 0 || householdPantryItems.length > 0) && (
         <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
           <h2 className="text-[14px] font-bold text-slate-400 mb-4 flex items-center gap-2"><CreditCard size={15} /> Settle Up</h2>
           {(() => {
-            const totalSpend = localShopItems.reduce((s, i) => s + (i.price || 0), 0);
+            const shopSpend = localShopItems.reduce((s, i) => s + (i.price || 0), 0);
+            const pantrySpend = householdPantryItems.reduce((s, i) => s + (i.price || 0), 0);
+            const totalSpend = shopSpend + pantrySpend;
             const perPerson = members.length > 0 ? totalSpend / members.length : 0;
             const note = encodeURIComponent(`Hungry App: Grocery Split — ${selectedHH?.name || 'Household'}`);
             const amount = perPerson.toFixed(2);
@@ -488,8 +473,20 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
               <div className="space-y-3">
                 <div className="bg-sky-50 border border-sky-100 rounded-2xl px-4 py-3">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Cost Breakdown</p>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs text-slate-500">Total list spend</span>
+                  {shopSpend > 0 && (
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-slate-500">Shopping list</span>
+                      <span className="text-sm font-black text-slate-700">${shopSpend.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {pantrySpend > 0 && (
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-slate-500">Pantry items</span>
+                      <span className="text-sm font-black text-slate-700">${pantrySpend.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center mb-1 border-t border-sky-200 pt-1">
+                    <span className="text-xs text-slate-500 font-bold">Total</span>
                     <span className="text-sm font-black text-slate-700">${totalSpend.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -507,22 +504,28 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
                     <ExternalLink size={13} /> Request ${amount} from each member via Venmo
                   </a>
                 )}
-                {members.filter(m => m.id !== user?.id).map(m => (
-                  <div key={m.id} className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
-                    {(m.hungry_avatar_url || m.avatar_url)
-                      ? <img src={m.hungry_avatar_url || m.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-blue-100" />
-                      : <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#6BAEE0] to-[#4d96d1] flex items-center justify-center text-white font-black text-sm shrink-0">{(m.display_name || '?')[0].toUpperCase()}</div>
-                    }
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-700 truncate">{m.display_name || 'Member'}</p>
-                      <p className="text-[10px] text-slate-400">owes ${perPerson.toFixed(2)}</p>
+                {members.filter(m => m.id !== user?.id).map(m => {
+                  const memberVenmo = m.hungry_settings?.venmo_username;
+                  const memberVenmoUrl = memberVenmo
+                    ? `https://venmo.com/${memberVenmo}?txn=charge&amount=${amount}&note=${note}`
+                    : venmoUrl;
+                  return (
+                    <div key={m.id} className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
+                      {(m.hungry_avatar_url || m.avatar_url)
+                        ? <img src={m.hungry_avatar_url || m.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-blue-100" />
+                        : <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#6BAEE0] to-[#4d96d1] flex items-center justify-center text-white font-black text-sm shrink-0">{(m.display_name || '?')[0].toUpperCase()}</div>
+                      }
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-700 truncate">{m.display_name || 'Member'}</p>
+                        <p className="text-[10px] text-slate-400">owes ${perPerson.toFixed(2)}{memberVenmo ? ` · @${memberVenmo}` : ''}</p>
+                      </div>
+                      <a href={memberVenmoUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[10px] font-black text-white bg-[#3D95CE] px-2.5 py-1.5 rounded-xl hover:opacity-90 transition-all shrink-0">
+                        <ExternalLink size={11} /> Venmo
+                      </a>
                     </div>
-                    <a href={venmoUrl} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-[10px] font-black text-white bg-[#3D95CE] px-2.5 py-1.5 rounded-xl hover:opacity-90 transition-all shrink-0">
-                      <ExternalLink size={11} /> Venmo
-                    </a>
-                  </div>
-                ))}
+                  );
+                })}
                 <a href={splitwiseUrl} target="_blank" rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full text-[11px] font-black text-slate-400 hover:text-[#6BAEE0] border border-slate-100 hover:border-sky-200 rounded-2xl py-2.5 transition-all">
                   <ExternalLink size={12} /> Open Splitwise

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Camera, Plus, AlertCircle, Trash2, Scan, Loader2, X, Users, User, GripVertical, ChevronRight, Mic, MicOff, UtensilsCrossed, Check } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { estimateNutrition, categorizeItem, CATEGORY_ICONS, toTitleCase } from './recipeUtils';
+import { estimateNutrition, categorizeItem, CATEGORY_ICONS, toTitleCase, getEstimatedExpiry } from './recipeUtils';
 
 const CATEGORIES = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables', 'Bakery', 'Beverages', 'Alcohol', 'Snacks', 'Frozen', 'Sauces', 'Spices', 'General'];
 
@@ -347,7 +347,20 @@ export default function PantryManager({
   quantities = {}, adjustQuantity, setQuantityForItem,
 }) {
   const [manualItem, setManualItem] = useState('');
-  const [selectedHouseholdId, setSelectedHouseholdId] = useState(null);
+  const [selectedHouseholdId, setSelectedHouseholdId] = useState(activeHousehold?.id || null);
+  const [addToast, setAddToast] = useState(null); // { text }
+  const toastTimerRef = useRef(null);
+
+  const showAddToast = (itemName) => {
+    const expiryDate = getEstimatedExpiry(itemName);
+    const days = Math.round((new Date(expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+    const timeStr = days >= 365 ? `${Math.round(days / 365)} year${Math.round(days / 365) > 1 ? 's' : ''}` :
+                    days >= 30  ? `${Math.round(days / 30)} month${Math.round(days / 30) > 1 ? 's' : ''}` :
+                    `${days} day${days !== 1 ? 's' : ''}`;
+    clearTimeout(toastTimerRef.current);
+    setAddToast({ text: `${toTitleCase(itemName)} added, expires in ${timeStr}` });
+    toastTimerRef.current = setTimeout(() => setAddToast(null), 3000);
+  };
   const [activeSheet, setActiveSheet] = useState(null);
   const [hhPickerItemId, setHhPickerItemId] = useState(null);
   const [activeIngredient, setActiveIngredient] = useState(null);
@@ -355,6 +368,10 @@ export default function PantryManager({
     try { return JSON.parse(localStorage.getItem('hungry_cat_overrides') || '{}'); } catch { return {}; }
   });
   const hasScannedRef = useRef(false);
+
+  useEffect(() => {
+    if (activeHousehold?.id) setSelectedHouseholdId(activeHousehold.id);
+  }, [activeHousehold?.id]);
 
   // Leftover Recon state
   const [leftoverLoading, setLeftoverLoading] = useState(false);
@@ -398,7 +415,9 @@ export default function PantryManager({
   const submitItem = (e) => {
     e.preventDefault();
     if (!manualItem.trim()) return;
-    handleAddManualItem(manualItem, selectedHouseholdId);
+    const name = manualItem.trim();
+    handleAddManualItem(name, selectedHouseholdId);
+    showAddToast(name);
     setManualItem('');
   };
 
@@ -573,6 +592,12 @@ export default function PantryManager({
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* ── Add Toast ──────────────────────────────────────────────────────── */}
+      {addToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 bg-emerald-500 text-white text-xs font-black rounded-2xl shadow-xl shadow-emerald-300/40 animate-in fade-in slide-in-from-bottom-2 duration-300 whitespace-nowrap">
+          ✓ {addToast.text}
+        </div>
+      )}
       {/* ── Input Section ─────────────────────────────────────────────────── */}
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
         <div className="space-y-4">
@@ -595,15 +620,8 @@ export default function PantryManager({
               </button>
             </div>
 
-            {households.length > 0 && (
+            {households.length > 1 && (
               <div className="flex gap-2 flex-wrap pt-1">
-                <button
-                  type="button"
-                  onClick={() => setSelectedHouseholdId(null)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[11px] font-bold transition-all border ${!selectedHouseholdId ? 'bg-sky-50 text-[#6BAEE0] border-sky-200' : 'bg-white text-slate-400 border-blue-50 hover:border-sky-200'}`}
-                >
-                  <User size={13} /> Personal
-                </button>
                 {households.map(hh => (
                   <button
                     key={hh.id}

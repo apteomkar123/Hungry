@@ -4,7 +4,7 @@ import { useUser } from './UserContext';
 import { supabase } from '../supabaseClient';
 import { useAppWareSSO } from '../hooks/useAppWareSSO';
 
-const DIETARY_OPTIONS = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Halal', 'Kosher', 'Dairy-Free', 'Nut-Free', 'Low-Carb', 'High-Protein'];
+const DIETARY_OPTIONS = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Halal', 'Kosher', 'Dairy-Free', 'Nut-Free', 'Low-Carb'];
 const NUTRITION_GOALS = ['Balanced', 'High Protein', 'Low Carb', 'Low Fat', 'Build Muscle', 'Lose Weight'];
 
 export default function SettingsPage({ onNavigateFriends }) {
@@ -25,11 +25,13 @@ export default function SettingsPage({ onNavigateFriends }) {
   } = useUser();
 
   const [identities, setIdentities] = useState([]);
+  const [appwareLinkStatus, setAppwareLinkStatus] = useState(null); // null=loading, true=linked, false=not
   const [linkLoading, setLinkLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.identities) setIdentities(user.identities);
+      setAppwareLinkStatus(user?.user_metadata?.appware_linked === true);
     });
   }, []);
 
@@ -112,6 +114,8 @@ export default function SettingsPage({ onNavigateFriends }) {
   const [heightFt, setHeightFt] = useState(String(userSettings?.height_ft || ''));
   const [heightIn, setHeightIn] = useState(String(userSettings?.height_in || ''));
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [venmoUsername, setVenmoUsername] = useState(userSettings?.venmo_username || '');
+  const [venmoSaved, setVenmoSaved] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
   const personalBudget = userSettings?.personal_budget_limit || 0;
   const [defaultShoppingDest, setDefaultShoppingDest] = useState(() =>
@@ -140,6 +144,7 @@ export default function SettingsPage({ onNavigateFriends }) {
       setWeightLbs(String(userSettings.weight_lbs || ''));
       setHeightFt(String(userSettings.height_ft || ''));
       setHeightIn(String(userSettings.height_in || ''));
+      setVenmoUsername(userSettings.venmo_username || '');
     }
   }, [userSettings]);
 
@@ -160,6 +165,7 @@ export default function SettingsPage({ onNavigateFriends }) {
       weight_lbs: weightLbs ? Number(weightLbs) : '',
       height_ft: heightFt ? Number(heightFt) : '',
       height_in: heightIn ? Number(heightIn) : '',
+      venmo_username: venmoUsername.trim().replace(/^@/, ''),
     });
     onUpdateName(displayName);
     setSettingsSaved(true);
@@ -334,6 +340,22 @@ export default function SettingsPage({ onNavigateFriends }) {
           </div>
         </div>
 
+        {/* Venmo Username */}
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Venmo Username</label>
+          <div className="relative mt-1">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">@</span>
+            <input
+              type="text"
+              placeholder="your_venmo"
+              value={venmoUsername}
+              onChange={e => setVenmoUsername(e.target.value.replace(/^@/, ''))}
+              className="w-full bg-blue-50/50 border border-blue-100 pl-8 pr-4 py-3 rounded-2xl text-sm font-bold text-slate-800 focus:border-sky-400 focus:outline-none"
+            />
+          </div>
+          <p className="text-[9px] text-slate-400 mt-1 px-1">Used to auto-fill Venmo payment links when splitting grocery costs</p>
+        </div>
+
         <button
           onClick={saveSettings}
           className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg ${settingsSaved ? 'bg-emerald-500 text-white' : 'bg-[#6BAEE0] text-white shadow-blue-100'}`}
@@ -466,14 +488,20 @@ export default function SettingsPage({ onNavigateFriends }) {
           ))}
         </div>
 
-        <button
-          onClick={linkAppWare}
-          disabled={linkLoading}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[#6BAEE0] text-white text-[12px] font-black hover:opacity-90 shadow-sm transition-all"
-        >
-          <Link size={14} />
-          {linkLoading ? 'Redirecting…' : 'Link AppWare Account'}
-        </button>
+        {appwareLinkStatus ? (
+          <div className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 text-[12px] font-black">
+            <span>✓</span> AppWare Account Linked
+          </div>
+        ) : (
+          <button
+            onClick={linkAppWare}
+            disabled={linkLoading}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[#6BAEE0] text-white text-[12px] font-black hover:opacity-90 shadow-sm transition-all"
+          >
+            <Link size={14} />
+            {linkLoading ? 'Redirecting…' : 'Link AppWare Account'}
+          </button>
+        )}
 
       </section>
 

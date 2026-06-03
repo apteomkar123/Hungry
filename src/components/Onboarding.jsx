@@ -123,7 +123,7 @@ const SCREENS = [
   },
 ];
 
-const RESTRICTIONS = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Halal', 'Kosher', 'Dairy-Free', 'Nut-Free', 'Low-Carb', 'High-Protein'];
+const RESTRICTIONS = ['Vegetarian', 'Vegan', 'Gluten-Free', 'Halal', 'Kosher', 'Dairy-Free', 'Nut-Free', 'Low-Carb'];
 const GOALS = ['Balanced', 'High Protein', 'Low Carb', 'Low Fat', 'Build Muscle', 'Lose Weight'];
 
 export default function Onboarding({ user, onComplete }) {
@@ -222,24 +222,51 @@ export default function Onboarding({ user, onComplete }) {
 
   const handleNext = async () => {
     if (isPrefs) {
+      if (!chefName.trim()) {
+        alert('Please enter your name to continue.');
+        return;
+      }
       setSaving(true);
       try {
         const goalsList = goals.length > 0 ? goals : ['Balanced'];
+        const meta = user?.user_metadata || {};
+        const existingHHIds = meta.household_ids || (meta.household_id ? [meta.household_id] : []);
+
+        // Auto-create a solo household for users who don't have one
+        let soloHHId = existingHHIds[0] || null;
+        if (!soloHHId && user?.id) {
+          const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+          const { data: newHH } = await supabase.from('households')
+            .insert([{ name: `${chefName.trim() || 'My'}'s Kitchen`, invite_code: inviteCode }])
+            .select().single();
+          if (newHH) {
+            soloHHId = newHH.id;
+            await supabase.from('household_members').upsert([{ household_id: newHH.id, profile_id: user.id, role: 'Administrator' }]);
+          }
+        }
+
+        const hhUpdate = soloHHId && !existingHHIds.includes(soloHHId)
+          ? { household_ids: [soloHHId], active_household_id: soloHHId }
+          : {};
+
         await supabase.auth.updateUser({
           data: {
-            name: chefName.trim() || undefined,
+            name: chefName.trim(),
             dietary_restrictions: restrictions,
             nutrition_goal: goalsList[0],
             nutrition_goals: goalsList,
             onboarding_completed: true,
+            ...hhUpdate,
           }
         });
         // Also write to profiles if it exists
         if (user?.id) {
-          await supabase.from('profiles').upsert([{
+          const profileData = {
             id: user.id,
             display_name: chefName.trim() || user.email?.split('@')[0] || 'Chef',
-          }]).select();
+          };
+          if (soloHHId) profileData.active_household_id = soloHHId;
+          await supabase.from('profiles').upsert([profileData]).select();
         }
       } catch {}
       setSaving(false);

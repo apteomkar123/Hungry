@@ -567,3 +567,31 @@ DONE (Session 20 / 2026-06-02)
 AppWare SSO sign-in redirect bug: removed window.location.reload() from ingestIncomingSession (unnecessary — onAuthStateChange handles transition); added try/catch with user-visible alert for setSession errors; added query-param fallback for access_token (PKCE redirects); moved history.replaceState to finally block so tokens are always cleaned.
 UserContext loading race with SSO: setLoading(false) now fires from a one-shot doneLoading() closure called by both getSession().then() and onAuthStateChange — whichever resolves first clears loading, preventing a stuck loading state when detectSessionInUrl sets the session after getSession resolved with null.
 
+
+BUGS TO FIX (Session 21 / 2026-06-02) — COMPLETED
+---------------------------------------------------
+When a nutrition number in the nutritional analysis is tapped, the card that shows up is still going off screen off the top
+Icon on iOS Home Screen still not updated to the Pacifico text logo
+If AppWare account is already linked, it shouldn't show the button in settings
+Take out high protein from dietary restrictions
+When a user joins the household, they don't get added to the member list on the creator of the household's app immediately, refresh every 5 seconds
+The dropdown for choosing a household shouldn't show up if the user only has household
+Can't add items to shared shopping list from the household section, only able to add from personal shopping list
+Household shopping list and recipes aren't showing for other users in the household instantly, refresh more often, every 5 seconds.
+If user has set a name on AppWare, Hungry should automatically pull that it as the name.
+Dropdown to share recipes in saved recipes isn't showing up correctly, it's getting covered. It should be at the front layer
+When a pantry item is added to a household, the settle up in household doesn't get updated
+Changes made by one user in a household take forever to reflect on the other users app
+Do better on expiry dates on all ingredients. Look up each pantry items and figure out their expiry dates. They feel random right now, cottage cheese for example definetly does not expire in 7 days.
+Take out the little button that says change next to the "shared with roomies" bubble at the top of the household section
+Swiping to the right anywhere on the screen should pull up the nav
+Sometimes, when a substitution is made for dietary restrictions, the recipe title has the dietary restriction twice, like "vegetarian vegetarian chilli prawn linguine"
+
+FEATURES TO ADD (Session 21 / 2026-06-02) — COMPLETED
+-------------------------------------------------------
+Sharing a household invite should create a link that the the invitee can just tap on and automatically join the household
+Make name mandatory in the onboarding
+Take out the whole personal and household logic. Instead, everything should be household, and the user can create a household of just themselves if they love alone. Take out the shared household shopping list, but keep the shared recipe list. Personal recipe list and shared recipe list should still be separate. Add a feature to switch household on the home page on the header or just below the header. The shopping list section should have a dropdown allowing you to select which shopping list you want to be in. Keep the settle up feature still in the household section, as well as the members. The pantry will also be attached to a household
+Allow users to connect their Venmo account so tapping on split bill will automatically fill in the Venmo user accounts in the Venmo request app
+When an item is added to pantry, it should pull up a small temporary message that says "(item) added, expires in (time)"
+

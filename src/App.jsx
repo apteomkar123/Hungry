@@ -121,8 +121,6 @@ function AppContent({ inventory }) {
   const [savedTab, setSavedTab] = useState('saved'); // 'saved' | 'restaurants'
   const [savedFiltersOpen, setSavedFiltersOpen] = useState(false);
 
-  // Derive household shopping items directly from main state — no async fetch needed
-  const hhShoppingItems = shoppingList.filter(i => i.household_id === activeHousehold?.id);
   const [savedShareMenuId, setSavedShareMenuId] = useState(null);
   const savedShareMenuRef = useRef(null);
 
@@ -146,11 +144,12 @@ function AppContent({ inventory }) {
     if (touchStartX.current === null) return;
     const startX = touchStartX.current;
     const deltaX = e.changedTouches[0].clientX - startX;
-    // Only open nav when swipe starts within 30px of left edge
-    if (deltaX > 60 && !navOpen && startX < 30) setNavOpen(true);
+    // Open nav on swipe right from anywhere on screen
+    if (deltaX > 60 && !navOpen) setNavOpen(true);
     else if (deltaX < -60 && navOpen) setNavOpen(false);
     touchStartX.current = null;
   }, [navOpen]);
+  const [shopHHFilter, setShopHHFilter] = useState(activeHousehold?.id || 'all');
   const [shopCategoryFilters, setShopCategoryFilters] = useState([]);
   const [shopDietFilters, setShopDietFilters] = useState([]);
   const [shopCuisineFilters, setShopCuisineFilters] = useState([]);
@@ -256,31 +255,44 @@ function AppContent({ inventory }) {
               />
             )}
             {activeTab === 'recipes' && <RecipeExplorer initialMood={jukeboxMood} />}
-            {activeTab === 'shopping' && (
-              <>
-                <div className="flex justify-end mb-4">
-                  <button
-                    onClick={() => setIsShopperOpen(true)}
-                    className="flex items-center gap-2 bg-[#6BAEE0] text-white px-5 py-2.5 rounded-2xl text-xs font-black shadow-lg shadow-blue-100 active:scale-95 transition-all"
-                  >
-                    <ShoppingCart size={14} /> Go Shopping
-                  </button>
-                </div>
-                <ShoppingListManager
-                  list={shoppingList}
-                  onAdd={handleAddShoppingItem}
-                  onToggle={handleToggleShoppingCompleted}
-                  onClear={handleClearShoppingItem}
-                  onRename={handleRenameShoppingItem}
-                  onClearAll={handleClearAllShoppingItems}
-                  onMarkAllDone={handleMarkAllShoppingCompleted}
-                  onAddToPantry={handleAddManualItem}
-                  onRemoveFromPantry={handleRemoveFromPantryByName}
-                  households={households}
-                  onMoveToHousehold={(itemId, hhId) => handleMoveShoppingItem(itemId, hhId)}
-                />
-              </>
-            )}
+            {activeTab === 'shopping' && (() => {
+              const filteredShoppingList = shopHHFilter === 'all'
+                ? shoppingList
+                : shoppingList.filter(i => i.household_id === shopHHFilter || (!i.household_id && shopHHFilter === 'personal'));
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+                    {households?.length > 0 && (
+                      <div className="flex gap-1.5 overflow-x-auto scrollbar-hide flex-1">
+                        <button onClick={() => setShopHHFilter('all')} className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black transition-all ${shopHHFilter === 'all' ? 'bg-[#6BAEE0] text-white' : 'bg-white border border-blue-100 text-slate-500 hover:border-sky-300'}`}>All</button>
+                        {households.map(h => (
+                          <button key={h.id} onClick={() => setShopHHFilter(h.id)} className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black transition-all ${shopHHFilter === h.id ? 'bg-[#6BAEE0] text-white' : 'bg-white border border-blue-100 text-slate-500 hover:border-sky-300'}`}>{h.name}</button>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setIsShopperOpen(true)}
+                      className="flex items-center gap-2 bg-[#6BAEE0] text-white px-5 py-2.5 rounded-2xl text-xs font-black shadow-lg shadow-blue-100 active:scale-95 transition-all shrink-0"
+                    >
+                      <ShoppingCart size={14} /> Go Shopping
+                    </button>
+                  </div>
+                  <ShoppingListManager
+                    list={filteredShoppingList}
+                    onAdd={handleAddShoppingItem}
+                    onToggle={handleToggleShoppingCompleted}
+                    onClear={handleClearShoppingItem}
+                    onRename={handleRenameShoppingItem}
+                    onClearAll={handleClearAllShoppingItems}
+                    onMarkAllDone={handleMarkAllShoppingCompleted}
+                    onAddToPantry={handleAddManualItem}
+                    onRemoveFromPantry={handleRemoveFromPantryByName}
+                    households={households}
+                    onMoveToHousehold={(itemId, hhId) => handleMoveShoppingItem(itemId, hhId)}
+                  />
+                </>
+              );
+            })()}
             {activeTab === 'chefHistory' && <ChefHistory />}
             {activeTab === 'analytics' && (
               <AnalyticsDashboard
@@ -437,7 +449,7 @@ function AppContent({ inventory }) {
                       const masterRecipe = masterRecipes?.find(mr => String(mr.id) === String(recipe.recipe_id));
                       const image = recipe.image || masterRecipe?.image || null;
                       return (
-                        <div key={recipe.id} className="bg-white/80 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition-all group overflow-hidden w-full min-w-0">
+                        <div key={recipe.id} className="bg-white/80 rounded-3xl border border-blue-100 shadow-sm hover:shadow-md transition-all group w-full min-w-0">
                           {image && (
                             <div
                               className="w-full h-32 overflow-hidden cursor-pointer"
@@ -476,7 +488,7 @@ function AppContent({ inventory }) {
                                     <Users size={11} /> Share
                                   </button>
                                   {savedShareMenuId === recipe.id && (
-                                    <div className="absolute right-0 top-full mt-1 bg-white border border-blue-100 rounded-2xl shadow-xl z-30 min-w-40 p-2 space-y-1">
+                                    <div className="absolute right-0 top-full mt-1 bg-white border border-blue-100 rounded-2xl shadow-xl z-50 min-w-40 p-2 space-y-1">
                                       {households.map(h => (
                                         <button key={h.id}
                                           onClick={() => {

@@ -42,6 +42,7 @@ export const UserProvider = ({ children }) => {
     height_ft: '',
     height_in: '',
     personal_budget_limit: 0,
+    venmo_username: '',
   });
 
   const loadUserState = async (authUser) => {
@@ -55,7 +56,17 @@ export const UserProvider = ({ children }) => {
     }
     setUser(authUser);
     const meta = authUser.user_metadata || {};
-    setUserName(meta.name || '');
+    // If no name in Hungry metadata, try to pull from AppWare profiles table
+    let resolvedName = meta.name || '';
+    if (!resolvedName && authUser.id) {
+      const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', authUser.id).single();
+      if (profile?.display_name && profile.display_name !== authUser.email?.split('@')[0]) {
+        resolvedName = profile.display_name;
+        // Sync it into user_metadata so we don't need to re-fetch every time
+        supabase.auth.updateUser({ data: { name: resolvedName } }).then(() => {});
+      }
+    }
+    setUserName(resolvedName);
     setUserSettings({
       bio: meta.bio || '',
       dietary_restrictions: meta.dietary_restrictions || [],
@@ -66,6 +77,7 @@ export const UserProvider = ({ children }) => {
       height_ft: meta.height_ft || '',
       height_in: meta.height_in || '',
       personal_budget_limit: meta.personal_budget_limit || 0,
+      venmo_username: meta.venmo_username || '',
     });
 
     // Support both old single household_id and new household_ids array
@@ -96,6 +108,29 @@ export const UserProvider = ({ children }) => {
       });
     }
 
+    // Auto-join from invite link if a join code was stored
+    const pendingJoin = sessionStorage.getItem('hungry_pending_join');
+    if (pendingJoin && authUser) {
+      sessionStorage.removeItem('hungry_pending_join');
+      const meta2 = authUser.user_metadata || {};
+      const currentIds2 = meta2.household_ids || (meta2.household_id ? [meta2.household_id] : []);
+      supabase.from('households').select('*').eq('invite_code', pendingJoin).single().then(async ({ data: hh }) => {
+        if (!hh || currentIds2.includes(hh.id)) return;
+        const { error: metaErr } = await supabase.auth.updateUser({
+          data: { household_ids: [...currentIds2, hh.id], active_household_id: hh.id }
+        });
+        if (!metaErr) {
+          const displayName2 = meta2.name || authUser.email?.split('@')[0] || 'Chef';
+          await Promise.all([
+            supabase.from('profiles').upsert([{ id: authUser.id, display_name: displayName2, active_household_id: hh.id }]),
+            supabase.from('household_members').upsert([{ household_id: hh.id, profile_id: authUser.id, role: 'Tenant' }], { onConflict: 'household_id,profile_id' }),
+          ]);
+          setHouseholds(prev => [...prev, hh]);
+          setActiveHousehold(hh);
+        }
+      });
+    }
+
     // Load profile data (tutorial state + avatars + friend code + hungry_household_id)
     supabase.from('profiles').select('hungry_tutorial_done, avatar_url, hungry_avatar_url, friend_code, hungry_household_id').eq('id', authUser.id).single()
       .then(async ({ data }) => {
@@ -116,6 +151,16 @@ export const UserProvider = ({ children }) => {
         }
       }).catch(() => {});
   };
+
+  // Auto-join household from invite link (?join=CODE)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const joinCode = params.get('join');
+    if (!joinCode) return;
+    // Store in sessionStorage so we can act after auth loads
+    sessionStorage.setItem('hungry_pending_join', joinCode.toUpperCase());
+    window.history.replaceState(null, '', window.location.pathname);
+  }, []);
 
   useEffect(() => {
     let loadingDone = false;
@@ -254,6 +299,13 @@ export const UserProvider = ({ children }) => {
 
   const handleUpdateSettings = async (settings) => {
     if (!user) return;
+    // Also write venmo_username + dietary_restrictions to profiles.hungry_settings for household members to see
+    if (settings.venmo_username !== undefined || settings.dietary_restrictions !== undefined) {
+      const patch = {};
+      if (settings.venmo_username !== undefined) patch.venmo_username = settings.venmo_username;
+      if (settings.dietary_restrictions !== undefined) patch.dietary_restrictions = settings.dietary_restrictions;
+      supabase.from('profiles').upsert({ id: user.id, hungry_settings: patch }).then(() => {});
+    }
     const { data, error } = await supabase.auth.updateUser({ data: settings });
     if (!error && data.user) {
       const meta = data.user.user_metadata || {};
@@ -267,6 +319,7 @@ export const UserProvider = ({ children }) => {
         height_ft: meta.height_ft || '',
         height_in: meta.height_in || '',
         personal_budget_limit: meta.personal_budget_limit || 0,
+        venmo_username: meta.venmo_username || '',
       });
     }
   };

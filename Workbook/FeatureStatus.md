@@ -398,6 +398,35 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - **Cooking Mode UI redesign** — Full visual overhaul: deep navy gradient background with ambient glow orbs, glassy backdrop-blur step card, animated progress bar, animated ping ring on active mic, simplified controls (no more voiceover toggle or manual-read button). TTS auto-reading of steps removed; the Sous Chef mic now exclusively drives voice interaction and speaks only its own AI responses (substitution suggestions, ingredient confirmations).
 - **Tap outside to close overlays** — Tapping the dark backdrop outside RecipeModal or CookingMode now dismisses the overlay. Nutrition breakdown card in Analytics already had this behavior.
 
+### Session 21 (2026-06-02)
+**Bugs fixed:**
+- **Nutrition card off-screen at top** — modal changed to `max-h-[65dvh]` with no extra top-padding; card anchors at bottom-sheet and never overflows above viewport.
+- **Remove High-Protein from dietary restrictions** — removed from both `SettingsPage` (`DIETARY_OPTIONS`) and `Onboarding` (`RESTRICTIONS`); High-Protein is a nutrition goal, not a dietary restriction.
+- **"Change" button removed from Household Mode badge** — the single-line badge in HouseholdTab no longer has a "Change" tap target; layout simplified to a pure info pill.
+- **Swipe right anywhere opens nav** — removed the `startX < 30` left-edge restriction; swipe right from anywhere on screen now opens the nav drawer.
+- **Recipe title duplicating dietary restriction** — `locallyAdaptRecipe` in recipeUtils now checks if the recipe name already starts with the diet word before prepending it (e.g. "Vegetarian Chilli" → no second "Vegetarian" prefix).
+- **Household data polling every 5 seconds** — members, shopping list, and recipes now refresh every 5 s via `setInterval` in HouseholdTab, so changes from other users appear quickly.
+- **Share recipe dropdown covered** — removed `overflow-hidden` from the saved-recipe card container; the share dropdown now floats above correctly at `z-50`.
+- **AppWare account already linked** — SettingsPage now fetches `user_metadata.appware_linked`; if true, shows a "✓ AppWare Account Linked" badge instead of the Link button. `useAppWareSSO` sets `appware_linked: true` in metadata on successful SSO ingest.
+- **Name mandatory in onboarding** — `handleNext` now validates `chefName.trim()` on the prefs screen; shows an alert and returns early if empty.
+- **Expiry dates more accurate** — `getEstimatedExpiry` fully rewritten with research-backed shelf-life data: cottage cheese (14d), Greek yogurt (21d), fresh chicken (3d), raw seafood (2d), eggs (35d), hard cheese (30d), etc. Covers 50+ ingredient categories.
+- **Household invite as deep link** — share button now shares `${origin}?join=CODE` URL; tapping the link auto-joins the invitee's household. `UserContext` reads `?join=CODE` on load and runs `handleJoinHousehold` automatically.
+- **Adding items to household shopping list** — HouseholdTab now inserts directly via Supabase with `household_id`, bypassing the localStorage preference hack that could misroute items.
+- **AppWare display name auto-pulled** — `loadUserState` now falls back to `profiles.display_name` if user metadata has no `name`; syncs it back to metadata so subsequent loads are instant.
+- **Settle Up includes pantry items** — `householdPantryItems` fetched from `fridge_inventory` per household; settle-up total = shopping list costs + priced pantry items. Breakdown shows Shopping + Pantry lines separately.
+- **"Change" button removed** — (see above)
+
+**Features added:**
+- **Pantry toast on item add** — adding any item to the pantry shows a green bottom toast: "(Item) added, expires in X days/months/years".
+- **Venmo username in settings** — new `@venmo_username` field in Settings; saved to user metadata and to `profiles.hungry_settings.venmo_username` so household members can see it. Per-member Venmo links in Settle Up pre-fill the specific member's Venmo handle when known.
+- **Household switcher in header** — when a user belongs to multiple households, pill buttons appear below the greeting in the Header to switch the active household instantly.
+- **Shopping list household filter** — Shopping tab now has household pill-filter buttons at the top; "All" shows everything, each household shows only that household's items.
+- **Shared shopping list removed from Household tab** — the shared shopping list section is removed from HouseholdTab; shared recipes and Settle Up remain. Shopping is now managed from the Shopping tab.
+- **Auto-create solo household on onboarding** — if a new user doesn't already have a household, onboarding creates a `[Name]'s Kitchen` solo household automatically, so everything is always household-scoped.
+- **Pantry defaults to active household** — PantryManager now pre-selects the active household (not personal/null) and syncs with active household changes; shows household selector only when user has more than one household.
+
+*Last updated: 2026-06-02 (session 21)*
+
 ### Session 20 (2026-06-02)
 **Bugs fixed:**
 - **AppWare sign-in redirecting back to login page** — `useAppWareSSO.ingestIncomingSession` called `window.location.reload()` after `setSession`, which was unnecessary (Supabase's `onAuthStateChange` handles state transition) and created a window for race conditions if localStorage hadn't fully persisted. Removed `reload()`. Also: `setSession` errors were silently swallowed — added try/catch with a user-visible alert and proper console error. Also: only the URL hash was checked for tokens; now checks query params too (covers PKCE / manual portal redirects that use `?access_token=...`). `window.history.replaceState` moved to `finally` block so tokens are always cleaned regardless of outcome.
