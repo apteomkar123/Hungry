@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
-import { Plus, Check, Trash2, ShoppingCart, Users, Pencil, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Check, Trash2, ShoppingCart, Pencil, Sparkles, Loader2 } from 'lucide-react';
 import { useUser } from './UserContext';
 
 const AISLES = [
@@ -21,10 +21,9 @@ const getAisle = (itemName) => {
   return 'Pantry';
 };
 
-export default function ShoppingListManager({ list = [], onAdd, onToggle, onClear, onRename, onClearAll, onMarkAllDone, onAddToPantry, onRemoveFromPantry, households = [], onMoveToHousehold }) {
+export default function ShoppingListManager({ list = [], onAdd, onToggle, onClear, onRename, onClearAll, onMarkAllDone, onAddToPantry, onRemoveFromPantry }) {
   const { userSettings } = useUser();
   const [shoppingInput, setShoppingInput] = useState('');
-  const [movingId, setMovingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [swapLoadingId, setSwapLoadingId] = useState(null);
@@ -107,39 +106,6 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
-        {/* Move between personal ↔ household */}
-        {households.length > 0 && onMoveToHousehold && !item.is_completed && (
-          <div className="relative">
-            <button
-              onClick={(e) => { e.stopPropagation(); setMovingId(movingId === item.id ? null : item.id); }}
-              className="p-1.5 text-slate-300 hover:text-[#6BAEE0] transition-colors"
-              title="Move to list"
-            >
-              <Users size={14} />
-            </button>
-            {movingId === item.id && (
-              <div className="absolute right-0 top-8 bg-white border border-blue-100 rounded-2xl shadow-xl z-20 min-w-[150px] p-2 space-y-1">
-                {item.household_id && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onMoveToHousehold(item.id, null); setMovingId(null); }}
-                    className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-[#6BAEE0] transition-all flex items-center gap-2"
-                  >
-                    <span className="text-[10px]">👤</span> My Personal List
-                  </button>
-                )}
-                {households.map(h => (
-                  <button
-                    key={h.id}
-                    onClick={(e) => { e.stopPropagation(); onMoveToHousehold(item.id, h.id); setMovingId(null); }}
-                    className={`w-full text-left text-xs font-bold px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${item.household_id === h.id ? 'text-[#6BAEE0] bg-sky-50' : 'text-slate-600 hover:bg-sky-50 hover:text-[#6BAEE0]'}`}
-                  >
-                    <span className="text-[10px]">👥</span> {h.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
         {!item.is_completed && onRename && (
           <button onClick={() => startEditing(item)} className="text-slate-200 hover:text-sky-400 transition-colors p-1.5"><Pencil size={14} /></button>
         )}
@@ -169,9 +135,8 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
     </div>
   );
 
-  const closeDropdown = () => setMovingId(null);
   return (
-    <div className="space-y-6 animate-in fade-in duration-500" onClick={closeDropdown} onTouchStart={closeDropdown}>
+    <div className="space-y-6 animate-in fade-in duration-500">
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
         <div className="flex items-center gap-3 mb-6 px-2">
           <div className="p-3 bg-sky-50 text-[#6BAEE0] rounded-2xl">

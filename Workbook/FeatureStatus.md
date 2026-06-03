@@ -432,7 +432,17 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - **Nutrient analysis card going off screen** — root cause: `backdrop-filter: blur()` on the parent `<section>` creates a new CSS containing block for `fixed`-positioned children, so `fixed inset-0` was relative to the section, not the viewport. Fixed by moving the modal outside all backdrop-filter containers and using inline `style={{ backdropFilter }}` instead of Tailwind class for the overlay.
 - **iOS home screen icon wrong font** — `icon.svg` updated: changed `@import url()` to `@font-face { src: url('...woff2') }` for reliable font loading; corrected text from "Hungry" to "Pantry". Added `generate-icons.html` (one-time browser tool) for regenerating `icon-192.png` and `icon-512.png` with the correct Pacifico font via Canvas API.
 
-*Last updated: 2026-06-03 (session 22)*
+*Last updated: 2026-06-03 (session 23)*
+
+### Session 23 (2026-06-03)
+**Bugs fixed:**
+- **Start cooking button doing nothing** — RecipeModal and CookingMode were both mounted simultaneously, causing stacking context conflicts. Fixed by conditionally hiding RecipeModal when `isCookingMode` is true: `{activeModalRecipe && !isCookingMode && <RecipeModal .../>}`.
+- **Tutorial not highlighting features** — all tutorial STEPS had `selector: null`. Added `id` attributes to all tab content wrappers in App.jsx (`#tut-pantry`, `#tut-recipes`, `#tut-shopping`, etc.) and updated STEPS with matching selectors.
+
+**Features added:**
+- **Shareable friend invite link** — "Add me on Pantry!" button in Friends page uses Web Share API (or copies to clipboard as fallback). Generates a message with the user's friend code and app URL.
+- **Household toggle removed from shopping list items** — per-item Users button removed from ShoppingListManager. Shopping list follows master household toggle in Header; items filtered by active household automatically.
+- **Rename household** — pencil icon on each household card in HouseholdSettings opens an inline rename input. Saves to Supabase `households.name` and updates local state. Added `handleRenameHousehold` to UserContext.
 
 ### Session 20 (2026-06-02)
 **Bugs fixed:**

@@ -277,6 +277,15 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const handleRenameHousehold = async (householdId, newName) => {
+    if (!newName?.trim()) return;
+    const { error } = await supabase.from('households').update({ name: newName.trim() }).eq('id', householdId);
+    if (!error) {
+      setHouseholds(prev => prev.map(h => h.id === householdId ? { ...h, name: newName.trim() } : h));
+      if (activeHousehold?.id === householdId) setActiveHousehold(prev => ({ ...prev, name: newName.trim() }));
+    }
+  };
+
   const handleDeleteHousehold = async (householdId) => {
     if (!user) return;
     if (!window.confirm('Delete this household? This cannot be undone.')) return;
@@ -392,6 +401,7 @@ export const UserProvider = ({ children }) => {
       handleCreateHousehold,
       handleSetActiveHousehold,
       handleDeleteHousehold,
+      handleRenameHousehold,
       handleUpdateBudgetLimit,
       handleUpdatePersonalBudget,
       handleSignOut,

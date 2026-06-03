@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
-import { Users, UserPlus, Copy, ChefHat, Check, Loader2, Star, Globe, Lock, Search, X, UserCheck, Bell } from 'lucide-react';
+import { Users, UserPlus, Copy, ChefHat, Check, Loader2, Star, Globe, Lock, Search, X, UserCheck, Bell, Share2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
@@ -18,6 +18,7 @@ export default function FriendsPage() {
   const [searching, setSearching] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState(null);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [myFriendCode, setMyFriendCode] = useState('');
 
@@ -31,6 +32,16 @@ export default function FriendsPage() {
     try { await navigator.clipboard.writeText(myFriendCode); } catch {}
     setCodeCopied(true);
     setTimeout(() => setCodeCopied(false), 2000);
+  };
+
+  const shareInvite = async () => {
+    const inviteMsg = `Add me on Pantry! 🥦\nMy friend code is: ${myFriendCode}\nJoin me at ${window.location.origin}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Add me on Pantry!', text: inviteMsg }); return; } catch {}
+    }
+    try { await navigator.clipboard.writeText(inviteMsg); } catch {}
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2500);
   };
 
   const loadFriends = useCallback(async () => {
@@ -167,6 +178,12 @@ export default function FriendsPage() {
             {codeCopied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
           </button>
         </div>
+        <button
+          onClick={shareInvite}
+          className={`mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-black transition-all ${inviteCopied ? 'bg-white text-emerald-500' : 'bg-white/20 hover:bg-white/30 text-white'}`}
+        >
+          {inviteCopied ? <><Check size={13} /> Copied to clipboard!</> : <><Share2 size={13} /> Add me on Pantry!</>}
+        </button>
       </div>
 
       {/* Pending friend requests */}

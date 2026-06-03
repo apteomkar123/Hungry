@@ -231,7 +231,7 @@ function AppContent({ inventory }) {
         <div className="w-full flex justify-center px-4 sm:px-6 py-8">
           <div className="w-full max-w-5xl pb-4">
             {activeTab === 'pantry' && (
-              <PantryManager
+              <div id="tut-pantry"><PantryManager
                 fridge={fridge}
                 activeHousehold={activeHousehold}
                 households={households}
@@ -253,9 +253,9 @@ function AppContent({ inventory }) {
                 quantities={quantities}
                 adjustQuantity={adjustQuantity}
                 setQuantityForItem={setQuantityForItem}
-              />
+              /></div>
             )}
-            {activeTab === 'recipes' && <RecipeExplorer initialMood={vinylMood} />}
+            {activeTab === 'recipes' && <div id="tut-recipes"><RecipeExplorer initialMood={vinylMood} /></div>}
             {activeTab === 'shopping' && (() => {
               // Scoped to the active household — show that household's items plus any personal items
               const hhId = activeHousehold?.id;
@@ -286,13 +286,14 @@ function AppContent({ inventory }) {
                       )}
                     </div>
                     <button
+                      id="tut-go-shopping"
                       onClick={() => setIsShopperOpen(true)}
                       className="flex items-center gap-2 bg-[#6BAEE0] text-white px-5 py-2.5 rounded-2xl text-xs font-black shadow-lg shadow-blue-100 active:scale-95 transition-all shrink-0"
                     >
                       <ShoppingCart size={14} /> Go Shopping
                     </button>
                   </div>
-                  <ShoppingListManager
+                  <div id="tut-shopping"><ShoppingListManager
                     list={householdShoppingList}
                     onAdd={handleAddShoppingItem}
                     onToggle={handleToggleShoppingCompleted}
@@ -302,32 +303,30 @@ function AppContent({ inventory }) {
                     onMarkAllDone={handleMarkAllShoppingCompleted}
                     onAddToPantry={handleAddManualItem}
                     onRemoveFromPantry={handleRemoveFromPantryByName}
-                    households={households}
-                    onMoveToHousehold={(itemId, hhId) => handleMoveShoppingItem(itemId, hhId)}
-                  />
+                  /></div>
                 </>
               );
             })()}
-            {activeTab === 'chefHistory' && <ChefHistory />}
+            {activeTab === 'chefHistory' && <div id="tut-chef-history"><ChefHistory /></div>}
             {activeTab === 'analytics' && (
-              <AnalyticsDashboard
+              <div id="tut-analytics"><AnalyticsDashboard
                 metrics={nutritionMetrics}
                 fridge={fridge}
                 shoppingList={shoppingList}
                 onAddShoppingItem={handleAddShoppingItem}
-              />
+              /></div>
             )}
             {activeTab === 'household' && (
-              <HouseholdTab
+              <div id="tut-household"><HouseholdTab
                 onAddShoppingItem={handleAddShoppingItem}
                 onToggleHhItem={handleToggleShoppingCompleted}
                 onDeleteHhItem={handleClearShoppingItem}
-              />
+              /></div>
             )}
-            {activeTab === 'friends' && <FriendsPage />}
+            {activeTab === 'friends' && <div id="tut-friends"><FriendsPage /></div>}
             {activeTab === 'profile' && <UserProfilePage />}
-            {activeTab === 'potluck' && <PotluckPage />}
-            {activeTab === 'community' && <CommunityRecipes />}
+            {activeTab === 'potluck' && <div id="tut-potluck"><PotluckPage /></div>}
+            {activeTab === 'community' && <div id="tut-community"><CommunityRecipes /></div>}
             {activeTab === 'lyfeware' && <LyfeWareTab fridge={fridge} />}
             {activeTab === 'settings' && <SettingsPage onNavigateFriends={() => switchTab('friends')} />}
             {activeTab === 'saved' && (
@@ -546,7 +545,7 @@ function AppContent({ inventory }) {
       )}
       {isAddRecipeOpen && <AddRecipeModal onClose={() => setIsAddRecipeOpen(false)} />}
 
-      {activeModalRecipe && (
+      {activeModalRecipe && !isCookingMode && (
         <RecipeModal
           onStartCooking={() => setIsCookingMode(true)}
           addedItems={addedItems}

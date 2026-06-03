@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { Users, Copy, Plus, Home, Check, Trash2, DollarSign, Share2, Lock } from 'lucide-react';
+import { Users, Copy, Plus, Home, Check, Trash2, DollarSign, Share2, Lock, Pencil, X } from 'lucide-react';
 import { useUser } from './UserContext';
 
 export default function HouseholdSettings() {
@@ -14,6 +14,7 @@ export default function HouseholdSettings() {
     handleJoinHousehold: onJoin,
     handleSetActiveHousehold: onSetActive,
     handleDeleteHousehold: onDelete,
+    handleRenameHousehold: onRename,
     handleUpdateBudgetLimit,
   } = useUser();
 
@@ -21,6 +22,8 @@ export default function HouseholdSettings() {
   const [code, setCode] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [budgetInputs, setBudgetInputs] = useState({});
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     const inputs = {};
@@ -97,19 +100,40 @@ export default function HouseholdSettings() {
                 return (
                   <div key={hh.id} className={`p-5 rounded-2xl border transition-all ${isActive ? 'bg-sky-50 border-sky-200' : 'bg-white border-blue-50'}`}>
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        {isActive && <Check size={13} className="text-[#6BAEE0]" />}
-                        <span className={`text-sm font-black ${isActive ? 'text-[#1F6FB8]' : 'text-slate-700'}`}>{hh.name}</span>
-                        {isActive && <span className="text-[9px] font-black text-[#6BAEE0] bg-white border border-sky-200 px-2 py-0.5 rounded-full uppercase">Active</span>}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {!isActive && (
-                          <button onClick={() => onSetActive(hh.id)} className="text-[10px] font-black text-[#6BAEE0] bg-sky-50 border border-sky-100 px-3 py-1.5 rounded-xl hover:bg-sky-100 transition-all">Switch</button>
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {isActive && <Check size={13} className="text-[#6BAEE0] shrink-0" />}
+                        {renamingId === hh.id ? (
+                          <div className="flex items-center gap-1 flex-1">
+                            <input
+                              autoFocus
+                              value={renameValue}
+                              onChange={e => setRenameValue(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') { onRename(hh.id, renameValue); setRenamingId(null); } if (e.key === 'Escape') setRenamingId(null); }}
+                              className="flex-1 text-xs font-bold border border-sky-300 bg-white rounded-lg px-2 py-1 focus:outline-none"
+                            />
+                            <button onClick={() => { onRename(hh.id, renameValue); setRenamingId(null); }} className="text-[#6BAEE0] hover:text-[#4d96d1]"><Check size={13} /></button>
+                            <button onClick={() => setRenamingId(null)} className="text-slate-400 hover:text-slate-600"><X size={13} /></button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className={`text-sm font-black truncate ${isActive ? 'text-[#1F6FB8]' : 'text-slate-700'}`}>{hh.name}</span>
+                            {isActive && <span className="text-[9px] font-black text-[#6BAEE0] bg-white border border-sky-200 px-2 py-0.5 rounded-full uppercase shrink-0">Active</span>}
+                          </>
                         )}
-                        <button onClick={() => onDelete(hh.id)} className="text-[10px] font-black text-red-400 bg-red-50 border border-red-100 p-1.5 rounded-xl hover:bg-red-100 transition-all">
-                          <Trash2 size={12} />
-                        </button>
                       </div>
+                      {renamingId !== hh.id && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button onClick={() => { setRenamingId(hh.id); setRenameValue(hh.name); }} className="text-slate-300 hover:text-[#6BAEE0] transition-colors p-1.5">
+                            <Pencil size={13} />
+                          </button>
+                          {!isActive && (
+                            <button onClick={() => onSetActive(hh.id)} className="text-[10px] font-black text-[#6BAEE0] bg-sky-50 border border-sky-100 px-3 py-1.5 rounded-xl hover:bg-sky-100 transition-all">Switch</button>
+                          )}
+                          <button onClick={() => onDelete(hh.id)} className="text-[10px] font-black text-red-400 bg-red-50 border border-red-100 p-1.5 rounded-xl hover:bg-red-100 transition-all">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 mb-3">

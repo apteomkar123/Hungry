@@ -9,7 +9,7 @@ const STEPS = [
     title: 'Your Smart Pantry',
     tab: 'pantry',
     emoji: '🥦',
-    selector: null, // highlight the whole pantry area
+    selector: '#tut-pantry',
     scrollTop: true,
     lines: [
       'Snap a grocery receipt or scan a barcode — AI parses quantities and auto-fills expiry dates.',
@@ -21,7 +21,7 @@ const STEPS = [
     title: 'Recipe Explorer',
     tab: 'recipes',
     emoji: '👨‍🍳',
-    selector: null,
+    selector: '#tut-recipes',
     scrollTop: true,
     lines: [
       'Pick a mood — Tired, Post-Workout, Adventurous — to instantly boost matching recipes.',
@@ -33,7 +33,7 @@ const STEPS = [
     title: 'Inside a Recipe',
     tab: 'recipes',
     emoji: '📋',
-    selector: null,
+    selector: '#tut-recipes',
     scrollTop: false,
     lines: [
       'Tap any recipe card to open it.',
@@ -45,7 +45,7 @@ const STEPS = [
     title: 'Virtual Sous Chef',
     tab: 'recipes',
     emoji: '🎙️',
-    selector: null,
+    selector: '#tut-recipes',
     scrollTop: false,
     cookingPreview: true,
     lines: [
@@ -58,7 +58,7 @@ const STEPS = [
     title: 'Shopping List',
     tab: 'shopping',
     emoji: '🛒',
-    selector: null,
+    selector: '#tut-shopping',
     scrollTop: true,
     lines: [
       'Items are auto-grouped by aisle — Produce, Dairy, Meat, Bakery, and more.',
@@ -70,7 +70,7 @@ const STEPS = [
     title: 'Personal Shopper',
     tab: 'shopping',
     emoji: '🏪',
-    selector: null,
+    selector: '#tut-go-shopping',
     scrollTop: true,
     lines: [
       'Tap Go Shopping at the top right to launch Personal Shopper mode.',
@@ -82,7 +82,7 @@ const STEPS = [
     title: 'Household & Settle Up',
     tab: 'household',
     emoji: '🏠',
-    selector: null,
+    selector: '#tut-household',
     scrollTop: true,
     lines: [
       'Create or join a household with an invite code — share pantry, list, and recipes.',
@@ -94,7 +94,7 @@ const STEPS = [
     title: 'Events & Potluck',
     tab: 'potluck',
     emoji: '🎉',
-    selector: null,
+    selector: '#tut-potluck',
     scrollTop: true,
     lines: [
       'Create a named event with a date, time, and venue. Share the invite code with friends.',
@@ -106,7 +106,7 @@ const STEPS = [
     title: 'Community Recipes',
     tab: 'community',
     emoji: '🌍',
-    selector: null,
+    selector: '#tut-community',
     scrollTop: true,
     lines: [
       'Browse 14+ category rows: Trending, Indian, Italian, High Protein, Quick & Easy…',
@@ -118,7 +118,7 @@ const STEPS = [
     title: 'Friends & Profiles',
     tab: 'friends',
     emoji: '👥',
-    selector: null,
+    selector: '#tut-friends',
     scrollTop: true,
     lines: [
       'Add friends by sharing your 8-character Friend Code or searching by name.',
@@ -130,7 +130,7 @@ const STEPS = [
     title: 'Analytics & Taste Profile',
     tab: 'analytics',
     emoji: '📊',
-    selector: null,
+    selector: '#tut-analytics',
     scrollTop: true,
     lines: [
       'The Taste Profile heat map shows every world cuisine you\'ve cooked — with mastery badges.',
