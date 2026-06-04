@@ -434,6 +434,12 @@ These features are intentionally deferred until a native iOS app exists. The rea
 
 *Last updated: 2026-06-03 (session 23)*
 
+### Session 25 (2026-06-04)
+**Bugs fixed:**
+- **Simple Recipe View missing ingredients** — Simple Recipe View overlay now has an "Ingredients" toggle button in the header; tapping it shows a scrollable list of all recipe ingredients (with proper measurement scaling) before or during cooking. A "Start Cooking →" button at the bottom jumps back to step 1. Tapping "Steps" returns to the current step. Steps view and progress bar unchanged.
+- **iOS Home Screen icon not showing Pacifico font** — PNG icons (`icon-192.png`, `icon-512.png`) regenerated using `@resvg/resvg-js` with the Pacifico TTF font (downloaded from Google Fonts). Both icons now correctly render the Pantry wordmark in Pacifico on a #6BAEE0 blue rounded-rect background.
+- **Household name not editable from Household tab** — pencil icon (Edit2) added next to the household name in HouseholdTab; tap to open inline rename input with confirm (✓) and cancel (✕) buttons; saves to Supabase `households.name` via `handleRenameHousehold`; because HomeBase reads from the same `households` table, the rename is automatically reflected in HomeBase as well.
+
 ### Session 24 (2026-06-04)
 **Bugs fixed:**
 - **Start Cooking (Simple Recipe View / Cooking Mode) closes modal** — clicking the cooking choice sheet or simple recipe view dismissed the recipe modal because both overlays were siblings inside an outer `onClick={() => setModal(null)}` backdrop div. Fixed: added `onClick={(e) => e.stopPropagation()}` to both overlay wrapper divs in RecipeModal.jsx to stop click events from bubbling to the backdrop.

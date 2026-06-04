@@ -595,3 +595,10 @@ Take out the whole personal and household logic. Instead, everything should be h
 Allow users to connect their Venmo account so tapping on split bill will automatically fill in the Venmo user accounts in the Venmo request app
 When an item is added to pantry, it should pull up a small temporary message that says "(item) added, expires in (time)"
 
+
+
+DONE
+----
+Simple recipe view should show ingredients too
+Logo when bookmarked to iOS Home Screen needs to be updated to say Pantry in Pacifico font
+User should be able to edit the household name, which should sync up to HomeBase if it's a shared household

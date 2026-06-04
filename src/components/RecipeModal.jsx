@@ -594,51 +594,88 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
         const svSteps = getStaticRecipeSteps(displayRecipe);
         const total = svSteps.length;
         const idx = Math.max(0, Math.min(simpleViewStep, total - 1));
+        const svIngredients = displayRecipe?.ingredients || [];
+        const showIngPanel = simpleViewStep === -1;
         return (
           <div className="absolute inset-0 bg-blue-900/95 flex flex-col z-20 rounded-[3rem] overflow-hidden" onClick={(e) => e.stopPropagation()}>
             {/* header */}
-            <div className="flex items-center justify-between px-6 pt-6 pb-4">
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
               <div>
                 <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">{displayRecipe?.name}</p>
-                <p className="text-sm font-black text-white">Step {idx + 1} <span className="text-white/40">/ {total}</span></p>
+                {showIngPanel
+                  ? <p className="text-sm font-black text-white">Ingredients <span className="text-white/40">({svIngredients.length})</span></p>
+                  : <p className="text-sm font-black text-white">Step {idx + 1} <span className="text-white/40">/ {total}</span></p>
+                }
               </div>
-              <button onClick={() => setSimpleViewStep(null)} className="p-2 text-white/60 hover:text-white transition-colors">
-                <X size={22} />
-              </button>
-            </div>
-            {/* progress */}
-            <div className="mx-6 h-1 bg-white/10 rounded-full overflow-hidden mb-6">
-              <div className="h-full bg-[#6BAEE0] rounded-full transition-all duration-300" style={{ width: `${((idx + 1) / total) * 100}%` }} />
-            </div>
-            {/* step text */}
-            <div className="flex-1 flex items-center justify-center px-8">
-              <p className="text-2xl font-bold text-white leading-relaxed text-center">{svSteps[idx]}</p>
-            </div>
-            {/* nav */}
-            <div className="flex items-center justify-between px-6 pb-8 gap-4">
-              <button
-                onClick={() => setSimpleViewStep(i => Math.max(0, i - 1))}
-                disabled={idx === 0}
-                className="flex items-center gap-2 px-5 py-3 bg-white/10 rounded-2xl text-white font-bold disabled:opacity-30 transition-all"
-              >
-                <ChevronLeft size={18} /> Back
-              </button>
-              {idx < total - 1 ? (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setSimpleViewStep(i => Math.min(total - 1, i + 1))}
-                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-[#6BAEE0] rounded-2xl text-white font-black shadow-lg shadow-blue-900/40 active:scale-95 transition-all"
+                  onClick={() => setSimpleViewStep(showIngPanel ? 0 : -1)}
+                  className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all ${showIngPanel ? 'bg-[#6BAEE0] text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'}`}
                 >
-                  Next <ChevronRight size={18} />
+                  {showIngPanel ? 'Steps' : 'Ingredients'}
                 </button>
-              ) : (
-                <button
-                  onClick={() => setSimpleViewStep(null)}
-                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500 rounded-2xl text-white font-black shadow-lg active:scale-95 transition-all"
-                >
-                  <Check size={16} /> Done!
+                <button onClick={() => setSimpleViewStep(null)} className="p-2 text-white/60 hover:text-white transition-colors">
+                  <X size={22} />
                 </button>
-              )}
+              </div>
             </div>
+            {/* progress (only for steps view) */}
+            {!showIngPanel && (
+              <div className="mx-6 h-1 bg-white/10 rounded-full overflow-hidden mb-6 shrink-0">
+                <div className="h-full bg-[#6BAEE0] rounded-full transition-all duration-300" style={{ width: `${((idx + 1) / total) * 100}%` }} />
+              </div>
+            )}
+            {/* ingredients panel */}
+            {showIngPanel ? (
+              <div className="flex-1 overflow-y-auto px-6 pb-6">
+                <div className="space-y-2 mt-2">
+                  {svIngredients.map((ing, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-white/10 rounded-2xl px-4 py-3">
+                      <span className="w-5 h-5 bg-[#6BAEE0]/80 rounded-full flex items-center justify-center text-[9px] font-black text-white shrink-0">{i + 1}</span>
+                      <span className="text-sm text-white leading-snug">{parseRecipeIngredientMeasurements(ing, multiplier)}</span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setSimpleViewStep(0)}
+                  className="w-full mt-6 flex items-center justify-center gap-2 px-5 py-4 bg-[#6BAEE0] rounded-2xl text-white font-black shadow-lg active:scale-95 transition-all"
+                >
+                  Start Cooking <ChevronRight size={18} />
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* step text */}
+                <div className="flex-1 flex items-center justify-center px-8">
+                  <p className="text-2xl font-bold text-white leading-relaxed text-center">{svSteps[idx]}</p>
+                </div>
+                {/* nav */}
+                <div className="flex items-center justify-between px-6 pb-8 gap-4 shrink-0">
+                  <button
+                    onClick={() => setSimpleViewStep(i => Math.max(0, i - 1))}
+                    disabled={idx === 0}
+                    className="flex items-center gap-2 px-5 py-3 bg-white/10 rounded-2xl text-white font-bold disabled:opacity-30 transition-all"
+                  >
+                    <ChevronLeft size={18} /> Back
+                  </button>
+                  {idx < total - 1 ? (
+                    <button
+                      onClick={() => setSimpleViewStep(i => Math.min(total - 1, i + 1))}
+                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-[#6BAEE0] rounded-2xl text-white font-black shadow-lg shadow-blue-900/40 active:scale-95 transition-all"
+                    >
+                      Next <ChevronRight size={18} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setSimpleViewStep(null)}
+                      className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500 rounded-2xl text-white font-black shadow-lg active:scale-95 transition-all"
+                    >
+                      <Check size={16} /> Done!
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         );
       })()}

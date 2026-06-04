@@ -8,7 +8,7 @@ import UserProfileModal from './UserProfileModal';
 
 
 export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDeleteHhItem }) {
-  const { households, household: activeHousehold, handleUpdateBudgetLimit, user, pantryHouseholdId, isPantryShared, handleSetPantrySpecificHousehold, handleClearPantryHousehold } = useUser();
+  const { households, household: activeHousehold, handleUpdateBudgetLimit, handleRenameHousehold, user, pantryHouseholdId, isPantryShared, handleSetPantrySpecificHousehold, handleClearPantryHousehold } = useUser();
   const { savedRecipes, setActiveModalRecipe, onSaveRecipe, onRemoveSavedRecipe, masterRecipes } = useRecipes();
 
   const [selectedHHId, setSelectedHHId] = useState(activeHousehold?.id || null);
@@ -49,6 +49,8 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
   const [newHHName, setNewHHName] = useState('');
   const [newHHType, setNewHHType] = useState('shared'); // 'shared' | 'pantry-specific'
   const [joinHHCode, setJoinHHCode] = useState('');
+  const [editingHHName, setEditingHHName] = useState(false);
+  const [editHHNameValue, setEditHHNameValue] = useState('');
 
   const selectedHH = households.find(h => h.id === selectedHHId) || activeHousehold;
 
@@ -330,7 +332,34 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
 
       {selectedHH && (
         <div className="bg-linear-to-br from-[#6BAEE0]/10 to-sky-50 border border-sky-100 rounded-4xl p-5 space-y-3">
-          <p className="text-base font-black text-[#1F6FB8]">{selectedHH.name}</p>
+          {editingHHName ? (
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                value={editHHNameValue}
+                onChange={e => setEditHHNameValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { handleRenameHousehold(selectedHH.id, editHHNameValue); setEditingHHName(false); }
+                  if (e.key === 'Escape') setEditingHHName(false);
+                }}
+                className="flex-1 bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-700 focus:outline-none focus:border-sky-400"
+              />
+              <button
+                onClick={() => { handleRenameHousehold(selectedHH.id, editHHNameValue); setEditingHHName(false); }}
+                className="bg-[#6BAEE0] text-white px-3 py-1.5 rounded-xl text-xs font-black"
+              ><Check size={14} /></button>
+              <button onClick={() => setEditingHHName(false)} className="text-slate-400 px-2 py-1.5 rounded-xl text-xs"><X size={14} /></button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="text-base font-black text-[#1F6FB8] flex-1">{selectedHH.name}</p>
+              <button
+                onClick={() => { setEditHHNameValue(selectedHH.name); setEditingHHName(true); }}
+                className="text-slate-400 hover:text-[#6BAEE0] transition-colors p-1 rounded-lg"
+                title="Rename household"
+              ><Edit2 size={14} /></button>
+            </div>
+          )}
           <div>
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Invite Code</p>
             <div className="flex items-center gap-2">
