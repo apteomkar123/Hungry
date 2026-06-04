@@ -557,7 +557,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
 
       {/* ── Start Cooking choice sheet ──────────────────────────────────────── */}
       {showCookingChoice && (
-        <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-sm flex items-end justify-center z-30 rounded-[3rem] pointer-events-auto">
+        <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-sm flex items-end justify-center z-30 rounded-[3rem] pointer-events-auto" onClick={(e) => e.stopPropagation()}>
           <div className="w-full bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 space-y-3 shadow-2xl border-t border-white/50">
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest text-center mb-4">How would you like to cook?</p>
             <button
@@ -595,7 +595,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
         const total = svSteps.length;
         const idx = Math.max(0, Math.min(simpleViewStep, total - 1));
         return (
-          <div className="absolute inset-0 bg-blue-900/95 flex flex-col z-20 rounded-[3rem] overflow-hidden">
+          <div className="absolute inset-0 bg-blue-900/95 flex flex-col z-20 rounded-[3rem] overflow-hidden" onClick={(e) => e.stopPropagation()}>
             {/* header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4">
               <div>

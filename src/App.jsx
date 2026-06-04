@@ -257,34 +257,14 @@ function AppContent({ inventory }) {
             )}
             {activeTab === 'recipes' && <div id="tut-recipes"><RecipeExplorer initialMood={vinylMood} /></div>}
             {activeTab === 'shopping' && (() => {
-              // Scoped to the active household — show that household's items plus any personal items
+              // Scoped to the active household — follows the master household toggle in the Header
               const hhId = activeHousehold?.id;
               const householdShoppingList = hhId
                 ? shoppingList.filter(i => i.household_id === hhId || !i.household_id)
                 : shoppingList;
               return (
                 <>
-                  {/* Household switcher header */}
-                  <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {households?.length > 1 ? (
-                        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-                          {households.map(h => (
-                            <button
-                              key={h.id}
-                              onClick={() => handleSetActiveHousehold(h.id)}
-                              className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black transition-all ${activeHousehold?.id === h.id ? 'bg-[#6BAEE0] text-white' : 'bg-white border border-blue-100 text-slate-500 hover:border-sky-300'}`}
-                            >
-                              {h.name}
-                            </button>
-                          ))}
-                        </div>
-                      ) : activeHousehold ? (
-                        <span className="text-xs font-black text-[#6BAEE0] bg-sky-50 border border-sky-200 px-3 py-1.5 rounded-full">{activeHousehold.name}</span>
-                      ) : (
-                        <span className="text-xs text-slate-400 italic">No household — items shown are personal</span>
-                      )}
-                    </div>
+                  <div className="flex justify-end mb-4">
                     <button
                       id="tut-go-shopping"
                       onClick={() => setIsShopperOpen(true)}

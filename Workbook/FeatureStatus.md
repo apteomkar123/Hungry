@@ -434,6 +434,11 @@ These features are intentionally deferred until a native iOS app exists. The rea
 
 *Last updated: 2026-06-03 (session 23)*
 
+### Session 24 (2026-06-04)
+**Bugs fixed:**
+- **Start Cooking (Simple Recipe View / Cooking Mode) closes modal** — clicking the cooking choice sheet or simple recipe view dismissed the recipe modal because both overlays were siblings inside an outer `onClick={() => setModal(null)}` backdrop div. Fixed: added `onClick={(e) => e.stopPropagation()}` to both overlay wrapper divs in RecipeModal.jsx to stop click events from bubbling to the backdrop.
+- **Shopping list duplicate household toggle** — Shopping tab in App.jsx had a redundant household switcher section (lines 268-295) that duplicated the master toggle already in the Header. Removed the duplicate section; only the "Go Shopping" button remains.
+
 ### Session 23 (2026-06-03)
 **Bugs fixed:**
 - **Start cooking button doing nothing** — RecipeModal and CookingMode were both mounted simultaneously, causing stacking context conflicts. Fixed by conditionally hiding RecipeModal when `isCookingMode` is true: `{activeModalRecipe && !isCookingMode && <RecipeModal .../>}`.
