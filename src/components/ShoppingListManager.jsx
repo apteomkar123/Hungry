@@ -164,7 +164,7 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
           )}
           {/* Household assignment */}
           {!item.is_completed && onMoveItem && households.length > 0 && (
-            <div className="relative" onClick={e => e.stopPropagation()}>
+            <div className="relative" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
               <button
                 onClick={() => setHhPickerId(prev => prev === item.id ? null : item.id)}
                 className={`flex items-center gap-1 p-1.5 rounded-lg transition-colors ${item.household_id ? 'text-[#6BAEE0]' : 'text-slate-200 hover:text-sky-400'}`}

@@ -39,6 +39,29 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
   const [starredRecipes, setStarredRecipes] = useState(new Set());
   const [openingRecipe, setOpeningRecipe] = useState(null);
   const [selectedNutrient, setSelectedNutrient] = useState(null); // 'protein'|'carbs'|'fat'|'kcal'
+  const [chefHistory, setChefHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('pantry_chef_history') || '[]'); } catch { return []; }
+  });
+
+  // Fetch chef history from Supabase (source of truth for cross-device history)
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from('chef_history')
+      .select('recipe_name, meal_type, cuisine, cooked_at')
+      .eq('user_id', user.id)
+      .order('cooked_at', { ascending: false })
+      .limit(200)
+      .then(({ data }) => {
+        if (data?.length) {
+          setChefHistory(data.map(r => ({
+            recipeName: r.recipe_name,
+            meal_type: r.meal_type,
+            cuisine: r.cuisine,
+            cookedAt: r.cooked_at,
+          })));
+        }
+      });
+  }, [user?.id]);
 
   // ── Spending calcs ───────────────────────────────────────────────────────
   const { pantryValue, missingSpend, purchasedSpend, totalListCost, stockEfficiency, budgetLimit, budgetPercent, isOverBudget } = useMemo(() => {
@@ -108,8 +131,7 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
         .eq('user_id', user.id)
         .gte('created_at', monthStart.toISOString());
 
-      const history = (() => { try { return JSON.parse(localStorage.getItem('pantry_chef_history') || '[]'); } catch { return []; } })();
-      const thisMonth = history.filter(e => new Date(e.cookedAt) >= monthStart);
+      const thisMonth = chefHistory.filter(e => new Date(e.cookedAt) >= monthStart);
 
       const choresDone = (events || []).filter(e => e.activity_type === 'chore_completed').length;
       const billsPaid  = (events || []).some(e => e.activity_type === 'all_bills_paid');
@@ -668,7 +690,7 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
       </>}
 
       {dashTab === 'taste' && (() => {
-        const history = (() => { try { return JSON.parse(localStorage.getItem('pantry_chef_history') || '[]'); } catch { return []; } })();
+        const history = chefHistory;
         const cuisineCounts = {};
         const mealTypeCounts = {};
         history.forEach(e => {

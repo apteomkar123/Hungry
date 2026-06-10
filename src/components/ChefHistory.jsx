@@ -1,7 +1,8 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, ChefHat, Camera, Star, Trash2, Check, Lock, Globe, ChevronDown, Clock, User, Wand2, Loader2, Music } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
+import { supabase } from '../supabaseClient';
 
 function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePhoto, onDelete, onOpenRecipe, onTogglePrivacy, onRemix }) {
   const [expanded, setExpanded] = useState(false);
@@ -35,14 +36,14 @@ function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePh
   if (!expanded) {
     return (
       <div
-        className="bg-white/85 backdrop-blur-lg rounded-[2rem] border border-white/20 shadow-md p-5 cursor-pointer hover:shadow-lg active:scale-[0.99] transition-all"
+        className="bg-white/85 backdrop-blur-lg rounded-4xl border border-white/20 shadow-md p-5 cursor-pointer hover:shadow-lg active:scale-[0.99] transition-all"
         onClick={() => setExpanded(true)}
       >
         <div className="flex items-center gap-4">
           {hasPhotos ? (
             <img src={entry.photos[0]} alt="" className="w-20 h-20 rounded-2xl object-cover border border-blue-50 shrink-0" />
           ) : (
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-sky-50 to-blue-100 flex items-center justify-center shrink-0">
+            <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-sky-50 to-blue-100 flex items-center justify-center shrink-0">
               <ChefHat size={28} className="text-[#6BAEE0]" />
             </div>
           )}
@@ -71,7 +72,6 @@ function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePh
     );
   }
 
-  // Expanded card
   const gridCols = photoCount === 1 ? '1fr' : photoCount === 2 ? '1fr 1fr' : 'repeat(3, 1fr)';
 
   return (
@@ -113,7 +113,6 @@ function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePh
           </div>
         </div>
 
-        {/* Description or ingredient pills */}
         {entry.description ? (
           <p className="text-sm text-slate-500 leading-relaxed">{entry.description}</p>
         ) : entry.ingredients?.length > 0 && (
@@ -203,7 +202,6 @@ function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePh
         )}
       </div>
 
-      {/* Feature #12: Soundtrack of My Life — show what was playing in Vinyl when cooked */}
       {entry.soundtrack && (
         <div className="px-6 mb-5">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-300 mb-2">🎵 Playing While Cooking</p>
@@ -254,31 +252,124 @@ function HistoryCard({ entry, displayName, onUpdateNotes, onAddPhoto, onDeletePh
   );
 }
 
+function rowToEntry(row) {
+  return {
+    id: row.id,
+    recipeId: row.recipe_id,
+    recipeName: row.recipe_name,
+    meal_type: row.meal_type,
+    cuisine: row.cuisine,
+    description: row.description || '',
+    ingredients: row.ingredients || [],
+    steps: row.steps || [],
+    cookedAt: row.cooked_at,
+    notes: row.notes || '',
+    photos: row.photos || [],
+    isPrivate: row.is_private || false,
+    soundtrack: row.soundtrack || null,
+  };
+}
+
+const SUPABASE_SELECT = 'id, recipe_id, recipe_name, meal_type, cuisine, description, ingredients, steps, cooked_at, notes, photos, is_private, soundtrack';
+
 export default function ChefHistory() {
   const { setActiveModalRecipe, masterRecipes } = useRecipes();
   const { user, userName } = useUser();
   const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const displayName = userName || user?.email?.split('@')[0] || 'Chef';
 
   useEffect(() => {
-    try {
-      setHistory(JSON.parse(localStorage.getItem('pantry_chef_history') || '[]'));
-    } catch {
-      setHistory([]);
+    if (!user?.id) {
+      try { setHistory(JSON.parse(localStorage.getItem('pantry_chef_history') || '[]')); } catch {}
+      setLoading(false);
+      return;
     }
-  }, []);
 
-  const persist = (next) => {
-    setHistory(next);
-    try { localStorage.setItem('pantry_chef_history', JSON.stringify(next)); } catch {}
+    supabase.from('chef_history')
+      .select(SUPABASE_SELECT)
+      .eq('user_id', user.id)
+      .order('cooked_at', { ascending: false })
+      .limit(100)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setHistory(data.map(rowToEntry));
+        } else {
+          // One-time migration: push localStorage history to Supabase
+          try {
+            const local = JSON.parse(localStorage.getItem('pantry_chef_history') || '[]');
+            if (local.length > 0) {
+              setHistory(local);
+              const rows = local.map(e => ({
+                user_id: user.id,
+                recipe_id: e.recipeId ? String(e.recipeId) : null,
+                recipe_name: e.recipeName || 'Unknown Recipe',
+                meal_type: e.meal_type || 'Main',
+                cuisine: e.cuisine || '',
+                description: e.description || '',
+                ingredients: e.ingredients || [],
+                steps: e.steps || [],
+                cooked_at: e.cookedAt || new Date().toISOString(),
+                notes: e.notes || '',
+                photos: e.photos || [],
+                is_private: e.isPrivate || false,
+                soundtrack: e.soundtrack || null,
+              }));
+              supabase.from('chef_history').insert(rows).then(() => {
+                supabase.from('chef_history')
+                  .select(SUPABASE_SELECT)
+                  .eq('user_id', user.id)
+                  .order('cooked_at', { ascending: false })
+                  .limit(100)
+                  .then(({ data: fresh }) => {
+                    if (fresh?.length) setHistory(fresh.map(rowToEntry));
+                  });
+              });
+            }
+          } catch {}
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [user?.id]);
+
+  const handleUpdateNotes = (id, notes) => {
+    setHistory(prev => prev.map(e => e.id === id ? { ...e, notes } : e));
+    if (user?.id) supabase.from('chef_history').update({ notes }).eq('id', id).then(() => {});
   };
 
-  const handleUpdateNotes = (id, notes) => persist(history.map(e => e.id === id ? { ...e, notes } : e));
-  const handleAddPhoto = (id, dataUrl) => persist(history.map(e => e.id === id ? { ...e, photos: [...(e.photos || []), dataUrl] } : e));
-  const handleDeletePhoto = (id, index) => persist(history.map(e => e.id === id ? { ...e, photos: (e.photos || []).filter((_, i) => i !== index) } : e));
-  const handleDelete = (id) => persist(history.filter(e => e.id !== id));
-  const handleTogglePrivacy = (id) => persist(history.map(e => e.id === id ? { ...e, isPrivate: !e.isPrivate } : e));
+  const handleAddPhoto = (id, dataUrl) => {
+    setHistory(prev => prev.map(e => {
+      if (e.id !== id) return e;
+      const photos = [...(e.photos || []), dataUrl];
+      if (user?.id) supabase.from('chef_history').update({ photos }).eq('id', id).then(() => {});
+      return { ...e, photos };
+    }));
+  };
+
+  const handleDeletePhoto = (id, index) => {
+    setHistory(prev => prev.map(e => {
+      if (e.id !== id) return e;
+      const photos = (e.photos || []).filter((_, i) => i !== index);
+      if (user?.id) supabase.from('chef_history').update({ photos }).eq('id', id).then(() => {});
+      return { ...e, photos };
+    }));
+  };
+
+  const handleDelete = (id) => {
+    setHistory(prev => prev.filter(e => e.id !== id));
+    if (user?.id) supabase.from('chef_history').delete().eq('id', id).then(() => {});
+  };
+
+  const handleTogglePrivacy = (id) => {
+    setHistory(prev => prev.map(e => {
+      if (e.id !== id) return e;
+      const is_private = !e.isPrivate;
+      if (user?.id) supabase.from('chef_history').update({ is_private }).eq('id', id).then(() => {});
+      return { ...e, isPrivate: is_private };
+    }));
+  };
 
   const handleRemix = async (entry) => {
     const ings = (entry.ingredients || []).slice(0, 8).join(', ');
@@ -316,9 +407,18 @@ export default function ChefHistory() {
       meal_type: entry.meal_type,
       ingredients: entry.ingredients || [],
       cleanedIngredients: entry.ingredients || [],
-      steps: entry.steps || []
+      steps: entry.steps || [],
     });
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white/80 backdrop-blur-lg p-8 rounded-[2.5rem] border border-white/20 shadow-xl text-center space-y-3">
+        <Loader2 size={28} className="text-[#6BAEE0] mx-auto animate-spin" />
+        <p className="text-sm font-black text-slate-400">Loading your history…</p>
+      </div>
+    );
+  }
 
   if (history.length === 0) {
     return (

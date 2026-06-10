@@ -280,10 +280,10 @@ export const RecipeProvider = ({ children, fridge }) => {
         parsed = {};
       }
 
-      const recipeName = parsed.recipeName || parsed.name || parsed.title || '';
+      let recipeName = parsed.recipeName || parsed.name || parsed.title || '';
       if (!recipeName) {
         const match = cleaned.match(/"recipeName"\s*:\s*"([^"]+)"/i) || cleaned.match(/recipe name\s*[:\-]\s*([^\n"]+)/i);
-        if (match) parsed.recipeName = match[1].trim();
+        if (match) recipeName = match[1].trim();
       }
 
       const ingredients = Array.isArray(parsed.ingredients)
@@ -298,11 +298,11 @@ export const RecipeProvider = ({ children, fridge }) => {
           ? parsed.steps.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
           : [];
 
-      if (!parsed.recipeName) throw new Error('AI response was missing recipe name. Please try again.');
+      if (!recipeName) throw new Error('AI response was missing recipe name. Please try again.');
 
       setActiveModalRecipe({
         id: `ai-${Date.now()}`,
-        name: parsed.recipeName,
+        name: recipeName,
         meal_type: 'Creative',
         ingredients,
         cleanedIngredients: ingredients.map(cleanIngredientLocally).filter(Boolean),

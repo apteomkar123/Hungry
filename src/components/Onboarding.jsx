@@ -9,10 +9,10 @@ const SCREENS = [
         {/* Glass orb with H */}
         <div className="relative w-32 h-32 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#6BAEE0]/30 to-[#6BAEE0]/10 backdrop-blur-xl border border-white/60 shadow-2xl shadow-blue-300/40" />
-          <span className="relative text-6xl font-black text-[#6BAEE0]" style={{ fontFamily: "'Yellowtail', cursive" }}>H</span>
+          <span className="relative logo-text text-5xl text-[#6BAEE0]">Pantry</span>
         </div>
         <div>
-          <h1 className="text-3xl font-black text-[#6BAEE0] mb-3" style={{ fontFamily: "'Yellowtail', cursive" }}>Welcome, Chef!</h1>
+          <h1 className="text-3xl font-black text-[#6BAEE0] mb-3">Welcome, Chef!</h1>
           <p className="text-sm text-slate-500 leading-relaxed max-w-xs">Your kitchen just got a whole lot smarter. Let's turn those ingredients into masterpieces.</p>
         </div>
       </div>

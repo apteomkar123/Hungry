@@ -752,14 +752,22 @@ export const useInventory = (user, household) => {
       localStorage.setItem('pantry_chef_history', JSON.stringify(history.slice(0, 100)));
     } catch {}
 
-    // Also persist to Supabase so RecipeExplorer "Your Taste" cuisine recommendations work cross-device
+    // Persist to Supabase for cross-device chef history + RecipeExplorer "Your Taste"
     if (user?.id) {
       supabase.from('chef_history').insert({
         user_id: user.id,
+        recipe_id: String(recipe.id),
         recipe_name: recipe.name,
         meal_type: _mt,
         cuisine: _cu,
+        description: recipe.description || recipe.summary || '',
+        ingredients: recipe.ingredients || [],
+        steps: recipe.steps || [],
         cooked_at: cookedAt,
+        notes: '',
+        photos: [],
+        is_private: false,
+        soundtrack: soundtrack || null,
       }).then(() => {});
     }
   }, [fridge, quantities, handleRemoveItem, user]);

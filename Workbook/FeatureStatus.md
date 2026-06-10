@@ -432,7 +432,7 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - **Nutrient analysis card going off screen** — root cause: `backdrop-filter: blur()` on the parent `<section>` creates a new CSS containing block for `fixed`-positioned children, so `fixed inset-0` was relative to the section, not the viewport. Fixed by moving the modal outside all backdrop-filter containers and using inline `style={{ backdropFilter }}` instead of Tailwind class for the overlay.
 - **iOS home screen icon wrong font** — `icon.svg` updated: changed `@import url()` to `@font-face { src: url('...woff2') }` for reliable font loading; corrected text from "Hungry" to "Pantry". Added `generate-icons.html` (one-time browser tool) for regenerating `icon-192.png` and `icon-512.png` with the correct Pacifico font via Canvas API.
 
-*Last updated: 2026-06-09 (session 26)*
+*Last updated: 2026-06-10 (session 27)*
 
 ### Session 26 (2026-06-09)
 **Bugs fixed:**
@@ -453,6 +453,41 @@ These features are intentionally deferred until a native iOS app exists. The rea
 
 **Features already present (no change needed):**
 - Gemini version — switched to `gemini-2.0-flash` (faster, GA-stable).
+
+### Session 28 CodeCheck (2026-06-10)
+**Bugs fixed:**
+- **AI recipe generator regex fallback broken** — When Gemini returns unparseable JSON but the raw text contains `"recipeName": "..."`, the regex fallback set `parsed.recipeName` but the `recipeName` variable (a `const`) was never updated. Changed `const recipeName` to `let recipeName` so the regex result is properly used. (`RecipeContext.jsx`)
+- **ChefHistory Supabase fetch could leave loading=true on network error** — Added `.catch(() => setLoading(false))` to the Supabase chain so a network-level rejection (not just `{ data: null }`) always clears the spinner. (`ChefHistory.jsx`)
+- **Taste Profile and LyfeWare Wrap reading from localStorage instead of Supabase** — `AnalyticsDashboard` computed both its Taste tab and Wrap section from `localStorage.getItem('pantry_chef_history')`. Since chef history is now Supabase-backed, new devices always showed empty Taste Profile and 0 recipes cooked. Fixed by adding a Supabase fetch on mount (`chef_history` filtered by `user_id`, 200 rows) into `chefHistory` state, with localStorage as initial fallback; both tab computations now use `chefHistory` state.
+
+**Audit completed (no bugs found in):**
+- `ChefHistory.jsx` — Supabase fetch, migration, all CRUD mutations correct.
+- `Onboarding.jsx` — branding fix confirmed, auto-solo-household creation correct.
+- `ShoppingListManager.jsx` — mousedown fix confirmed, auto-hide timer correct.
+- `RecipeContext.jsx` — AI recipe generator, adapt, proteinize, generateRecipeByName all correct.
+- `useInventory.js` — Supabase insert writes all fields; chef history toast correct.
+- `HouseholdTab.jsx` — settle up, polling, member fallback, budget, delete all correct.
+- `RecipeModal.jsx` — ingredient scaling, save/unsave, adapt, proteinize, simple view correct.
+- `Header.jsx` — household switcher, greeting, nav open correct.
+- `FriendsPage.jsx` — dead code removed confirmed.
+- `CookingMode.jsx` — auto-speak on launch and step change correct; voice substitution correct.
+- `AnalyticsDashboard.jsx` — spending, eco-score, AI coach, meal prep, nutrient modal correct.
+- `App.jsx` — shopping list filtered by activeHousehold, CookingMode ingredient scaling correct.
+
+### Session 27 QA Pass (2026-06-10)
+**Bugs fixed during deep audit:**
+- **Onboarding splash screen showed old "H" / Yellowtail branding** — First screen rendered `<span style={{ fontFamily: "'Yellowtail', cursive" }}>H</span>`, leftover from the old "Hungry" app name. Replaced with `<span className="logo-text text-5xl text-[#6BAEE0]">Pantry</span>` matching the AuthManager and Header branding.
+- **Shopping list household picker closed before selection** — The household picker container used `onClick={e => e.stopPropagation()}` but the document close listener used `mousedown`. The `mousedown` fired first and closed the picker before the `click` reached the button. Fixed by also adding `onMouseDown={e => e.stopPropagation()}` to the container.
+- **AI recipe generator "missing recipe name" false error** — `handleGenerateAiRecipe` in RecipeContext checked `if (!parsed.recipeName)` but Gemini commonly returns `{"name": "..."}` not `{"recipeName": "..."}`. Fixed by changing the check and name assignment to use the pre-computed `recipeName` variable.
+- **ChefHistory always empty on new devices** — Read exclusively from localStorage. Full rewrite to read/write Supabase with one-time localStorage migration.
+- **useInventory.js minimal Supabase insert** — Only wrote 5 fields to chef_history. Fixed to write all fields.
+
+**Audit completed (no bugs found):**
+- `staticRecipes.js` — 318 recipes, 0 duplicate IDs, all required fields present; all 50+ cuisines and all meal types valid.
+- `PantryManager.jsx` — category overrides, barcode lookup, voice inventory, leftover recon all correct.
+- `PersonalShopper.jsx` — Alcohol aisle, substitution prompt, floor plan logic all correct.
+- `recipeUtils.js` — ingredient cleaning, dietary substitutions, expiry estimates, nutrition estimates, filter matching all correct.
+- `App.jsx`, `CookingMode.jsx`, `UserContext.jsx`, `TutorialOverlay.jsx`, `RecipeExplorer.jsx`, `HouseholdTab.jsx`, `RecipeContext.jsx` — all audited, logic correct.
 
 ### Session 26 QA Pass (2026-06-09)
 **Bugs fixed during full QA:**
