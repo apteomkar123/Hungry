@@ -432,7 +432,45 @@ These features are intentionally deferred until a native iOS app exists. The rea
 - **Nutrient analysis card going off screen** — root cause: `backdrop-filter: blur()` on the parent `<section>` creates a new CSS containing block for `fixed`-positioned children, so `fixed inset-0` was relative to the section, not the viewport. Fixed by moving the modal outside all backdrop-filter containers and using inline `style={{ backdropFilter }}` instead of Tailwind class for the overlay.
 - **iOS home screen icon wrong font** — `icon.svg` updated: changed `@import url()` to `@font-face { src: url('...woff2') }` for reliable font loading; corrected text from "Hungry" to "Pantry". Added `generate-icons.html` (one-time browser tool) for regenerating `icon-192.png` and `icon-512.png` with the correct Pacifico font via Canvas API.
 
-*Last updated: 2026-06-03 (session 23)*
+*Last updated: 2026-06-09 (session 26)*
+
+### Session 26 (2026-06-09)
+**Bugs fixed:**
+- **Share-to-household dropdown z-index** — household picker dropdown on shopping list items had no explicit z-index and was rendering behind other content; fixed with `style={{ zIndex: 9999 }}` on the dropdown container.
+- **Shopping list items wrapping off-page** — long item names used `truncate` and were clipped; changed to `break-words` so text wraps to a second line inside the block.
+- **Ingredient recognition from recipes** — `cleanIngredientLocally` now strips leading measurements (e.g. "2 cloves garlic" → "garlic"), descriptor words (finely, thinly, roughly, etc.), and the word "cloves" as a prefix so "chop tomatoes finely" → "tomatoes" and "cloves garlic" → "garlic"; measurements are also stripped when adding to pantry.
+- **Category search uses full ingredient name** — `_categorizeItemImpl` now searches the full compound name; added explicit guard for non-dairy milks (almond milk, oat milk, soy milk, etc.) so they route to Beverages instead of Dairy.
+- **Ingredients in cooking mode reflect servings** — `parseRecipeIngredientMeasurements` now applied to all ingredients passed to CookingMode, scaling quantities by the current `multiplier`.
+- **Household rename not persisting** — `handleRenameHousehold` in UserContext now shows an alert with the Supabase error message on failure, making persistence bugs visible.
+- **Members not showing immediately on household page** — `loadMembers` now shows a loading state while fetching; guarantees the current user always appears (fetches and prepends if missing); added guard so the members section renders during load.
+- **Tutorial blurring background** — removed `backdrop-blur-[1px]` from the TutorialOverlay dark overlay so the background stays sharp during the tutorial.
+- **Tutorial box pointing to wrong area** — tutorial highlight now calls `scrollIntoView({ behavior: 'smooth', block: 'start' })` then waits 500 ms before re-measuring `getBoundingClientRect`, so the highlight correctly follows the element after scroll settles.
+- **Shopping list not linked to household / Personal Shopper tabs** — shopping list in App.jsx now filters by `activeHousehold` (items with matching `household_id` or null for unassigned); Personal Shopper's All/Personal/Household tab buttons removed; it always shows the full `shoppingList`.
+
+**Features added:**
+- **Virtual Sous Chef auto-speaks steps** — CookingMode now auto-reads step 1 on launch (800 ms after voice init) and auto-reads each step when navigating with Next/Back buttons (150 ms debounce).
+- **Delete household** — `handleDeleteHousehold` added to UserContext; deletes from Supabase `households` table and removes from local state; Trash2 button added to each household header in HouseholdTab. If it's a shared household, the deletion propagates to HomeBase via the shared `households` table.
+
+**Features already present (no change needed):**
+- Gemini version — switched to `gemini-2.0-flash` (faster, GA-stable).
+
+### Session 26 QA Pass (2026-06-09)
+**Bugs fixed during full QA:**
+- **Gemini model corrected** — `scan-receipt.js` was still on `gemini-2.5-flash`; changed to `gemini-2.0-flash`.
+- **Cooking verbs stripped in ingredient cleaning** — `cleanIngredientLocally` was missing chop/slice/dice/peel/cube/julienne/blanch/sauté/shred verbs; added to strip regex so "chop tomatoes finely" → "tomatoes".
+- **Alcohol aisle missing from ShoppingListManager** — `AISLES` array had no Alcohol entry; beer/wine/spirits were falling through to Pantry catchall; added Alcohol aisle with 🍷 emoji and correct pattern (also removed beer/wine/spirit from Beverages pattern to prevent double-match).
+- **Tutorial dark overlay** — `TutorialOverlay` had a `bg-blue-950/20` backdrop div blurring the background; removed. Highlight re-measure timeout increased from 500ms to 700ms so scroll settles before box is drawn.
+- **Shopping list text wrapping verified** — item span has `break-words min-w-0 flex-1`; outer container has `min-w-0`; no `overflow-hidden` clips it. Confirmed working.
+- **Personal Shopper drops alcohol items** — `grouped` useMemo ORDER array was missing `'Alcohol'`; beer/wine/spirits were categorized correctly by `categorizeItem` but then silently discarded. Fixed by adding `'Alcohol'` to ORDER (between `'Frozen'` and `'Bakery'`). Also added `'Alcohol': 'Beer & Wine — Aisle 7'` to default `STORE_AISLES`.
+- **late_night Vinyl mood was a no-op** — `MOODS` array in `RecipeExplorer.jsx` had no `{ key: 'late_night' }` entry, so the `late_night_active` cross-app signal from Vinyl pre-selecting this mood always resolved to `undefined` and boosted nothing. Added `late_night` entry with snack/quick keywords.
+- **"Your Taste" section always empty** — `handleMarkCooked` in `useInventory.js` only wrote chef history to `localStorage`; `RecipeExplorer` reads from Supabase `chef_history` table for the "Your Taste" cuisine recommendations. Fixed by also inserting a row into `chef_history` in Supabase on every mark-cooked.
+- **Friends' chef history always empty (UserProfileModal)** — `UserProfileModal` read cook history from `localStorage.getItem('pantry_chef_history_${profileUser.id}')`, a key that is never written to by anyone. Chef history for other users only exists on their own device or in Supabase. Fixed by querying Supabase `chef_history` table filtered by `user_id`.
+- **Dead code in FriendsPage** — `getFriendFeed(friendId)` read the same never-written localStorage key; the `selectedFriend` panel that called it was also unreachable (no code set `selectedFriend`). Removed both since friend profiles are handled by `UserProfileModal`.
+- **RecipeModal household dropdown never closes on outside click** — `showHouseholdMenu` dropdown had no click-outside handler; once opened it could only be closed by picking an option. Added `useEffect` with `mousedown`/`touchstart` listener on `document` keyed off `showHouseholdMenu`.
+- **Ingredient substitution always asked for vegetarian swap** — `getSubstitution` in `RecipeModal` hardcoded `"Suggest a common vegetarian substitute for…"` regardless of the user's actual dietary restriction. Changed prompt to neutral `"Suggest a common substitute for… Reply with just the substitute name."`.
+
+**Features not added:**
+- Completed shopping list items disappearing after 1 minute — timer logic added in ShoppingListManager (`completedAt` map + `hidden` Set + 60 s `setTimeout`), but depends on the auto-add-to-pantry flow completing first; visually items fade out after 60 s of being checked.
 
 ### Session 25 (2026-06-04)
 **Bugs fixed:**

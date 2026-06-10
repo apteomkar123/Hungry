@@ -730,6 +730,8 @@ export const useInventory = (user, household) => {
     }
     if (!_mt) _mt = 'Main';
 
+    const cookedAt = new Date().toISOString();
+
     // Log to Chef History in localStorage
     try {
       const history = JSON.parse(localStorage.getItem('pantry_chef_history') || '[]');
@@ -742,14 +744,25 @@ export const useInventory = (user, household) => {
         description: recipe.description || recipe.summary || '',
         ingredients: recipe.ingredients || [],
         steps: recipe.steps || [],
-        cookedAt: new Date().toISOString(),
+        cookedAt,
         notes: '',
         photos: [],
         soundtrack,
       });
       localStorage.setItem('pantry_chef_history', JSON.stringify(history.slice(0, 100)));
     } catch {}
-  }, [fridge, quantities, handleRemoveItem]);
+
+    // Also persist to Supabase so RecipeExplorer "Your Taste" cuisine recommendations work cross-device
+    if (user?.id) {
+      supabase.from('chef_history').insert({
+        user_id: user.id,
+        recipe_name: recipe.name,
+        meal_type: _mt,
+        cuisine: _cu,
+        cooked_at: cookedAt,
+      }).then(() => {});
+    }
+  }, [fridge, quantities, handleRemoveItem, user]);
 
   const handleRemoveFromPantryByName = useCallback(async (itemName) => {
     const sanitized = cleanIngredientLocally(itemName);

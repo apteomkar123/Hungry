@@ -280,10 +280,12 @@ export const UserProvider = ({ children }) => {
   const handleRenameHousehold = async (householdId, newName) => {
     if (!newName?.trim()) return;
     const { error } = await supabase.from('households').update({ name: newName.trim() }).eq('id', householdId);
-    if (!error) {
-      setHouseholds(prev => prev.map(h => h.id === householdId ? { ...h, name: newName.trim() } : h));
-      if (activeHousehold?.id === householdId) setActiveHousehold(prev => ({ ...prev, name: newName.trim() }));
+    if (error) {
+      alert(`Could not rename household: ${error.message}`);
+      return;
     }
+    setHouseholds(prev => prev.map(h => h.id === householdId ? { ...h, name: newName.trim() } : h));
+    if (activeHousehold?.id === householdId) setActiveHousehold(prev => ({ ...prev, name: newName.trim() }));
   };
 
   const handleDeleteHousehold = async (householdId) => {

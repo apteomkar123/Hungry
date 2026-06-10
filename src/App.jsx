@@ -1,7 +1,7 @@
 ﻿import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { ChefHat, Refrigerator, ShoppingCart, BarChart3, Users, Star, Search, Trash2, Settings, Clock, PlusCircle, X, UserRound, Share2, PartyPopper, Globe, User, Layers, SlidersHorizontal } from 'lucide-react';
-import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic, matchesRecipeFilter } from './components/recipeUtils';
+import { cleanIngredientLocally, getStaticRecipeSteps, triggerHaptic, matchesRecipeFilter, parseRecipeIngredientMeasurements } from './components/recipeUtils';
 import Header from './components/Header';
 import PantryManager from './components/PantryManager';
 import RecipeExplorer from './components/RecipeExplorer';
@@ -90,6 +90,7 @@ function AppContent({ inventory }) {
     removeMealPlan,
     setActiveMealPlan,
     setIsMealPrepOpen,
+    multiplier,
   } = useRecipes();
 
   const [activeTab, setActiveTab] = useState('pantry');
@@ -257,11 +258,11 @@ function AppContent({ inventory }) {
             )}
             {activeTab === 'recipes' && <div id="tut-recipes"><RecipeExplorer initialMood={vinylMood} /></div>}
             {activeTab === 'shopping' && (() => {
-              // Scoped to the active household — follows the master household toggle in the Header
+              // Show items belonging to the active household; personal items (null household_id) always show
               const hhId = activeHousehold?.id;
               const householdShoppingList = hhId
-                ? shoppingList.filter(i => i.household_id === hhId || !i.household_id)
-                : shoppingList;
+                ? shoppingList.filter(i => i.household_id === hhId || i.household_id == null)
+                : shoppingList.filter(i => i.household_id == null);
               return (
                 <>
                   <div className="flex justify-end mb-4">
@@ -283,6 +284,9 @@ function AppContent({ inventory }) {
                     onMarkAllDone={handleMarkAllShoppingCompleted}
                     onAddToPantry={handleAddManualItem}
                     onRemoveFromPantry={handleRemoveFromPantryByName}
+                    onMoveItem={handleMoveShoppingItem}
+                    households={households}
+                    activeHousehold={activeHousehold}
                   /></div>
                 </>
               );
@@ -538,7 +542,7 @@ function AppContent({ inventory }) {
       {isCookingMode && activeModalRecipe && (
         <CookingMode
           steps={getStaticRecipeSteps(activeModalRecipe)}
-          ingredients={activeModalRecipe.ingredients || []}
+          ingredients={(activeModalRecipe.ingredients || []).map(ing => parseRecipeIngredientMeasurements(ing, multiplier || 1))}
           recipeName={activeModalRecipe.name || activeModalRecipe.strMeal || ''}
           cuisine={activeModalRecipe.cuisine || activeModalRecipe.strArea || ''}
           onClose={() => setIsCookingMode(false)}

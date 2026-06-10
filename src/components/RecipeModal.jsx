@@ -37,18 +37,19 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   const [showHouseholdMenu, setShowHouseholdMenu] = useState(false);
   const starBtnRef = useRef(null);
 
-  // Reset all local state when a new recipe is opened
   const [pantryAdded, setPantryAdded] = useState(new Set());
   const [adaptedRecipe, setAdaptedRecipe] = useState(null);
-  const [adapting, setAdapting] = useState(null); // null | 'vegetarian' | 'vegan' | 'meat' | restriction string
+  const [adapting, setAdapting] = useState(null);
   const [substitutes, setSubstitutes] = useState({});
   const [loadingSub, setLoadingSub] = useState(null);
-  const [proteinResult, setProteinResult] = useState(null); // {updatedRecipe, proteinIngredient, proteinAdded}
+  const [proteinResult, setProteinResult] = useState(null);
   const [proteinizing, setProteinizing] = useState(false);
   const [cooked, setCooked] = useState(false);
-  const [pantryOverrides, setPantryOverrides] = useState({}); // {ingredientKey: true|false} user manual overrides
+  const [pantryOverrides, setPantryOverrides] = useState({});
   const [showCookingChoice, setShowCookingChoice] = useState(false);
-  const [simpleViewStep, setSimpleViewStep] = useState(null); // null = closed, 0+ = step index
+  const [simpleViewStep, setSimpleViewStep] = useState(null);
+
+  // Reset all local state when a new recipe is opened
   useEffect(() => {
     setAdaptedRecipe(null);
     setAdapting(null);
@@ -60,6 +61,22 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     setShowCookingChoice(false);
     setSimpleViewStep(null);
   }, [recipe?.id]);
+
+  // Close household dropdown when clicking outside
+  useEffect(() => {
+    if (!showHouseholdMenu) return;
+    const handleOutside = (e) => {
+      if (starBtnRef.current && !starBtnRef.current.contains(e.target)) {
+        setShowHouseholdMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('touchstart', handleOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside);
+    };
+  }, [showHouseholdMenu]);
 
   const violatedRestrictions = useMemo(() => {
     const restrictions = userSettings?.dietary_restrictions || [];
@@ -240,7 +257,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customPrompt: `Suggest a common vegetarian substitute for "${ingredient}" in a recipe.`
+          customPrompt: `Suggest a common substitute for "${ingredient}" in a recipe. Reply with just the substitute name.`
         })
       });
       if (!response.ok) {

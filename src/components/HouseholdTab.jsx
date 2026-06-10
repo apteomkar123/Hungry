@@ -8,7 +8,7 @@ import UserProfileModal from './UserProfileModal';
 
 
 export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDeleteHhItem }) {
-  const { households, household: activeHousehold, handleUpdateBudgetLimit, handleRenameHousehold, user, pantryHouseholdId, isPantryShared, handleSetPantrySpecificHousehold, handleClearPantryHousehold } = useUser();
+  const { households, household: activeHousehold, handleUpdateBudgetLimit, handleRenameHousehold, handleDeleteHousehold, user, pantryHouseholdId, isPantryShared, handleSetPantrySpecificHousehold, handleClearPantryHousehold } = useUser();
   const { savedRecipes, setActiveModalRecipe, onSaveRecipe, onRemoveSavedRecipe, masterRecipes } = useRecipes();
 
   const [selectedHHId, setSelectedHHId] = useState(activeHousehold?.id || null);
@@ -39,6 +39,7 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
   const [budgetInput, setBudgetInput] = useState('');
   const [editingBudget, setEditingBudget] = useState(false);
   const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
   const [activeProfile, setActiveProfile] = useState(null);
   const [friends, setFriends] = useState([]);
   const [sentRequests, setSentRequests] = useState(new Set());
@@ -90,41 +91,56 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
 
   const loadMembers = useCallback(async () => {
     if (!selectedHHId || !user) return;
-    const { data, error } = await supabase
-      .from('household_members')
-      .select('profile_id, profiles!profile_id(id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url)')
-      .eq('household_id', selectedHHId);
-    let loaded = (data || []).map(m => m.profiles).filter(Boolean);
+    setMembersLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('household_members')
+        .select('profile_id, profiles!profile_id(id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url)')
+        .eq('household_id', selectedHHId);
+      let loaded = (data || []).map(m => m.profiles).filter(Boolean);
 
-    if ((!loaded.length || error) && (data || []).length > 0) {
-      const ids = (data || []).map(m => m.profile_id).filter(Boolean);
-      if (ids.length) {
-        const { data: profs } = await supabase
+      if ((!loaded.length || error) && (data || []).length > 0) {
+        const ids = (data || []).map(m => m.profile_id).filter(Boolean);
+        if (ids.length) {
+          const { data: profs } = await supabase
+            .from('profiles')
+            .select('id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url')
+            .in('id', ids);
+          loaded = profs || [];
+        }
+      }
+
+      // Ensure current user always appears in the members list even if household_members row is missing
+      if (user && !loaded.find(m => m.id === user.id)) {
+        const { data: selfProf } = await supabase
           .from('profiles')
           .select('id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url')
-          .in('id', ids);
-        loaded = profs || [];
+          .eq('id', user.id)
+          .single();
+        if (selfProf) loaded = [selfProf, ...loaded];
       }
-    }
 
-    if (!loaded.length) {
-      const { data: oldProfs } = await supabase
-        .from('profiles')
-        .select('id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url')
-        .or(`active_household_id.eq.${selectedHHId},household_id.eq.${selectedHHId}`);
-      loaded = oldProfs || [];
-    }
+      if (!loaded.length) {
+        const { data: oldProfs } = await supabase
+          .from('profiles')
+          .select('id, display_name, hungry_settings, friend_code, avatar_url, hungry_avatar_url')
+          .or(`active_household_id.eq.${selectedHHId},household_id.eq.${selectedHHId}`);
+        loaded = oldProfs || [];
+      }
 
-    setMembers(loaded);
-    if (loaded.length) {
-      supabase.from('user_presence')
-        .select('profile_id, status, custom_text')
-        .in('profile_id', loaded.map(m => m.id))
-        .then(({ data: pres }) => {
-          const map = {};
-          (pres || []).forEach(p => { map[p.profile_id] = p; });
-          setMemberPresence(map);
-        });
+      setMembers(loaded);
+      if (loaded.length) {
+        supabase.from('user_presence')
+          .select('profile_id, status, custom_text')
+          .in('profile_id', loaded.map(m => m.id))
+          .then(({ data: pres }) => {
+            const map = {};
+            (pres || []).forEach(p => { map[p.profile_id] = p; });
+            setMemberPresence(map);
+          });
+      }
+    } finally {
+      setMembersLoading(false);
     }
   }, [selectedHHId, user]);
 
@@ -358,6 +374,11 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
                 className="text-slate-400 hover:text-[#6BAEE0] transition-colors p-1 rounded-lg"
                 title="Rename household"
               ><Edit2 size={14} /></button>
+              <button
+                onClick={() => handleDeleteHousehold(selectedHH.id)}
+                className="text-slate-300 hover:text-red-400 transition-colors p-1 rounded-lg"
+                title="Delete household"
+              ><Trash2 size={14} /></button>
             </div>
           )}
           <div>
@@ -409,9 +430,9 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
       })()}
 
       {/* Household Members */}
-      {members.length > 0 && (
+      {(members.length > 0 || membersLoading) && (
         <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
-          <h2 className="text-[14px] font-bold text-slate-400 mb-4 flex items-center gap-2"><Users size={15} /> Members ({members.length})</h2>
+          <h2 className="text-[14px] font-bold text-slate-400 mb-4 flex items-center gap-2"><Users size={15} /> Members {membersLoading ? <span className="text-[10px] text-slate-300">(loading…)</span> : `(${members.length})`}</h2>
           <div className="space-y-2">
             {members.map(m => {
               const isSelf = m.id === user?.id;

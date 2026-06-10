@@ -238,9 +238,15 @@ export default function TutorialOverlay({ onComplete, onSkip, onSwitchTab, scrol
     highlightTimer.current = setTimeout(() => {
       const el = document.querySelector(current.selector);
       if (!el) { setHighlightBox(null); return; }
-      const rect = el.getBoundingClientRect();
-      setHighlightBox({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Scroll element into view near the top so the tutorial card at the bottom doesn't cover it
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Re-measure after scroll fully settles (700ms)
+      setTimeout(() => {
+        const el2 = document.querySelector(current.selector);
+        if (!el2) return;
+        const rect = el2.getBoundingClientRect();
+        setHighlightBox({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+      }, 700);
     }, 400);
   }, [current.selector]);
 
@@ -291,8 +297,7 @@ export default function TutorialOverlay({ onComplete, onSkip, onSwitchTab, scrol
   return (
     <div className="fixed inset-0 z-[200] pointer-events-none">
 
-      {/* Semi-transparent backdrop (only bottom-card area is pointer-events-auto) */}
-      <div className="absolute inset-0 bg-blue-950/30 backdrop-blur-[1px]" />
+      {/* No backdrop — keep background sharp during tutorial */}
 
       {/* Highlight ring around target element */}
       {highlightBox && (

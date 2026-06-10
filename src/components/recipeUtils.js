@@ -165,15 +165,22 @@ export const cleanIngredientLocally = (rawName) => {
   let name = String(rawName).toLowerCase().trim();
   name = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   name = name.replace(/[\u2013\u2014•]/g, ' ');
+  // Strip leading measurement + count patterns before digit removal
+  name = name.replace(/^[\d\/\.\s\-½⅓¼¾⅛]+(?:cups?|tbsps?|tsps?|tablespoons?|teaspoons?|oz|ounces?|g|kg|lb|lbs|mls?|l|pieces?|cloves?|heads?|bunches?|sprigs?|stalks?|cans?|jars?|bags?|pinch(?:es)?|dash(?:es)?|handful|handfuls?)?\s*/i, '');
   name = name.replace(/\d+/g, ' ');
-  name = name.replace(/\b(?:organic|fresh|large|small|medium|extra|reduced fat|low fat|low-sodium|low sodium|unsalted|sliced|diced|chopped|shredded|minced|ground|boneless|skinless|prepared|peeled|packaged|package|pack|can|canned|jar|bottle|tube|stick|slice|pieces|piece|cups?|tablespoons?|tbsps?|teaspoons?|tsps?|grams?|g|kg|pounds?|lb|lbs|oz|ounces?|fluid|fl oz|mls?|ltrs?|liters?|litres?|pkg|ct|count)\b/g, ' ');
-  // Strip any leading unit words that may remain after digit removal (e.g. "tbsp olive oil")
-  name = name.replace(/^(?:tbsps?|tsps?|tablespoons?|teaspoons?|cups?|oz|ounces?|g|kg|lb|lbs|mls?|fl)\s+/, '');
+  // Measurement & packaging words
+  name = name.replace(/\b(?:organic|fresh|freshly|large|small|medium|extra|reduced fat|low fat|low-sodium|low sodium|unsalted|sliced|diced|chopped|shredded|minced|ground|boneless|skinless|prepared|peeled|packaged|package|pack|can|canned|jar|bottle|tube|stick|slice|pieces|piece|cups?|tablespoons?|tbsps?|teaspoons?|tsps?|grams?|g|kg|pounds?|lb|lbs|oz|ounces?|fluid|fl oz|mls?|ltrs?|liters?|litres?|pkg|ct|count)\b/g, ' ');
+  // Cooking-method and descriptor words that should not be part of an ingredient name
+  name = name.replace(/\b(?:chop(?:ped)?|slice[d]?|slicing|dice[d]?|dicing|mince[d]?|mincing|peel(?:ed)?|peeling|cube[d]?|cubing|julienne[d]?|blanch(?:ed)?|saut[eé](?:ed)?|shred(?:ded)?|shredding|tear|torn|trimmed?|trimming|halve[d]?|quarter(?:ed)?|crack(?:ed)?|pound(?:ed)?|flatten(?:ed)?|cut|cutting)\b/g, ' ');
+  name = name.replace(/\b(?:finely|thinly|roughly|coarsely|lightly|gently|well|very|about|approximately|plus|more|divided|separated|halved|quartered|crushed|torn|grated|zested|squeezed|pressed|toasted|roasted|cooked|boiled|fried|baked|grilled|steamed|melted|softened|to taste|as needed|if desired|optional|heaping|level|packed|sifted|beaten|whisked|strained|drained|rinsed)\b/g, ' ');
+  // cloves used as a unit before another word (e.g. "cloves garlic" -> "garlic")
+  name = name.replace(/\bcloves?\s+(?=\w)/g, '');
+  // Strip any leading unit words that may remain after digit removal
+  name = name.replace(/^(?:tbsps?|tsps?|tablespoons?|teaspoons?|cups?|oz|ounces?|g|kg|lb|lbs|mls?|fl|cloves?|heads?|bunches?|sprigs?|pinch(?:es)?)\s+/, '');
   name = name.replace(/[^a-z0-9\s]/g, ' ');
   name = name.replace(/\s+/g, ' ').trim();
   return name;
 };
-
 export const normalizeIngredientTokens = (value) => {
   const clean = cleanIngredientLocally(value);
   return Array.from(new Set(clean.split(/\s+/).filter(Boolean)));
@@ -654,6 +661,8 @@ export const CATEGORY_ORDER = ['Proteins', 'Dairy & Eggs', 'Fruits', 'Vegetables
 const _categorizeItemImpl = (n) => {
   if (/\b(frozen|ice creams?|gelatos?|popsicles?|sorbets?)\b/.test(n)) return 'Frozen';
   if (/\b(beers?|wines?|champagnes?|proseccos?|spirits?|whiskeys?|bourbons?|vodkas?|rums?|gins?|tequilas?|brandies?|brandy|liqueurs?|sake|meads?|hard ciders?|hard seltzers?|ales?|lagers?|stouts?)\b/.test(n)) return 'Alcohol';
+  // Non-dairy milks checked before Beverages pattern and before Dairy — they are beverages
+  if (/\b(almond milk|oat milk|soy milk|coconut milk beverage|rice milk|cashew milk|hemp milk|macadamia milk)\b/.test(n)) return 'Beverages';
   if (/\b(juices?|lemonades?|smoothies?|shakes?|milkshakes?|waters?|sparkling water|sodas?|teas?|coffees?|lattes?|espresso|kombuchas?|colas?|energy drinks?|sports drinks?|drinks?|beverages?|cordials?)\b/.test(n)) return 'Beverages';
   if (/\b(chickens?|beefs?|pork|lambs?|turkeys?|fishs?|salmons?|tunas?|shrimps?|crabs?|lobsters?|bacons?|sausages?|hams?|muttons?|ducks?|seafood|steaks?|minces?|pepperonis?|anchovies|anchovy|venisons?|veals?|salamis?|meats?|prawns?)\b/.test(n)) return 'Proteins';
   if (/\b(milks?|cheeses?|butters?|yogurts?|creams?|eggs?|paneer|ghee|curd|whey|kefir|mozzarella|cheddars?|parmesan|brie|ricotas?|ricotta|cottage|sour cream|dairy)\b/.test(n)) return 'Dairy & Eggs';

@@ -20,11 +20,20 @@ export default function UserProfileModal({ user: profileUser, onClose }) {
       .limit(30)
       .then(({ data }) => setSavedRecipes(data || []));
 
-    // Fetch public chef history from localStorage (only what they've shared publicly)
-    try {
-      const history = JSON.parse(localStorage.getItem(`pantry_chef_history_${profileUser.id}`) || '[]');
-      setCookHistory(history.filter(e => !e.isPrivate));
-    } catch { setCookHistory([]); }
+    // Fetch public chef history from Supabase
+    supabase.from('chef_history')
+      .select('recipe_name, meal_type, cuisine, cooked_at')
+      .eq('user_id', profileUser.id)
+      .order('cooked_at', { ascending: false })
+      .limit(30)
+      .then(({ data }) => {
+        setCookHistory((data || []).map(e => ({
+          recipeName: e.recipe_name,
+          meal_type: e.meal_type,
+          cuisine: e.cuisine,
+          cookedAt: e.cooked_at,
+        })));
+      });
   }, [profileUser?.id]);
 
   const openRecipe = (entry) => {

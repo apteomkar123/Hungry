@@ -602,3 +602,24 @@ DONE
 Simple recipe view should show ingredients too
 Logo when bookmarked to iOS Home Screen needs to be updated to say Pantry in Pacifico font
 User should be able to edit the household name, which should sync up to HomeBase if it's a shared household
+
+BUGS TO FIX (Session 26 / 2026-06-09) — COMPLETED
+----------------------------------------------------
+1. share to household dropdown doesn't show up properly on the shopping list items, going into background. Move the layer to the front
+2. What version of Gemini is currently being used? Switch to 3.1 flash if it's faster and cheaper.
+3. Some shopping list items that are longer are going off page, they should instead go onto a second line in the block if necessary
+4. Ingredient recognition should be better when adding from recipes, for example, if it says "chop tomatoes finely" it should just pull tomatoes, not finely, or it should just pull garlic not "cloves garlic". Same applies when ingredients are adding to the pantry from a recipe, measurements are also being carried forward in the name to the pantry.
+5. Search the whole name for each ingredient to figure out what category it is
+6. Ingredients in cooking mode and simple recipe mode should also reflect the number of servings the user wants to make
+7. When a household is renamed, the new name doesn't save
+8. Members don't always show up on the household page immediately, especially if there's multiple households that a user manages
+9. Don't blur background during the tutorial
+10. Tutorial box isn't always pointing to the right area on the page
+11. Shopping list doesn't seem to be linked to a household, it should change as the user changes household. Personal shopper should not have "all, personal, household" tabs
+
+FEATURES TO ADD (Session 26 / 2026-06-09) — COMPLETED
+-------------------------------------------------------
+1. Virtual Sous Chef should talk back to the user in a natural voice.
+2. Add a separate category for alcohol, including wine, beer, and spirits and liquors
+3. Add an option to delete households, this should delete from both pantry and roomies if it's a shared household
+4. Shopping list items marked done should disappear from the list after 1 minute, as long as they've been added to pantry automatically.

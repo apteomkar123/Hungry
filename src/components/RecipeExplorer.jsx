@@ -13,6 +13,7 @@ const MOODS = [
   { key: 'celebratory', label: '🎉 Celebratory',   keywords: ['roast', 'lobster', 'pasta', 'cake', 'tart', 'risotto', 'steak', 'prawn', 'fancy', 'feast'] },
   { key: 'stressed',    label: '🧘 Stressed',       keywords: ['salad', 'smoothie', 'avocado', 'green', 'light', 'fresh', 'detox', 'fruit', 'veggie', 'bowl'] },
   { key: 'adventurous', label: '🌍 Adventurous',   keywords: ['indian', 'thai', 'korean', 'ethiopian', 'moroccan', 'peruvian', 'vietnamese', 'jamaican', 'fusion', 'spicy'] },
+  { key: 'late_night',  label: '🌙 Late Night',    keywords: ['snack', 'pizza', 'ramen', 'noodle', 'grilled cheese', 'quesadilla', 'nachos', 'fries', 'wings', 'quick', 'easy', 'toast', 'eggs'] },
 ];
 
 export default function RecipeExplorer({ initialMood = null }) {

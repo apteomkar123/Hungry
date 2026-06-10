@@ -1,14 +1,15 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
-import { Plus, Check, Trash2, ShoppingCart, Pencil, Sparkles, Loader2 } from 'lucide-react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { Plus, Check, Trash2, ShoppingCart, Pencil, Sparkles, Loader2, Users, User } from 'lucide-react';
 import { useUser } from './UserContext';
 
 const AISLES = [
   { key: 'Frozen', emoji: '🧊', pattern: /\b(frozen|ice cream|gelato|popsicle|sorbet|frost)\b/i },
+  { key: 'Alcohol', emoji: '🍷', pattern: /\b(beer|wine|champagne|prosecco|spirit|whiskey|bourbon|vodka|rum|gin|tequila|brandy|liqueur|sake|mead|hard cider|hard seltzer|ale|lager|stout)\b/i },
   { key: 'Snacks', emoji: '🍿', pattern: /\b(chip|crisp|cracker|cookie|candy|chocolate|popcorn|pretzel|almond|cashew|walnut|peanut|pistachio|granola|protein bar|rice cake|snack|nut)\b/i },
   { key: 'Bakery', emoji: '🥐', pattern: /\b(bread|roll|bun|muffin|croissant|bagel|tortilla|wrap|pita|naan|loaf|biscuit|wafer|cereal|oat)\b/i },
   { key: 'Dairy & Eggs', emoji: '🥛', pattern: /\b(milk|cheese|butter|yogurt|cream|eggs?|paneer|ghee|curd|whey|kefir|mozzarella|cheddar|parmesan|brie|ricotta|cottage|sour cream|dairy|half and half)\b/i },
   { key: 'Meat & Fish', emoji: '🫘', pattern: /\b(chicken|beef|pork|lamb|turkey|fish|salmon|tuna|shrimp|crab|lobster|bacon|sausage|ham|mutton|duck|seafood|steak|mince|pepperoni|anchovy|venison|veal|salami|prawn|tilapia|cod|sardine)\b/i },
-  { key: 'Beverages', emoji: '☕', pattern: /\b(water|juice|soda|tea|coffee|beer|wine|spirit|whiskey|vodka|rum|gin|drink|beverage|smoothie|shake|cola|lemonade|kombucha|sparkling|almond milk|oat milk)\b/i },
+  { key: 'Beverages', emoji: '☕', pattern: /\b(water|juice|soda|tea|coffee|drink|beverage|smoothie|shake|cola|lemonade|kombucha|sparkling|almond milk|oat milk)\b/i },
   { key: 'Produce', emoji: '🥦', pattern: /\b(apple|banana|orange|mango|grape|strawberry|blueberry|raspberry|lemon|lime|pear|peach|cherry|watermelon|pineapple|kiwi|avocado|fig|coconut|carrot|potato|tomato|onion|garlic|spinach|broccoli|cauliflower|lettuce|cabbage|cucumber|pepper|celery|kale|zucchini|eggplant|mushroom|corn|pea|bean|lentil|asparagus|beetroot|radish|leek|squash|ginger|chili|herb|cilantro|parsley|basil|mint|thyme|rosemary|scallion|shallot|arugula|chard)\b/i },
   { key: 'Pantry', emoji: '📦', pattern: null },
 ];
@@ -21,15 +22,58 @@ const getAisle = (itemName) => {
   return 'Pantry';
 };
 
-export default function ShoppingListManager({ list = [], onAdd, onToggle, onClear, onRename, onClearAll, onMarkAllDone, onAddToPantry, onRemoveFromPantry }) {
+export default function ShoppingListManager({ list = [], onAdd, onToggle, onClear, onRename, onClearAll, onMarkAllDone, onAddToPantry, onRemoveFromPantry, onMoveItem, households = [], activeHousehold }) {
   const { userSettings } = useUser();
   const [shoppingInput, setShoppingInput] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [swapLoadingId, setSwapLoadingId] = useState(null);
-  const [swapResults, setSwapResults] = useState({}); // id → suggestion string
+  const [swapResults, setSwapResults] = useState({});
+  const [hhPickerId, setHhPickerId] = useState(null); // item id with open household picker
+  // Track when items were completed to auto-hide after 1 min
+  const [completedAt, setCompletedAt] = useState({});
+  const [hidden, setHidden] = useState(new Set());
   const editRef = useRef(null);
   const nutritionGoal = userSettings?.nutrition_goal || null;
+
+  // Auto-hide completed items 60 s after they're marked done
+  useEffect(() => {
+    const timers = [];
+    Object.entries(completedAt).forEach(([id, ts]) => {
+      if (hidden.has(id)) return;
+      const elapsed = Date.now() - ts;
+      const remaining = Math.max(0, 60000 - elapsed);
+      const t = setTimeout(() => {
+        setHidden(prev => new Set([...prev, id]));
+      }, remaining);
+      timers.push(t);
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [completedAt, hidden]);
+
+  // When an item is un-completed, remove it from completedAt + hidden
+  useEffect(() => {
+    const completedIds = new Set(list.filter(i => i.is_completed).map(i => String(i.id)));
+    setCompletedAt(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(id => { if (!completedIds.has(id)) delete next[id]; });
+      return next;
+    });
+    setHidden(prev => {
+      const next = new Set(prev);
+      [...next].forEach(id => { if (!completedIds.has(id)) next.delete(id); });
+      return next;
+    });
+  }, [list]);
+
+  // Close household picker when clicking outside
+  useEffect(() => {
+    if (!hhPickerId) return;
+    const close = () => setHhPickerId(null);
+    document.addEventListener('mousedown', close);
+    document.addEventListener('touchstart', close);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('touchstart', close); };
+  }, [hhPickerId]);
 
   const fetchSwap = useCallback(async (item) => {
     if (swapLoadingId || swapResults[item.id]) return;
@@ -58,8 +102,19 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
     setShoppingInput('');
   };
 
+  const handleToggleItem = (item) => {
+    onToggle(item.id, item.is_completed);
+    if (!item.is_completed) {
+      // Marking as done — record timestamp
+      setCompletedAt(prev => ({ ...prev, [String(item.id)]: Date.now() }));
+      if (onAddToPantry) onAddToPantry(item.item_name);
+    } else {
+      if (onRemoveFromPantry) onRemoveFromPantry(item.item_name);
+    }
+  };
+
   const pending = useMemo(() => list.filter(i => !i.is_completed), [list]);
-  const completed = useMemo(() => list.filter(i => i.is_completed), [list]);
+  const completed = useMemo(() => list.filter(i => i.is_completed && !hidden.has(String(i.id))), [list, hidden]);
 
   const groupedByAisle = useMemo(() => AISLES.reduce((acc, aisle) => {
     acc[aisle.key] = pending.filter(i => getAisle(i.item_name) === aisle.key);
@@ -77,15 +132,13 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
     setEditingId(null);
   };
 
+  const getHHLabel = (hhId) => households.find(h => h.id === hhId)?.name || 'Shared';
+
   const renderItem = (item) => (
     <div key={item.id} className={`bg-white border rounded-2xl transition-all ${item.is_completed ? 'border-transparent opacity-50' : 'border-blue-50 shadow-sm'}`}>
-      <div className="flex items-center justify-between gap-3 p-4 min-w-0">
+      <div className="flex items-center justify-between gap-2 p-4 min-w-0">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <button onClick={() => {
-            onToggle(item.id, item.is_completed);
-            if (!item.is_completed && onAddToPantry) onAddToPantry(item.item_name);
-            if (item.is_completed && onRemoveFromPantry) onRemoveFromPantry(item.item_name);
-          }} className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${item.is_completed ? 'bg-sky-500 text-white' : 'bg-blue-50 text-transparent border border-blue-100'}`}>
+          <button onClick={() => handleToggleItem(item)} className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 transition-all ${item.is_completed ? 'bg-sky-500 text-white' : 'bg-blue-50 text-transparent border border-blue-100'}`}>
             <Check size={14} strokeWidth={4} />
           </button>
           {editingId === item.id ? (
@@ -100,27 +153,59 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
             />
           ) : (
             <span
-              className={`text-xs font-bold text-slate-700 truncate flex-1 ${item.is_completed ? 'line-through text-slate-400' : ''}`}
+              className={`text-xs font-bold text-slate-700 break-words min-w-0 flex-1 leading-snug ${item.is_completed ? 'line-through text-slate-400' : ''}`}
               onDoubleClick={() => !item.is_completed && startEditing(item)}
             >{item.item_name}</span>
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
-        {!item.is_completed && onRename && (
-          <button onClick={() => startEditing(item)} className="text-slate-200 hover:text-sky-400 transition-colors p-1.5"><Pencil size={14} /></button>
-        )}
-        {/* AI Swap suggestion */}
-        {!item.is_completed && nutritionGoal && (
-          <button
-            onClick={(e) => { e.stopPropagation(); fetchSwap(item); }}
-            className="p-1.5 text-slate-300 hover:text-violet-400 transition-colors"
-            title="Suggest better alternative"
-          >
-            {swapLoadingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-          </button>
-        )}
-        <button onClick={() => onClear(item.id)} className="text-slate-200 hover:text-red-400 transition-colors p-1.5"><Trash2 size={14} /></button>
-      </div>
+          {!item.is_completed && onRename && (
+            <button onClick={() => startEditing(item)} className="text-slate-200 hover:text-sky-400 transition-colors p-1.5"><Pencil size={14} /></button>
+          )}
+          {/* Household assignment */}
+          {!item.is_completed && onMoveItem && households.length > 0 && (
+            <div className="relative" onClick={e => e.stopPropagation()}>
+              <button
+                onClick={() => setHhPickerId(prev => prev === item.id ? null : item.id)}
+                className={`flex items-center gap-1 p-1.5 rounded-lg transition-colors ${item.household_id ? 'text-[#6BAEE0]' : 'text-slate-200 hover:text-sky-400'}`}
+                title="Move to household list"
+              >
+                {item.household_id ? <Users size={14} /> : <User size={14} />}
+              </button>
+              {hhPickerId === item.id && (
+                <div className="absolute right-0 bottom-full mb-2 bg-white border border-blue-100 rounded-2xl shadow-2xl min-w-[160px] p-2 space-y-1"
+                  style={{ zIndex: 9999 }}>
+                  <button
+                    onClick={() => { onMoveItem(item.id, null); setHhPickerId(null); }}
+                    className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-slate-50 flex items-center gap-2"
+                  >
+                    <User size={11} /> Personal
+                  </button>
+                  {households.map(h => (
+                    <button
+                      key={h.id}
+                      onClick={() => { onMoveItem(item.id, h.id); setHhPickerId(null); }}
+                      className="w-full text-left text-xs font-bold text-slate-600 px-3 py-2 rounded-xl hover:bg-sky-50 hover:text-[#6BAEE0] flex items-center gap-2"
+                    >
+                      <Users size={11} /> {h.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {/* AI Swap suggestion */}
+          {!item.is_completed && nutritionGoal && (
+            <button
+              onClick={(e) => { e.stopPropagation(); fetchSwap(item); }}
+              className="p-1.5 text-slate-300 hover:text-violet-400 transition-colors"
+              title="Suggest better alternative"
+            >
+              {swapLoadingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            </button>
+          )}
+          <button onClick={() => onClear(item.id)} className="text-slate-200 hover:text-red-400 transition-colors p-1.5"><Trash2 size={14} /></button>
+        </div>
       </div>
       {/* Swap suggestion result */}
       {swapResults[item.id] && !item.is_completed && (

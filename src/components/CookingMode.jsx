@@ -40,7 +40,9 @@ export default function CookingMode({ steps, ingredients, recipeName, cuisine, o
   const goToStep = useCallback((index) => {
     const next = Math.max(0, Math.min(index, steps.length - 1));
     setCurrentStepIndex(next);
-  }, [steps]);
+    // Auto-read the step aloud after a brief pause (let state settle)
+    setTimeout(() => speak(steps[next] || ''), 150);
+  }, [steps, speak]);
 
   useEffect(() => {
     if ('wakeLock' in navigator) {
@@ -111,8 +113,10 @@ export default function CookingMode({ steps, ingredients, recipeName, cuisine, o
     };
     setVoice();
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = setVoice;
+      window.speechSynthesis.onvoiceschanged = () => { setVoice(); };
     }
+    // Speak first step after voices load (short delay to let synthesis initialize)
+    setTimeout(() => { if (isMounted.current && steps[0]) speak(steps[0]); }, 800);
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

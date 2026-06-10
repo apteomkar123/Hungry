@@ -17,6 +17,7 @@ const STORE_AISLES = {
     'Fruits':       'Produce — Entrance',
     'Vegetables':   'Produce — Entrance',
     'Beverages':    'Beverages — Aisle 6',
+    'Alcohol':      'Beer & Wine — Aisle 7',
     'Snacks':       'Snacks — Aisle 4',
     'Bakery':       'Bakery — Aisle 5',
     'Frozen':       'Frozen — Back Wall',
@@ -149,7 +150,6 @@ const saveChecked = (set) => { try { localStorage.setItem(CHECKED_KEY, JSON.stri
 export default function PersonalShopper({ shoppingList, onToggle, onClose }) {
   const { user, userSettings } = useUser();
   const [selectedStore, setSelectedStore] = useState(null);
-  const [listSource, setListSource] = useState('all');
   const [checked, setChecked] = useState(loadChecked);
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
   const [subLoadingId, setSubLoadingId] = useState(null);
@@ -252,14 +252,8 @@ export default function PersonalShopper({ shoppingList, onToggle, onClose }) {
     };
   }, [user?.id]);
 
-  const activeList = useMemo(() => {
-    const all = shoppingList || [];
-    const personal = all.filter(i => !i.household_id);
-    const hhItems = all.filter(i => !!i.household_id);
-    if (listSource === 'personal') return personal;
-    if (listSource === 'household') return hhItems;
-    return all;
-  }, [shoppingList, listSource]);
+  // shoppingList is already pre-filtered to the active household by the parent
+  const activeList = useMemo(() => shoppingList || [], [shoppingList]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -268,7 +262,7 @@ export default function PersonalShopper({ shoppingList, onToggle, onClose }) {
       if (!map[cat]) map[cat] = [];
       map[cat].push(item);
     });
-    const ORDER = ['Fruits', 'Vegetables', 'Proteins', 'Dairy & Eggs', 'Frozen', 'Bakery', 'Snacks', 'Beverages', 'Sauces', 'Spices', 'General'];
+    const ORDER = ['Fruits', 'Vegetables', 'Proteins', 'Dairy & Eggs', 'Frozen', 'Alcohol', 'Bakery', 'Snacks', 'Beverages', 'Sauces', 'Spices', 'General'];
     return ORDER.filter(k => map[k]).map(k => ({
       category: k,
       items: map[k].sort((a, b) => checked.has(a.id) - checked.has(b.id)), // unchecked first
@@ -317,15 +311,6 @@ export default function PersonalShopper({ shoppingList, onToggle, onClose }) {
           <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 pointer-events-none" />
         </div>
 
-        {/* List source */}
-        <div className="flex gap-1 bg-white/15 p-1 rounded-xl">
-          {[['all', 'All'], ['personal', 'Personal'], ['household', 'Household']].map(([v, l]) => (
-            <button key={v} onClick={() => setListSource(v)}
-              className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${listSource === v ? 'bg-white text-[#6BAEE0]' : 'text-white/70'}`}>
-              {l}
-            </button>
-          ))}
-        </div>
 
         <div className="flex items-center gap-3 mt-3">
           <div className="flex items-center gap-2 flex-1">

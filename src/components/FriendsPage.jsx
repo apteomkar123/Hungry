@@ -1,22 +1,19 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
-import { Users, UserPlus, Copy, ChefHat, Check, Loader2, Star, Globe, Lock, Search, X, UserCheck, Bell, Share2 } from 'lucide-react';
+import { Users, UserPlus, Copy, ChefHat, Check, Loader2, Search, X, UserCheck, Bell, Share2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
-import { useRecipes } from './RecipeContext';
 import UserProfileModal from './UserProfileModal';
 
 export default function FriendsPage() {
-  const { user, userName } = useUser();
-  const { setActiveModalRecipe, masterRecipes } = useRecipes();
+  const { user } = useUser();
 
   const [friends, setFriends] = useState([]);
-  const [profileUser, setProfileUser] = useState(null); // user whose profile modal is open
-  const [pendingReceived, setPendingReceived] = useState([]); // requests sent TO me
+  const [profileUser, setProfileUser] = useState(null);
+  const [pendingReceived, setPendingReceived] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [friendCode, setFriendCode] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [selectedFriend, setSelectedFriend] = useState(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -148,19 +145,6 @@ export default function FriendsPage() {
     } catch {}
   };
 
-  const getFriendFeed = (friendId) => {
-    try {
-      return JSON.parse(localStorage.getItem(`pantry_chef_history_${friendId}`) || '[]').filter(e => !e.isPrivate);
-    } catch { return []; }
-  };
-
-  const openRecipe = (entry) => {
-    const match = masterRecipes?.find(r => String(r.id) === String(entry.recipeId));
-    setActiveModalRecipe(match || {
-      id: entry.recipeId, name: entry.recipeName, meal_type: entry.meal_type || '',
-      ingredients: entry.ingredients || [], cleanedIngredients: [], steps: entry.steps || []
-    });
-  };
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -288,31 +272,6 @@ export default function FriendsPage() {
             ))}
           </div>
 
-          {selectedFriend && (
-            <div className="mt-4 bg-sky-50 border border-sky-100 rounded-[2rem] p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#6BAEE0] to-[#4d96d1] flex items-center justify-center text-white font-black text-lg">{(selectedFriend.display_name || '?')[0].toUpperCase()}</div>
-                  <div>
-                    <p className="font-black text-slate-800">{selectedFriend.display_name}</p>
-                    <p className="text-[10px] text-slate-400">Chef Activity</p>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedFriend(null)} className="text-slate-300 hover:text-slate-600 p-1"><X size={16} /></button>
-              </div>
-              {(() => {
-                const feed = getFriendFeed(selectedFriend.id);
-                if (!feed.length) return <p className="text-xs text-slate-400 italic text-center py-4">No public cooking history yet</p>;
-                return feed.map((entry, i) => (
-                  <div key={i} className="border-b border-sky-100 pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
-                    <button onClick={() => openRecipe(entry)} className="text-sm font-bold text-[#6BAEE0] hover:underline text-left block">{entry.recipeName}</button>
-                    <p className="text-[10px] text-slate-400">{new Date(entry.cookedAt).toLocaleDateString()}</p>
-                    {entry.notes && <p className="text-xs text-slate-400 italic mt-0.5">"{entry.notes}"</p>}
-                  </div>
-                ));
-              })()}
-            </div>
-          )}
         </section>
       )}
 
