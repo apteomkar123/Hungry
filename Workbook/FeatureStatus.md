@@ -208,6 +208,9 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - **#12 Soundtrack of My Life** — when a recipe is marked as Cooked, queries the Vinyl `now_playing` table and saves the current track (`track_title`, `artist`, `album`, `artwork_url`, `platform`) into `chef_history.soundtrack`; the saved track is now displayed in the expanded Chef History card as a "🎵 Playing While Cooking" purple pill
 - **#14 Nutritional BPM (write side)** — when the Analytics page loads and the user's macro breakdown is below their stated goal (e.g. protein < 20g on High Protein goal), writes a `nutrition_shortfall` event to `cross_app_activity` so Vinyl can suggest a workout playlist and HomeBase can surface high-effort chores first
 
+### Session 27 (2026-06-12)
+- **Cross-app household sync fix** — `UserContext.jsx` now falls back to `profiles.active_household_id` when `auth.user_metadata.household_ids` is empty (e.g. for users who set up HomeBase first without updating auth metadata). The discovered household_id is auto-healed back into `user_metadata` so subsequent loads skip the fallback. Combined with matching fixes in HomeBase (Onboarding + More), households, pantry items, and shopping lists are now properly synced between Pantry and HomeBase.
+
 ### Session 19 (2026-06-02)
 - **Nutrition breakdown card position fix** — card container changed from `max-h-[90vh]` to `max-h-[72vh]` with `pt-16` top padding so the card no longer clips above the visible area on phones with notches / safe-area insets
 - **App icon updated** — `public/icon.svg` replaced with a solid #6BAEE0 blue rounded-rect containing "Pantry" in Pacifico (loaded via Google Fonts `@import`); correct brand color replaces old blue gradient
@@ -453,6 +456,11 @@ These features are intentionally deferred until a native iOS app exists. The rea
 
 **Features already present (no change needed):**
 - Gemini version — switched to `gemini-2.0-flash` (faster, GA-stable).
+
+### Session 29 (2026-06-12)
+**Bugs fixed:**
+- **Gemini 404 on all AI features** — `gemini-2.0-flash` was discontinued by Google on June 1 2026. Updated `GEMINI_MODEL` in `scan-receipt.js` to `gemini-2.5-flash`.
+- **Shopping list completed items persisted forever** — auto-hide timer was 60 seconds (1 minute); changed to 3600000 ms (1 hour) per user request.
 
 ### Session 28 CodeCheck (2026-06-10)
 **Bugs fixed:**

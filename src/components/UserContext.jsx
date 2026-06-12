@@ -81,8 +81,23 @@ export const UserProvider = ({ children }) => {
     });
 
     // Support both old single household_id and new household_ids array
-    const ids = meta.household_ids || (meta.household_id ? [meta.household_id] : []);
-    const activeId = meta.active_household_id || ids[0] || null;
+    let ids = meta.household_ids || (meta.household_id ? [meta.household_id] : []);
+    let activeId = meta.active_household_id || ids[0] || null;
+
+    // Fallback: HomeBase may have set profiles.active_household_id without updating auth metadata
+    // (e.g. user set up Roomies first). Heal by syncing the profile value back into user_metadata.
+    if (ids.length === 0 && authUser.id) {
+      const { data: pFallback } = await supabase.from('profiles')
+        .select('active_household_id')
+        .eq('id', authUser.id)
+        .single();
+      if (pFallback?.active_household_id) {
+        activeId = pFallback.active_household_id;
+        ids = [activeId];
+        supabase.auth.updateUser({ data: { household_ids: ids, active_household_id: activeId } }).then(() => {});
+      }
+    }
+
     await fetchHouseholds(ids, activeId);
 
     // Ensure profile row exists with display_name + active_household_id for member discovery
