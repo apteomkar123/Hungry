@@ -30,41 +30,15 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
   const [swapLoadingId, setSwapLoadingId] = useState(null);
   const [swapResults, setSwapResults] = useState({});
   const [hhPickerId, setHhPickerId] = useState(null); // item id with open household picker
-  // Track when items were completed to auto-hide after 1 min
-  const [completedAt, setCompletedAt] = useState({});
   const [hidden, setHidden] = useState(new Set());
+  const hideTimersRef = useRef({});
   const editRef = useRef(null);
   const nutritionGoal = userSettings?.nutrition_goal || null;
 
-  // Auto-hide completed items 60 s after they're marked done
+  // Cleanup all timers on unmount
   useEffect(() => {
-    const timers = [];
-    Object.entries(completedAt).forEach(([id, ts]) => {
-      if (hidden.has(id)) return;
-      const elapsed = Date.now() - ts;
-      const remaining = Math.max(0, 60000 - elapsed);
-      const t = setTimeout(() => {
-        setHidden(prev => new Set([...prev, id]));
-      }, remaining);
-      timers.push(t);
-    });
-    return () => timers.forEach(clearTimeout);
-  }, [completedAt, hidden]);
-
-  // When an item is un-completed, remove it from completedAt + hidden
-  useEffect(() => {
-    const completedIds = new Set(list.filter(i => i.is_completed).map(i => String(i.id)));
-    setCompletedAt(prev => {
-      const next = { ...prev };
-      Object.keys(next).forEach(id => { if (!completedIds.has(id)) delete next[id]; });
-      return next;
-    });
-    setHidden(prev => {
-      const next = new Set(prev);
-      [...next].forEach(id => { if (!completedIds.has(id)) next.delete(id); });
-      return next;
-    });
-  }, [list]);
+    return () => { Object.values(hideTimersRef.current).forEach(clearTimeout); };
+  }, []);
 
   // Close household picker when clicking outside
   useEffect(() => {
@@ -102,19 +76,42 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
     setShoppingInput('');
   };
 
+  const startHideTimer = (idStr) => {
+    if (hideTimersRef.current[idStr]) clearTimeout(hideTimersRef.current[idStr]);
+    hideTimersRef.current[idStr] = setTimeout(() => {
+      setHidden(prev => new Set([...prev, idStr]));
+      delete hideTimersRef.current[idStr];
+    }, 3600000);
+  };
+
+  const cancelHideTimer = (idStr) => {
+    if (hideTimersRef.current[idStr]) {
+      clearTimeout(hideTimersRef.current[idStr]);
+      delete hideTimersRef.current[idStr];
+    }
+    setHidden(prev => { const next = new Set(prev); next.delete(idStr); return next; });
+  };
+
   const handleToggleItem = (item) => {
     onToggle(item.id, item.is_completed);
     if (!item.is_completed) {
-      // Marking as done — record timestamp
-      setCompletedAt(prev => ({ ...prev, [String(item.id)]: Date.now() }));
+      startHideTimer(String(item.id));
       if (onAddToPantry) onAddToPantry(item.item_name);
     } else {
+      cancelHideTimer(String(item.id));
       if (onRemoveFromPantry) onRemoveFromPantry(item.item_name);
     }
   };
 
   const pending = useMemo(() => list.filter(i => !i.is_completed), [list]);
   const completed = useMemo(() => list.filter(i => i.is_completed && !hidden.has(String(i.id))), [list, hidden]);
+
+  const handleMarkAllDoneWithTimers = () => {
+    if (onMarkAllDone) {
+      pending.forEach(item => startHideTimer(String(item.id)));
+      onMarkAllDone();
+    }
+  };
 
   const groupedByAisle = useMemo(() => AISLES.reduce((acc, aisle) => {
     acc[aisle.key] = pending.filter(i => getAisle(i.item_name) === aisle.key);
@@ -233,7 +230,7 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
         {list.length > 0 && (
           <div className="flex gap-2 mb-4">
             {onMarkAllDone && pending.length > 0 && (
-              <button onClick={onMarkAllDone} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-50 text-emerald-600 text-[10px] font-black border border-emerald-100 hover:bg-emerald-100 transition-all">
+              <button onClick={handleMarkAllDoneWithTimers} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-50 text-emerald-600 text-[10px] font-black border border-emerald-100 hover:bg-emerald-100 transition-all">
                 <Check size={12} /> Mark All Done
               </button>
             )}

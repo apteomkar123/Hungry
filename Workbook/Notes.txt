@@ -623,3 +623,8 @@ FEATURES TO ADD (Session 26 / 2026-06-09) — COMPLETED
 2. Add a separate category for alcohol, including wine, beer, and spirits and liquors
 3. Add an option to delete households, this should delete from both pantry and roomies if it's a shared household
 4. Shopping list items marked done should disappear from the list after 1 minute, as long as they've been added to pantry automatically.
+
+BUGS FIXED (Session 29 / 2026-06-12)
+--------------------------------------
+Shopping list: completed items now auto-hide after 1 hour (was 60 seconds)
+Gemini 404 error: updated model from gemini-2.0-flash (discontinued June 2026) to gemini-2.5-flash
