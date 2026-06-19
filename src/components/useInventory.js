@@ -253,6 +253,19 @@ export const useInventory = (user, household) => {
     fetchAppData();
   }, [fetchAppData]);
 
+  // Realtime subscriptions: re-fetch whenever household shopping list or pantry items change
+  // so changes made in HomeBase (or by other household members in Pantry) appear immediately.
+  useEffect(() => {
+    if (!household?.id) return;
+    const hhId = household.id;
+    const ch = supabase.channel(`pantry-sync:${hhId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list',    filter: `household_id=eq.${hhId}` }, fetchAppData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_items',   filter: `household_id=eq.${hhId}` }, fetchAppData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fridge_inventory', filter: `household_id=eq.${hhId}` }, fetchAppData)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [household?.id, fetchAppData]);
+
   const handleAddManualItem = useCallback(async (itemName, targetHouseholdId = null, extraData = {}) => {
     if (!itemName || !itemName.trim() || !user) return;
 
@@ -359,9 +372,16 @@ export const useInventory = (user, household) => {
     const alreadyLocal = shoppingListRef.current.some(i => cleanIngredientLocally(i.item_name) === sanitized);
     if (alreadyLocal) return; // silent skip — batch adds shouldn't alert
 
-    // Respect user's default destination preference
-    const defaultDest = localStorage.getItem('pantry_default_shopping_dest') || 'personal';
-    const householdId = defaultDest === 'personal' ? null : defaultDest;
+    // Respect user's default destination preference.
+    // If no preference is stored AND the user has an active household, default to that
+    // household so items are visible in HomeBase immediately (not stuck as personal-only).
+    const storedDest = localStorage.getItem('pantry_default_shopping_dest');
+    let householdId;
+    if (!storedDest) {
+      householdId = household?.id || null;
+    } else {
+      householdId = storedDest === 'personal' ? null : storedDest;
+    }
 
     const tempId = `temp-${Date.now()}-${Math.random()}`;
     const newItem = {

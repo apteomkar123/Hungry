@@ -85,15 +85,23 @@ export const UserProvider = ({ children }) => {
     let activeId = meta.active_household_id || ids[0] || null;
 
     // Fallback: HomeBase may have set profiles.active_household_id without updating auth metadata
-    // (e.g. user set up Roomies first). Heal by syncing the profile value back into user_metadata.
+    // (e.g. user set up HomeBase first). Also query household_members to discover ALL households
+    // the user belongs to (not just the active one) so multi-household setups sync correctly.
     if (ids.length === 0 && authUser.id) {
-      const { data: pFallback } = await supabase.from('profiles')
-        .select('active_household_id')
-        .eq('id', authUser.id)
-        .single();
-      if (pFallback?.active_household_id) {
-        activeId = pFallback.active_household_id;
-        ids = [activeId];
+      const [{ data: pFallback }, { data: memberRows }] = await Promise.all([
+        supabase.from('profiles').select('active_household_id').eq('id', authUser.id).single(),
+        supabase.from('household_members').select('household_id').eq('profile_id', authUser.id),
+      ]);
+      const memberIds = (memberRows || []).map(r => r.household_id).filter(Boolean);
+      const profileActiveId = pFallback?.active_household_id || null;
+      if (memberIds.length > 0) {
+        ids = memberIds;
+        activeId = profileActiveId && memberIds.includes(profileActiveId) ? profileActiveId : memberIds[0];
+      } else if (profileActiveId) {
+        ids = [profileActiveId];
+        activeId = profileActiveId;
+      }
+      if (ids.length > 0) {
         supabase.auth.updateUser({ data: { household_ids: ids, active_household_id: activeId } }).then(() => {});
       }
     }

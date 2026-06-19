@@ -457,6 +457,14 @@ These features are intentionally deferred until a native iOS app exists. The rea
 **Features already present (no change needed):**
 - Gemini version — switched to `gemini-2.0-flash` (faster, GA-stable).
 
+### Session 30 (2026-06-18)
+**Bugs fixed:**
+- **No live sync from HomeBase changes** — `useInventory.js` had no Supabase Realtime subscriptions, so changes made by HomeBase or other household members required a manual page reload to appear in Pantry. Fixed by adding a Supabase channel subscribing to `postgres_changes` on `fridge_inventory`, `shopping_list`, and `shopping_items` filtered by `household_id`. Channel is torn down and recreated on household changes.
+- **New shopping items invisible in HomeBase** — `handleAddShoppingItem` in `useInventory.js` read `pantry_default_shopping_dest` from localStorage. When the key was absent (new users), it defaulted to `household_id = null` (personal), making all items invisible in HomeBase's shared shopping view. Fixed to default to the active household's ID when no preference is stored.
+- **Household discovery only found one household** — `loadUserState()` fallback in `UserContext.jsx` only queried `profiles.active_household_id` when `auth.user_metadata.household_ids` was empty. Fixed to also query `household_members` to discover all households the user belongs to. Recovered IDs are written back to `user_metadata` for subsequent fast loads.
+- **Stale setter name** — `SettingsPage.jsx` useState setter was `setAppwareLinkStatus`; renamed to `setLyfewareLinkStatus` to match the state variable name.
+- **Stale comment** — `UserContext.jsx` comment said "user set up Roomies first"; corrected to "HomeBase".
+
 ### Session 29 (2026-06-12)
 **Bugs fixed:**
 - **Gemini 404 on all AI features** — `gemini-2.0-flash` was discontinued by Google on June 1 2026. Updated `GEMINI_MODEL` in `scan-receipt.js` to `gemini-2.5-flash`.

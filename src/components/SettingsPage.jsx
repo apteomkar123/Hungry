@@ -25,13 +25,13 @@ export default function SettingsPage({ onNavigateFriends }) {
   } = useUser();
 
   const [identities, setIdentities] = useState([]);
-  const [lyfewareLinkStatus, setAppwareLinkStatus] = useState(null); // null=loading, true=linked, false=not
+  const [lyfewareLinkStatus, setLyfewareLinkStatus] = useState(null); // null=loading, true=linked, false=not
   const [linkLoading, setLinkLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.identities) setIdentities(user.identities);
-      setAppwareLinkStatus(user?.user_metadata?.lyfeware_linked === true);
+      setLyfewareLinkStatus(user?.user_metadata?.lyfeware_linked === true);
     });
   }, []);
 
