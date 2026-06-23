@@ -628,3 +628,41 @@ BUGS FIXED (Session 29 / 2026-06-12)
 --------------------------------------
 Shopping list: completed items now auto-hide after 1 hour (was 60 seconds)
 Gemini 404 error: updated model from gemini-2.0-flash (discontinued June 2026) to gemini-2.5-flash
+
+BUGS FIXED (Session 31 / 2026-06-22)
+--------------------------------------
+Items marked done on the shopping list stay there forever.
+
+FEATURES ADDED (Session 31 / 2026-06-22)
+------------------------------------------
+Add a notifications section accessible from all pages that shows items that are close to expiry, and other useful notifications. Allow the user to mark an ingredient as used from the notifications. If an ingredient has been all used, it should remove from the pantry.
+
+BUGS FIXED (Session 33 / 2026-06-23)
+--------------------------------------
+Fix the chef's hat in all the loading screens throughout the entire app. Make sure it looks like an actual chef's hat with a broad top.
+Make sure the receipt scan feature works properly, it should be able to recognize the store, look up each item according to the store, get each item's information and add it all to the pantry, including the price and expiry date.
+Make sure shared recipes and shared shopping list are being properly shared amongst households.
+
+FEATURES ADDED (Session 33 / 2026-06-23)
+------------------------------------------
+1. Expiry-based smart recipe suggestions — the pantry already tracks expiry dates; surface a "Use Before It Expires" recipe section that prioritizes ingredients expiring soonest.
+2. Import 500 more recipes into the database. Improve the logic on the recipes page to show more and better recipes that fit the user's pantry. (DEFERRED)
+3. Expiry date editing in the notification panel — right now the panel only lets you mark items as used. You should also be able to correct a wrong expiry date from there.
+4. Duplicate detection across sessions — the app prevents duplicates within a session using fridgeRef, but if the same item is added via barcode and receipt scan, duplicates can slip through. A fuzzy-match consolidation pass on load would clean this up.
+5. Shopping list done items immediately delete with 5-second undo option (like Gmail's trash).
+6. Pantry search/filter bar at the top of the pantry stock.
+7. Item reorder / priority — pin frequently-used items to the top of a category.
+8. Change the AI Recipe generator to generate 3 recipes every time the user hits generate.
+9. AI expiry coach — when 3+ items expire within 2 days, auto-generate a recipe that uses all of them.
+10. Meal cost estimator — recipe modal shows estimated cost per serving based on pantry prices.
+11. Smart quantity suggestions — AI suggests quantity when adding a shopping list item.
+12. Recurring items — mark items as "always buy".
+13. Shopping history — "last bought" date per pantry item with restock suggestions.
+14. Price history — track price changes per item over time from scans.
+15. "Eat Me First" visual indicator — badge on soonest-expiring item per category.
+16. Pantry value trend — show how pantry total value changes week over week in Analytics.
+17. AI recipe feedback — thumbs up/down on recipes.
+18. Household pantry audit — show items sitting longest without use.
+19. Offline indicator — banner when working offline.
+20. Undo for pantry deletions — 5-second undo toast.
+21. Quick-add from notification — "Add to Shopping List" button in expiry panel.

@@ -1,17 +1,39 @@
-﻿import React, { useState } from 'react';
-import { Sparkles, ShoppingBag, Loader2, ChevronDown } from 'lucide-react';
+﻿import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Sparkles, ShoppingBag, Loader2, Bell } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
+import NotificationPanel from './NotificationPanel';
 
-export default function Header({ scrollToTop, onOpenNav }) {
+export default function Header({ scrollToTop, onOpenNav, fridge, quantities, onRemoveItem, onAdjustQuantity, onUpdateItem, onAddShoppingItem }) {
   const { user, userName, avatarUrl, pantryAvatarUrl, households, household: activeHousehold, handleSetActiveHousehold } = useUser();
   const { setIsAiPickerOpen, triggerStoreTripPlanner, aiGenerating } = useRecipes();
   const [greeting] = useState(() => {
     const h = new Date().getHours();
     return h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
   });
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
   const displayName = userName || user?.email?.split('@')[0] || 'Chef';
   const photo = pantryAvatarUrl || avatarUrl;
+
+  const notifCount = useMemo(() => {
+    if (!fridge) return 0;
+    return fridge.filter(item => {
+      if (!item.expiry_date) return false;
+      const days = (new Date(item.expiry_date) - new Date()) / (1000 * 60 * 60 * 24);
+      return days <= 7;
+    }).length;
+  }, [fridge]);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler); };
+  }, [notifOpen]);
 
   return (
     <header
@@ -29,7 +51,12 @@ export default function Header({ scrollToTop, onOpenNav }) {
             }
           </button>
           <button className="flex flex-col text-left">
-            <h1 className="logo-text" style={{ fontSize: '1.4rem', lineHeight: '1', paddingBottom: '9px' }}>Pantry</h1>
+            <div className="flex items-center gap-1.5">
+              <h1 className="logo-text" style={{ fontSize: '1.4rem', lineHeight: '1', paddingBottom: '9px' }}>Pantry</h1>
+              {activeHousehold?.avatar_url && (
+                <img src={activeHousehold.avatar_url} alt="" className="w-5 h-5 rounded-lg object-cover border border-sky-100 mb-1.5" title={activeHousehold.name} />
+              )}
+            </div>
             <p className="text-slate-500 text-[11px] font-bold leading-none">{greeting}, <span className="text-[#1F6FB8]">{displayName}</span>!</p>
           </button>
         </div>
@@ -45,6 +72,31 @@ export default function Header({ scrollToTop, onOpenNav }) {
           <button onClick={(e) => { e.stopPropagation(); triggerStoreTripPlanner(); }} title="Shopping Suggestions" className="bg-sky-50 text-[#6BAEE0] p-2.5 rounded-2xl hover:bg-sky-100 transition-colors">
             <ShoppingBag size={20} />
           </button>
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setNotifOpen(o => !o); }}
+              title="Notifications"
+              className="relative bg-sky-50 text-[#6BAEE0] p-2.5 rounded-2xl hover:bg-sky-100 transition-colors"
+            >
+              <Bell size={20} />
+              {notifCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-400 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                  {notifCount > 9 ? '9+' : notifCount}
+                </span>
+              )}
+            </button>
+            {notifOpen && (
+              <NotificationPanel
+                fridge={fridge}
+                quantities={quantities}
+                onRemoveItem={onRemoveItem}
+                onAdjustQuantity={onAdjustQuantity}
+                onUpdateItem={onUpdateItem}
+                onAddShoppingItem={onAddShoppingItem}
+                onClose={() => setNotifOpen(false)}
+              />
+            )}
+          </div>
         </div>
       </div>
 

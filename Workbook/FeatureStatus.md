@@ -4,6 +4,20 @@ A living document tracking what's shipped, what works, and what's blocked until 
 
 ---
 
+## Session 35 (2026-06-23) — LyfeWare Ecosystem Features
+
+| Feature | Status | Notes |
+|---|---|---|
+| **LyfeWare Feed** — Live Feed tab in LyfeWare tab showing household cross-app activity | ✅ Complete | `LyfeWareTab.jsx` — queries household_members → cross_app_activity; realtime subscription refreshes feed |
+| **Shopping item added event** — writes `shopping_item_added` to cross_app_activity when adding to list | ✅ Complete | `useInventory.js` |
+| **Weekly Digest** — "Weekly Digest" tab in Notifications panel with groceries spent, chores done, expiry count, mentions | ✅ Complete | `NotificationPanel.jsx` — new tab with DigestCard components; loads from Supabase on demand |
+| **@mentions in notes** — `@username` in shopping item notes fires `mention_notification` to cross_app_activity | ✅ Complete | `ShoppingListManager.jsx` — parses @mentions on note commit, looks up household members |
+| **Recipe nights — Schedule for a Night** — date picker in RecipeModal inserts into `recipe_nights` table + writes `recipe_scheduled` event | ✅ Complete | `RecipeModal.jsx` — violet "Schedule for a Night" button with collapsible date picker |
+| **Household avatar — upload** — avatar photo upload in HouseholdTab settings | ✅ Complete | `HouseholdTab.jsx` — camera icon, uploads to user-avatars bucket under household_ prefix |
+| **Household avatar — display** — shows household avatar next to Pantry logo in header | ✅ Complete | `Header.jsx` — shows small thumbnail if household.avatar_url is set |
+
+---
+
 ## ✅ Ready & Available (Web App)
 
 ### Auth
@@ -67,6 +81,8 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - Full Kroger/Target grocery store API integration requires API keys (planned)
 
 ### Shopping List
+- **Household fallback fix** — `handleAddShoppingItem` dep array corrected from stale `shoppingList` to `household`; items added when `household` was null no longer create personal-only items that are invisible in HomeBase
+- **auth.user_metadata fallback awaited** — UserContext fallback household discovery now awaits the `auth.updateUser()` call so stale metadata is reliably fixed on first login
 - Add items manually — items are now stored with their original casing (Title Case), not lowercased
 - Items auto-grouped by aisle (Produce, Dairy, Meat, Bakery, etc.)
 - Check off items — **checked-off items are automatically added to pantry; unchecking a completed item removes it from pantry**
@@ -207,6 +223,43 @@ A living document tracking what's shipped, what works, and what's blocked until 
 - **#11 Grocery Gig Status** — Personal Shopper sets HomeBase `user_presence` to `status='Away', custom_text='🛒 At the Store'` on open; resets to `Available` when closed
 - **#12 Soundtrack of My Life** — when a recipe is marked as Cooked, queries the Vinyl `now_playing` table and saves the current track (`track_title`, `artist`, `album`, `artwork_url`, `platform`) into `chef_history.soundtrack`; the saved track is now displayed in the expanded Chef History card as a "🎵 Playing While Cooking" purple pill
 - **#14 Nutritional BPM (write side)** — when the Analytics page loads and the user's macro breakdown is below their stated goal (e.g. protein < 20g on High Protein goal), writes a `nutrition_shortfall` event to `cross_app_activity` so Vinyl can suggest a workout playlist and HomeBase can surface high-effort chores first
+
+### Session 33 (2026-06-23)
+
+**Bugs fixed:**
+- **Chef's hat loading animation** — redesigned SVG in `AiLoadingAnimation.jsx` to a proper toque shape with wide brim, tall body, pleat creases, and elliptical crown.
+- **Receipt scan pricing** — `scan-receipt.js` prompt updated to extract per-item prices; `useInventory.js` `handleFileUpload` reads `{name, price}` objects (backward-compatible with legacy string arrays). Price is stored in `fridge_inventory.price` and tracked in price history.
+- **Household shared recipes sync** — `RecipeContext.jsx` now fetches saved_recipes for the active household (other members' saves) alongside personal recipes; deduped by recipe_id. Added Supabase Realtime channel on `saved_recipes` table filtered by `household_id` so changes propagate instantly.
+
+**Features added:**
+- **"Use Before It Expires" recipe section** — amber section in RecipeExplorer showing recipes that use pantry items expiring in ≤7 days; sorted by soonest-expiring first.
+- **Expiry date editing in NotificationPanel** — inline date picker with pencil icon per item; saves via `onUpdateItem`. "Add to Shopping List" button (ShoppingCart icon) per expiring item. AI Expiry Coach section when 3+ items expire within 2 days.
+- **Shopping list immediate delete with undo** — checking off an item hides it instantly and adds it to pantry; 5-second undo toast appears. DB deletion deferred. `undoQueue` array manages multiple concurrent undos.
+- **Pantry search bar** — filter bar at top of pantry stock; clears with X button; live filters by item name.
+- **Item pinning** — 📌 pin button per item in CategorySheet and IngredientCardModal; pinned items sort to top within their category; persisted to `pantry_pinned` localStorage.
+- **"Always Buy" recurring items** — recurring toggle in IngredientCardModal; persisted to `pantry_recurring` localStorage (UI hook ready for auto-add on pantry load).
+- **"Eat Me First" badge** — rose badge on the single soonest-expiring item per category (only items already within the ≤7 day window).
+- **Undo pantry deletion** — 5-second undo toast after item deletion; re-adds via `handleAddManualItem`.
+- **AI Recipe Generator → 3 recipes** — generates 3 distinct recipes per session; picker stays open showing 3 selectable cards; user taps one to open it in RecipeModal.
+- **Meal cost estimator** — shown in RecipeModal when pantry items have prices; shows cost per serving and total; coverage badge shows how many ingredients were priced.
+- **AI recipe feedback** — 👍/👎 buttons in RecipeModal header; feedback persisted to `recipe_feedback` localStorage; toggling the same vote removes it.
+- **Offline indicator banner** — fixed top banner "Working offline — changes will sync when you reconnect" when `navigator.onLine` is false; listens to `online`/`offline` window events.
+- **Smart quantity suggestions** — ✨ sparkles button in shopping list add form; calls AI with item name to suggest "2 lbs", "1 dozen" etc; acceptance prepends quantity to item name.
+- **Shopping history** — tracks last-bought date and count per item in `shopping_history` localStorage; shown in CategorySheet item rows and IngredientCardModal; "Restock soon?" badge after 14 days.
+- **Price history tracking** — records `{date, price, store}` entries per item when price > 0 on add; up to 10 entries per item in `price_history` localStorage; shown in IngredientCardModal with price delta vs last scan.
+- **Pantry value trend (week-over-week)** — daily snapshot stored to `pantry_value_history` localStorage; Analytics Dashboard Inventory Value card shows ↑/↓ amount and % vs last week.
+- **Household pantry audit** — new section in HouseholdTab showing top 5 longest-sitting items in household pantry (by `created_at`); items >30 days flagged red, >14 days amber.
+- **Fuzzy duplicate detection** — on pantry load, exact-name duplicates (same `cleanIngredientLocally()` result) are detected and merged; duplicate rows silently deleted from Supabase.
+
+**Not added (out of scope or deferred):**
+- **Import 500 more recipes** — deferred; static recipe list expansion requires curating a large dataset; improving recipe-to-pantry matching algorithm is a longer project.
+
+### Session 32 (2026-06-22)
+- **Shopping list per-item notes** — household members can leave a note on any shopping list item ("get the organic one", "we have half a bag left at home"). Notes are stored in `shopping_list.note` and sync in real-time across Pantry and HomeBase via existing Realtime subscriptions. In Pantry: tap the 💬 MessageSquare icon on any pending item, type a note, save with Enter or blur. Note shown in italic amber below the item name; amber icon when note exists. In HomeBase: same flow with 💬 button and amber/yellow styling.
+
+### Session 31 (2026-06-22)
+- **Cross-app household sync — auth.user_metadata fallback awaited** — `UserContext.jsx` fallback that updates `auth.user_metadata` when `household_ids` is missing was fire-and-forget; changed to `await` so failures surface instead of silently re-running every login.
+- **Shopping dep array fix** — `handleAddShoppingItem` in `useInventory.js` dep array changed from `[shoppingList]` to `[household]`; prevents stale-closure items being added with null `household_id`.
 
 ### Session 27 (2026-06-12)
 - **Cross-app household sync fix** — `UserContext.jsx` now falls back to `profiles.active_household_id` when `auth.user_metadata.household_ids` is empty (e.g. for users who set up HomeBase first without updating auth metadata). The discovered household_id is auto-healed back into `user_metadata` so subsequent loads skip the fallback. Combined with matching fixes in HomeBase (Onboarding + More), households, pantry items, and shopping lists are now properly synced between Pantry and HomeBase.
@@ -456,6 +509,13 @@ These features are intentionally deferred until a native iOS app exists. The rea
 
 **Features already present (no change needed):**
 - Gemini version — switched to `gemini-2.0-flash` (faster, GA-stable).
+
+### Session 31 (2026-06-22)
+**Bugs fixed:**
+- **Shopping list done items persisted forever** — `startHideTimer` hid items from the UI after 1 hour but never deleted them from the DB. Fixed by passing `onClear(item.id)` as a callback to `startHideTimer`; it is called when the 1-hour timer fires, removing the item from the database. Works for both single-item check and "Mark All Done".
+
+**Features added:**
+- **Expiry Notifications panel** — Bell 🔔 icon in the header (all pages) shows a red badge with the count of pantry items expiring within 7 days. Tapping opens a dropdown panel grouped into "Expired" (red) and "Expiring Soon" (orange) sections. Each item shows name, expiry date, and days remaining. "Use 1" button decrements quantity by 1; if quantity reaches 0 the item is removed from the pantry automatically. Tutorial step added.
 
 ### Session 30 (2026-06-18)
 **Bugs fixed:**

@@ -102,7 +102,18 @@ export const handler = async (event) => {
         return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ success: true, meal }) };
       }
 
-      const prompt = 'Read this receipt image. Classify each line item as food (edible items, beverages, produce, meat, dairy, etc.) or non-food (cleaning products, toiletries, paper goods, laundry, batteries, health/beauty, household supplies, etc.). Return ONLY a JSON object: { "storeName": "string", "foodItems": ["array of food/edible item name strings"], "nonFoodItems": ["array of non-food household item name strings"] }. No markdown, no explanation.';
+      const prompt = `Read this receipt image carefully.
+1. Identify the store name from the receipt header.
+2. For each line item, classify it as food (edible items, beverages, produce, meat, dairy, snacks, etc.) or non-food (cleaning products, toiletries, paper goods, laundry, batteries, health/beauty, household supplies, etc.).
+3. For each food item, extract the price shown on the receipt (the dollar amount on that line). If no price is visible for an item, use 0.
+Return ONLY a JSON object with NO markdown, NO explanation:
+{
+  "storeName": "Store Name Here",
+  "foodItems": [
+    { "name": "item name", "price": 0.00 }
+  ],
+  "nonFoodItems": ["item name"]
+}`;
       const rawText = await callGemini(
         apiKey,
         [{ text: prompt }, { inlineData: { data: rawBase64, mimeType: 'image/jpeg' } }],
@@ -113,12 +124,16 @@ export const handler = async (event) => {
       try {
         const parsed = JSON.parse(rawText.replace(/```json/g, '').replace(/```/g, '').trim());
         result.storeName = parsed.storeName || 'General Grocery';
-        // Support both new format (foodItems/nonFoodItems) and legacy format (items)
-        result.foodItems = Array.isArray(parsed.foodItems) ? parsed.foodItems : (Array.isArray(parsed.items) ? parsed.items : []);
+        const raw = parsed.foodItems || parsed.items || [];
+        // Support both new format [{name, price}] and legacy format ["string"]
+        result.foodItems = raw.map(f => typeof f === 'string' ? { name: f, price: 0 } : { name: f.name || f, price: parseFloat(f.price) || 0 });
         result.nonFoodItems = Array.isArray(parsed.nonFoodItems) ? parsed.nonFoodItems : [];
       } catch (e) {
         const m = rawText.match(/\[[\s\S]*?\]/);
-        if (m) try { result.foodItems = JSON.parse(m[0]); } catch (_) {}
+        if (m) try {
+          const arr = JSON.parse(m[0]);
+          result.foodItems = arr.map(f => typeof f === 'string' ? { name: f, price: 0 } : f);
+        } catch (_) {}
       }
 
       return {

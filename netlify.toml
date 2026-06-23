@@ -11,3 +11,6 @@
 # Do NOT commit a real key here — use the dashboard for production.
 [build.environment]
   GOOGLE_PLACES_KEY = "your_google_places_api_key_here"
+  SPOONACULAR_API_KEY = "your_spoonacular_key_here"
+  EDAMAM_APP_ID = "your_edamam_app_id_here"
+  EDAMAM_APP_KEY = "your_edamam_app_key_here"

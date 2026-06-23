@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { Plus, Check, Trash2, ShoppingCart, Pencil, Sparkles, Loader2, Users, User } from 'lucide-react';
+import { Plus, Check, Trash2, ShoppingCart, Pencil, Sparkles, Loader2, Users, User, MessageSquare } from 'lucide-react';
 import { useUser } from './UserContext';
+import { supabase } from '../supabaseClient';
 
 const AISLES = [
   { key: 'Frozen', emoji: '🧊', pattern: /\b(frozen|ice cream|gelato|popsicle|sorbet|frost)\b/i },
@@ -22,17 +23,24 @@ const getAisle = (itemName) => {
   return 'Pantry';
 };
 
-export default function ShoppingListManager({ list = [], onAdd, onToggle, onClear, onRename, onClearAll, onMarkAllDone, onAddToPantry, onRemoveFromPantry, onMoveItem, households = [], activeHousehold }) {
+export default function ShoppingListManager({ list = [], onAdd, onToggle, onClear, onRename, onClearAll, onMarkAllDone, onAddToPantry, onRemoveFromPantry, onMoveItem, onUpdateNote, households = [], activeHousehold }) {
   const { userSettings } = useUser();
   const [shoppingInput, setShoppingInput] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [noteEditingId, setNoteEditingId] = useState(null);
+  const [noteInput, setNoteInput] = useState('');
   const [swapLoadingId, setSwapLoadingId] = useState(null);
   const [swapResults, setSwapResults] = useState({});
-  const [hhPickerId, setHhPickerId] = useState(null); // item id with open household picker
+  const [hhPickerId, setHhPickerId] = useState(null);
   const [hidden, setHidden] = useState(new Set());
+  const [quantitySuggestion, setQuantitySuggestion] = useState('');
+  const [quantityLoading, setQuantityLoading] = useState(false);
+  // undoQueue: array of { id, item_name, clearTimerId }
+  const [undoQueue, setUndoQueue] = useState([]);
   const hideTimersRef = useRef({});
   const editRef = useRef(null);
+  const noteRef = useRef(null);
   const nutritionGoal = userSettings?.nutrition_goal || null;
 
   // Cleanup all timers on unmount
@@ -74,33 +82,55 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
     if (!shoppingInput.trim()) return;
     onAdd(shoppingInput);
     setShoppingInput('');
+    setQuantitySuggestion('');
   };
 
-  const startHideTimer = (idStr) => {
-    if (hideTimersRef.current[idStr]) clearTimeout(hideTimersRef.current[idStr]);
-    hideTimersRef.current[idStr] = setTimeout(() => {
-      setHidden(prev => new Set([...prev, idStr]));
-      delete hideTimersRef.current[idStr];
-    }, 3600000);
-  };
-
-  const cancelHideTimer = (idStr) => {
-    if (hideTimersRef.current[idStr]) {
-      clearTimeout(hideTimersRef.current[idStr]);
-      delete hideTimersRef.current[idStr];
+  const fetchQuantitySuggestion = useCallback(async () => {
+    if (!shoppingInput.trim() || quantityLoading) return;
+    setQuantityLoading(true);
+    try {
+      const prompt = `A shopper is buying "${shoppingInput.trim()}". Suggest the ideal quantity to buy for a typical household of 2-4 people (e.g. "2 lbs", "1 dozen", "1 bunch", "2 cans"). Reply with ONLY the quantity, nothing else.`;
+      const res = await fetch('/.netlify/functions/scan-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customPrompt: prompt, directMode: true }),
+      });
+      const text = (await res.text()).trim().replace(/^"|"$/g, '');
+      setQuantitySuggestion(text);
+    } catch {
+      setQuantitySuggestion('');
     }
-    setHidden(prev => { const next = new Set(prev); next.delete(idStr); return next; });
-  };
+    setQuantityLoading(false);
+  }, [shoppingInput, quantityLoading]);
 
   const handleToggleItem = (item) => {
-    onToggle(item.id, item.is_completed);
     if (!item.is_completed) {
-      startHideTimer(String(item.id));
+      // Mark done: immediately hide from UI and add to pantry
+      onToggle(item.id, false);
+      setHidden(prev => new Set([...prev, String(item.id)]));
       if (onAddToPantry) onAddToPantry(item.item_name);
+
+      // Schedule DB deletion after 5s undo window
+      const clearTimerId = setTimeout(() => {
+        if (onClear) onClear(item.id);
+        setUndoQueue(prev => prev.filter(u => u.id !== item.id));
+      }, 5000);
+
+      setUndoQueue(prev => [...prev.filter(u => u.id !== item.id), { id: item.id, item_name: item.item_name, clearTimerId }]);
     } else {
-      cancelHideTimer(String(item.id));
+      // Uncheck: restore item
+      onToggle(item.id, true);
+      setHidden(prev => { const next = new Set(prev); next.delete(String(item.id)); return next; });
       if (onRemoveFromPantry) onRemoveFromPantry(item.item_name);
     }
+  };
+
+  const handleUndo = (undoEntry) => {
+    clearTimeout(undoEntry.clearTimerId);
+    setUndoQueue(prev => prev.filter(u => u.id !== undoEntry.id));
+    setHidden(prev => { const next = new Set(prev); next.delete(String(undoEntry.id)); return next; });
+    onToggle(undoEntry.id, true); // un-complete it
+    if (onRemoveFromPantry) onRemoveFromPantry(undoEntry.item_name);
   };
 
   const pending = useMemo(() => list.filter(i => !i.is_completed), [list]);
@@ -108,7 +138,15 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
 
   const handleMarkAllDoneWithTimers = () => {
     if (onMarkAllDone) {
-      pending.forEach(item => startHideTimer(String(item.id)));
+      pending.forEach(item => {
+        setHidden(prev => new Set([...prev, String(item.id)]));
+        if (onAddToPantry) onAddToPantry(item.item_name);
+        const clearTimerId = setTimeout(() => {
+          if (onClear) onClear(item.id);
+          setUndoQueue(prev => prev.filter(u => u.id !== item.id));
+        }, 5000);
+        setUndoQueue(prev => [...prev.filter(u => u.id !== item.id), { id: item.id, item_name: item.item_name, clearTimerId }]);
+      });
       onMarkAllDone();
     }
   };
@@ -127,6 +165,37 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
     const trimmed = editingName.trim();
     if (trimmed && trimmed !== item.item_name && onRename) onRename(item.id, trimmed);
     setEditingId(null);
+  };
+
+  const startNoteEditing = (item) => {
+    setNoteEditingId(item.id);
+    setNoteInput(item.note || '');
+    setTimeout(() => noteRef.current?.focus(), 0);
+  };
+  const commitNote = async (item) => {
+    if (onUpdateNote) onUpdateNote(item.id, noteInput);
+    setNoteEditingId(null);
+
+    // Fire mention_notification for @username tags in notes
+    const mentioned = [...noteInput.matchAll(/@(\w+)/g)].map(m => m[1].toLowerCase());
+    if (mentioned.length && user?.id && activeHousehold?.id) {
+      const { data: mems } = await supabase
+        .from('household_members')
+        .select('profile_id, profiles(id, username)')
+        .eq('household_id', activeHousehold.id);
+      const matched = (mems || [])
+        .filter(m => mentioned.includes(m.profiles?.username?.toLowerCase()))
+        .map(m => m.profiles);
+      await Promise.all(matched.map(p =>
+        supabase.from('cross_app_activity').insert({
+          user_id: user.id,
+          app: 'pantry',
+          activity_type: 'mention_notification',
+          is_public: false,
+          payload: { household_id: activeHousehold.id, mentioned_id: p.id, mentioned_name: p.username, context: noteInput.slice(0, 100) },
+        })
+      ));
+    }
   };
 
   const getHHLabel = (hhId) => households.find(h => h.id === hhId)?.name || 'Shared';
@@ -158,6 +227,16 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
         <div className="flex items-center gap-1 shrink-0">
           {!item.is_completed && onRename && (
             <button onClick={() => startEditing(item)} className="text-slate-200 hover:text-sky-400 transition-colors p-1.5"><Pencil size={14} /></button>
+          )}
+          {/* Note button */}
+          {!item.is_completed && onUpdateNote && (
+            <button
+              onClick={() => startNoteEditing(item)}
+              className={`p-1.5 transition-colors ${item.note ? 'text-amber-400' : 'text-slate-200 hover:text-amber-400'}`}
+              title={item.note ? 'Edit note' : 'Add note'}
+            >
+              <MessageSquare size={14} />
+            </button>
           )}
           {/* Household assignment */}
           {!item.is_completed && onMoveItem && households.length > 0 && (
@@ -204,6 +283,28 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
           <button onClick={() => onClear(item.id)} className="text-slate-200 hover:text-red-400 transition-colors p-1.5"><Trash2 size={14} /></button>
         </div>
       </div>
+      {/* Inline note editor */}
+      {noteEditingId === item.id && (
+        <div className="px-4 pb-3">
+          <input
+            ref={noteRef}
+            value={noteInput}
+            onChange={e => setNoteInput(e.target.value)}
+            onBlur={() => commitNote(item)}
+            onKeyDown={e => { if (e.key === 'Enter') commitNote(item); if (e.key === 'Escape') setNoteEditingId(null); }}
+            placeholder="Add a note…"
+            className="w-full text-[11px] text-slate-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400"
+            style={{ fontSize: '16px' }}
+          />
+        </div>
+      )}
+      {/* Display existing note */}
+      {item.note && noteEditingId !== item.id && (
+        <div className="px-4 pb-3 flex items-start gap-2 cursor-pointer" onClick={() => !item.is_completed && startNoteEditing(item)}>
+          <MessageSquare size={10} className="text-amber-400 mt-0.5 shrink-0" />
+          <p className="text-[10px] text-amber-600 italic leading-relaxed">{item.note}</p>
+        </div>
+      )}
       {/* Swap suggestion result */}
       {swapResults[item.id] && !item.is_completed && (
         <div className="px-4 pb-3 flex items-start gap-2">
@@ -219,6 +320,21 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Undo toasts */}
+      {undoQueue.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-col gap-2 z-200">
+          {undoQueue.map(entry => (
+            <div key={entry.id} className="flex items-center gap-3 bg-slate-800 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl animate-in slide-in-from-bottom-4 duration-300">
+              <Check size={14} className="text-emerald-400 shrink-0" />
+              <span className="truncate max-w-40">{entry.item_name} added to pantry</span>
+              <button
+                onClick={() => handleUndo(entry)}
+                className="ml-1 text-[#6BAEE0] font-black hover:text-sky-300 transition-colors shrink-0"
+              >Undo</button>
+            </div>
+          ))}
+        </div>
+      )}
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
         <div className="flex items-center gap-3 mb-6 px-2">
           <div className="p-3 bg-sky-50 text-[#6BAEE0] rounded-2xl">
@@ -242,18 +358,40 @@ export default function ShoppingListManager({ list = [], onAdd, onToggle, onClea
           </div>
         )}
 
-        <form onSubmit={handleAddSubmit} className="flex gap-2 mb-6">
+        <form onSubmit={handleAddSubmit} className="flex gap-2 mb-2">
           <input
             type="text" value={shoppingInput}
-            onChange={(e) => setShoppingInput(e.target.value)}
+            onChange={(e) => { setShoppingInput(e.target.value); setQuantitySuggestion(''); }}
             placeholder="Add items to buy..."
             style={{ fontSize: '16px' }}
             className="flex-1 bg-white border border-blue-100 px-5 py-4 rounded-2xl text-xs font-semibold text-slate-800 focus:border-sky-400 focus:outline-none transition-all shadow-sm"
           />
+          {shoppingInput.trim() && (
+            <button
+              type="button"
+              onClick={fetchQuantitySuggestion}
+              disabled={quantityLoading}
+              className="p-4 bg-violet-50 text-violet-400 rounded-2xl hover:bg-violet-100 transition-all active:scale-90"
+              title="Suggest quantity"
+            >
+              {quantityLoading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+            </button>
+          )}
           <button type="submit" className="bg-[#6BAEE0] text-white p-4 rounded-2xl shadow-lg shadow-blue-100 active:scale-90 transition-all">
             <Plus size={20} />
           </button>
         </form>
+        {quantitySuggestion && (
+          <div className="flex items-center gap-2 mb-4 px-1">
+            <Sparkles size={11} className="text-violet-400 shrink-0" />
+            <p className="text-[10px] text-violet-600 font-bold">Suggested: {quantitySuggestion}</p>
+            <button
+              onClick={() => setShoppingInput(prev => `${quantitySuggestion} ${prev}`.trim())}
+              className="text-[9px] font-black text-violet-500 bg-violet-50 px-2 py-0.5 rounded-lg hover:bg-violet-100 transition-colors"
+            >Add</button>
+            <button onClick={() => setQuantitySuggestion('')} className="text-[9px] text-slate-300 hover:text-slate-500 ml-auto">✕</button>
+          </div>
+        )}
 
         {list.length === 0 ? (
           <p className="text-xs text-slate-400 font-medium italic text-center py-10">Your list is empty</p>

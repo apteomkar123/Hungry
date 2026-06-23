@@ -31,42 +31,43 @@ const FRAMES = [
   {
     label: 'Chef is thinking…',
     animation: (
-      <svg viewBox="0 0 100 100" className="w-24 h-24" fill="none">
-        {/* Whole hat gently tilts */}
+      <svg viewBox="0 0 120 130" className="w-24 h-24" fill="none">
         <g>
-          <animateTransform attributeName="transform" type="rotate" values="-5,50,78; 5,50,78; -5,50,78" dur="1.4s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1; 0.4 0 0.2 1" />
+          <animateTransform attributeName="transform" type="rotate" values="-4,60,95; 4,60,95; -4,60,95" dur="1.4s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1; 0.4 0 0.2 1" />
 
-          {/* ── Brim ── */}
-          <rect x="18" y="70" width="64" height="12" rx="6" fill="#6BAEE0" />
-          <rect x="22" y="70" width="56" height="5" rx="2" fill="#4d96d1" />
+          {/* ── Wide brim band ── */}
+          <rect x="18" y="86" width="84" height="14" rx="7" fill="#6BAEE0" />
+          <rect x="22" y="86" width="76" height="6" rx="3" fill="#4d96d1" />
 
-          {/* ── Dome body ── */}
-          <path d="M 32 72 L 30 52 C 28 32 35 16 50 14 C 65 16 72 32 70 52 L 68 72 Z" fill="white" />
+          {/* ── Tall straight body of hat ── */}
+          <rect x="30" y="40" width="60" height="48" rx="4" fill="white" />
 
-          {/* Subtle shadow on dome sides */}
-          <path d="M 32 72 L 30 52 C 29 40 30 28 36 20" stroke="#e2f0fb" strokeWidth="2" fill="none" strokeLinecap="round" />
-          <path d="M 68 72 L 70 52 C 71 40 70 28 64 20" stroke="#e2f0fb" strokeWidth="2" fill="none" strokeLinecap="round" />
+          {/* Pleat vertical crease lines on body */}
+          <line x1="42" y1="40" x2="42" y2="88" stroke="#d8ecf7" strokeWidth="1.5" strokeLinecap="round" />
+          <line x1="55" y1="40" x2="55" y2="88" stroke="#d8ecf7" strokeWidth="1.5" strokeLinecap="round" />
+          <line x1="68" y1="40" x2="68" y2="88" stroke="#d8ecf7" strokeWidth="1.5" strokeLinecap="round" />
+          <line x1="80" y1="40" x2="80" y2="88" stroke="#d8ecf7" strokeWidth="1.5" strokeLinecap="round" />
 
-          {/* Pleat crease lines */}
-          <line x1="40" y1="70" x2="38" y2="25" stroke="#e2f0fb" strokeWidth="1.5" strokeLinecap="round" />
-          <line x1="50" y1="70" x2="50" y2="15" stroke="#e2f0fb" strokeWidth="1.5" strokeLinecap="round" />
-          <line x1="60" y1="70" x2="62" y2="25" stroke="#e2f0fb" strokeWidth="1.5" strokeLinecap="round" />
+          {/* ── Big round puff on top — this is the broad crown ── */}
+          <ellipse cx="60" cy="38" rx="32" ry="24" fill="white" />
+          {/* inner shading */}
+          <ellipse cx="60" cy="36" rx="26" ry="19" fill="white" />
+          <ellipse cx="60" cy="34" rx="18" ry="14" fill="white" />
 
-          {/* Top rounded puff */}
-          <ellipse cx="50" cy="18" rx="14" ry="8" fill="white" />
-          <ellipse cx="50" cy="15" rx="10" ry="6" fill="white" />
+          {/* Puff highlight */}
+          <ellipse cx="52" cy="28" rx="7" ry="5" fill="#f0f8ff" opacity="0.7" />
 
           {/* Steam dots above hat */}
-          <circle cx="44" cy="8" r="2.5" fill="#6BAEE0" opacity="0.5">
-            <animate attributeName="cy" values="8;2;8" dur="1.4s" begin="0s" repeatCount="indefinite" />
+          <circle cx="50" cy="10" r="3" fill="#6BAEE0" opacity="0.5">
+            <animate attributeName="cy" values="10;2;10" dur="1.4s" begin="0s" repeatCount="indefinite" />
             <animate attributeName="opacity" values="0.5;0;0.5" dur="1.4s" begin="0s" repeatCount="indefinite" />
           </circle>
-          <circle cx="50" cy="5" r="2" fill="#6BAEE0" opacity="0.5">
-            <animate attributeName="cy" values="5;-1;5" dur="1.4s" begin="0.3s" repeatCount="indefinite" />
+          <circle cx="60" cy="6" r="2.5" fill="#6BAEE0" opacity="0.5">
+            <animate attributeName="cy" values="6;-2;6" dur="1.4s" begin="0.3s" repeatCount="indefinite" />
             <animate attributeName="opacity" values="0.5;0;0.5" dur="1.4s" begin="0.3s" repeatCount="indefinite" />
           </circle>
-          <circle cx="56" cy="8" r="2.5" fill="#6BAEE0" opacity="0.5">
-            <animate attributeName="cy" values="8;2;8" dur="1.4s" begin="0.6s" repeatCount="indefinite" />
+          <circle cx="70" cy="10" r="3" fill="#6BAEE0" opacity="0.5">
+            <animate attributeName="cy" values="10;2;10" dur="1.4s" begin="0.6s" repeatCount="indefinite" />
             <animate attributeName="opacity" values="0.5;0;0.5" dur="1.4s" begin="0.6s" repeatCount="indefinite" />
           </circle>
         </g>

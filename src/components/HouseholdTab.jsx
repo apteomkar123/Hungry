@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Star, ShoppingCart, Plus, Trash2, Check, X, ChevronDown, DollarSign, Edit2, UserPlus, UserCheck, CreditCard, ExternalLink, MapPin, ChevronRight, Home, Copy, Share2, Lock } from 'lucide-react';
+import { Users, Star, ShoppingCart, Plus, Trash2, Check, X, ChevronDown, DollarSign, Edit2, UserPlus, UserCheck, CreditCard, ExternalLink, MapPin, ChevronRight, Home, Copy, Share2, Lock, Camera } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useUser } from './UserContext';
 import { useRecipes } from './RecipeContext';
@@ -21,10 +21,13 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
     setLocalShopItems(data || []);
   }, []);
 
+  const [householdPantryAllItems, setHouseholdPantryAllItems] = useState([]);
   const fetchHouseholdPantry = useCallback(async (hhId) => {
     if (!hhId) return;
-    const { data } = await supabase.from('fridge_inventory').select('*').eq('household_id', hhId);
-    setHouseholdPantryItems((data || []).filter(i => (i.price || 0) > 0));
+    const { data } = await supabase.from('fridge_inventory').select('*').eq('household_id', hhId).order('created_at', { ascending: true });
+    const allItems = data || [];
+    setHouseholdPantryAllItems(allItems);
+    setHouseholdPantryItems(allItems.filter(i => (i.price || 0) > 0));
   }, []);
 
   // Re-fetch shopping list and pantry directly from Supabase when selected household changes
@@ -52,6 +55,8 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
   const [joinHHCode, setJoinHHCode] = useState('');
   const [editingHHName, setEditingHHName] = useState(false);
   const [editHHNameValue, setEditHHNameValue] = useState('');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [localAvatarUrl, setLocalAvatarUrl] = useState(null);
 
   const selectedHH = households.find(h => h.id === selectedHHId) || activeHousehold;
 
@@ -263,6 +268,21 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
 
   const { handleCreateHousehold, handleJoinHousehold } = useUser();
 
+  const uploadHouseholdAvatar = async (file) => {
+    if (!file || !selectedHHId) return;
+    setAvatarUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `household_${selectedHHId}/avatar.${ext}`;
+      const { error } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('user-avatars').getPublicUrl(path);
+      await supabase.from('households').update({ avatar_url: publicUrl }).eq('id', selectedHHId);
+      setLocalAvatarUrl(publicUrl);
+    } catch {}
+    setAvatarUploading(false);
+  };
+
   const handleCreateHH = async () => {
     if (!newHHName.trim()) return;
     await handleCreateHousehold(newHHName.trim());
@@ -367,7 +387,21 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
               <button onClick={() => setEditingHHName(false)} className="text-slate-400 px-2 py-1.5 rounded-xl text-xs"><X size={14} /></button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {/* Household avatar */}
+              <label className="relative shrink-0 cursor-pointer group" title="Change household photo">
+                <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadHouseholdAvatar(f); }} />
+                {(localAvatarUrl || selectedHH.avatar_url) ? (
+                  <img src={localAvatarUrl || selectedHH.avatar_url} alt="" className="w-10 h-10 rounded-2xl object-cover border-2 border-sky-200" />
+                ) : (
+                  <div className="w-10 h-10 rounded-2xl bg-sky-100 border-2 border-sky-200 flex items-center justify-center">
+                    {avatarUploading ? <span className="text-[10px] text-sky-400 animate-pulse">…</span> : <Camera size={14} className="text-sky-400" />}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera size={12} className="text-white" />
+                </div>
+              </label>
               <p className="text-base font-black text-[#1F6FB8] flex-1">{selectedHH.name}</p>
               <button
                 onClick={() => { setEditHHNameValue(selectedHH.name); setEditingHHName(true); }}
@@ -505,6 +539,39 @@ export default function HouseholdTab({ onAddShoppingItem, onToggleHhItem, onDele
           </div>
         )}
       </section>
+
+      {/* Pantry Audit */}
+      {householdPantryAllItems.length > 0 && (() => {
+        const longestSitting = householdPantryAllItems
+          .filter(i => i.created_at)
+          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+          .slice(0, 5);
+        if (!longestSitting.length) return null;
+        return (
+          <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
+            <h2 className="text-[14px] font-bold text-slate-400 mb-1 flex items-center gap-2">
+              <span>🗃️</span> Pantry Audit
+            </h2>
+            <p className="text-[10px] text-slate-300 font-medium mb-4">Items sitting longest in the household pantry</p>
+            <div className="space-y-2">
+              {longestSitting.map((item, i) => {
+                const days = Math.floor((Date.now() - new Date(item.created_at)) / 86400000);
+                return (
+                  <div key={item.id} className="flex items-center justify-between px-4 py-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] font-black text-slate-300 w-4 shrink-0">#{i + 1}</span>
+                      <span className="text-xs font-bold text-slate-700 truncate">{item.raw_name || item.item_name}</span>
+                    </div>
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full shrink-0 ${days > 30 ? 'bg-red-50 text-red-400' : days > 14 ? 'bg-amber-50 text-amber-500' : 'bg-slate-100 text-slate-400'}`}>
+                      {days === 0 ? 'Today' : `${days}d`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Settle Up */}
       {members.length > 1 && (localShopItems.length > 0 || householdPantryItems.length > 0) && (

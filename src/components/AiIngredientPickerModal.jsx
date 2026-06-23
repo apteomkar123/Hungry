@@ -1,11 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Sparkles, Loader2, CalendarDays } from 'lucide-react';
+import { X, Sparkles, Loader2, CalendarDays, ChevronRight } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { categorizeItem, CATEGORY_ICONS, CATEGORY_ORDER } from './recipeUtils';
 import AiLoadingAnimation from './AiLoadingAnimation';
 
 export default function AiIngredientPickerModal() {
-  const { isAiPickerOpen, setIsAiPickerOpen, fridge, handleGenerateAiRecipe, aiGenerating, generateMealPlan, prepLoading } = useRecipes();
+  const {
+    isAiPickerOpen, setIsAiPickerOpen,
+    fridge, handleGenerateAiRecipe, aiGenerating,
+    generateMealPlan, prepLoading,
+    generatedRecipes, setGeneratedRecipes,
+    setActiveModalRecipe,
+  } = useRecipes();
 
   const allItems = useMemo(() => {
     if (!fridge) return [];
@@ -28,11 +34,12 @@ export default function AiIngredientPickerModal() {
   }, [allItems]);
 
   const [selected, setSelected] = useState(new Set());
-  const [mode, setMode] = useState('recipe'); // 'recipe' | 'prep'
+  const [mode, setMode] = useState('recipe');
 
   useEffect(() => {
     if (isAiPickerOpen) {
       setSelected(new Set(allItems.map(i => i.raw_name)));
+      setGeneratedRecipes(null);
     }
   }, [isAiPickerOpen, allItems]);
 
@@ -47,8 +54,6 @@ export default function AiIngredientPickerModal() {
 
   const handleGenerate = () => {
     const ingredients = allItems.filter(i => selected.has(i.raw_name)).map(i => i.raw_name);
-    // Picker stays "open" in state — the animation overlay covers it.
-    // RecipeContext will close it on success, or leave it open on failure.
     handleGenerateAiRecipe(ingredients);
   };
 
@@ -58,7 +63,12 @@ export default function AiIngredientPickerModal() {
     generateMealPlan(ingredients);
   };
 
-  // Full-screen loading animation while AI generates (must show even when picker is closed)
+  const handlePickRecipe = (recipe) => {
+    setActiveModalRecipe(recipe);
+    setGeneratedRecipes(null);
+    setIsAiPickerOpen(false);
+  };
+
   if (aiGenerating || prepLoading) {
     return (
       <div className="fixed inset-0 bg-white/90 backdrop-blur-2xl flex items-center justify-center z-50">
@@ -69,9 +79,72 @@ export default function AiIngredientPickerModal() {
 
   if (!isAiPickerOpen) return null;
 
+  // Recipe selection screen after generation
+  if (generatedRecipes && generatedRecipes.length > 0) {
+    return (
+      <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-end justify-center z-50">
+        <div className="bg-white/95 backdrop-blur-2xl p-6 rounded-t-4xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl border-t border-white/50">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-black text-slate-800 tracking-tighter">Pick a Recipe</h3>
+              <p className="text-[10px] text-slate-400 font-medium">AI generated {generatedRecipes.length} options for you</p>
+            </div>
+            <button onClick={() => { setGeneratedRecipes(null); setIsAiPickerOpen(false); }} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+            {generatedRecipes.map((recipe, idx) => (
+              <button
+                key={recipe.id || idx}
+                onClick={() => handlePickRecipe(recipe)}
+                className="w-full text-left bg-linear-to-br from-sky-50 to-blue-50 border border-sky-100 rounded-3xl p-4 hover:shadow-md active:scale-95 transition-all group"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-black text-sky-400 uppercase tracking-widest">Recipe {idx + 1}</span>
+                    </div>
+                    <h4 className="text-sm font-black text-slate-800 tracking-tight leading-tight mb-1.5">{recipe.title || recipe.recipeName}</h4>
+                    {recipe.description && (
+                      <p className="text-[10px] text-slate-500 leading-relaxed line-clamp-2">{recipe.description}</p>
+                    )}
+                    {recipe.ingredients && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {recipe.ingredients.slice(0, 4).map((ing, i) => (
+                          <span key={i} className="text-[9px] bg-white/80 text-slate-600 font-medium px-1.5 py-0.5 rounded-lg border border-sky-100">
+                            {typeof ing === 'string' ? ing : ing.name}
+                          </span>
+                        ))}
+                        {recipe.ingredients.length > 4 && (
+                          <span className="text-[9px] text-slate-400 font-medium px-1.5 py-0.5">+{recipe.ingredients.length - 4} more</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <ChevronRight size={16} className="text-sky-400 shrink-0 mt-1 group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-blue-50">
+            <button
+              onClick={() => setGeneratedRecipes(null)}
+              className="w-full py-3 rounded-2xl text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              ← Back to ingredients
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-blue-900/20 backdrop-blur-xl flex items-end justify-center z-50">
-      <div className="bg-white/95 backdrop-blur-2xl p-6 rounded-t-[3rem] w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl border-t border-white/50">
+      <div className="bg-white/95 backdrop-blur-2xl p-6 rounded-t-4xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl border-t border-white/50">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-lg font-black text-slate-800 tracking-tighter">Pick Your Ingredients</h3>
@@ -82,7 +155,6 @@ export default function AiIngredientPickerModal() {
           </button>
         </div>
 
-        {/* Mode toggle */}
         <div className="bg-blue-50/60 rounded-2xl p-1 flex gap-1 mb-3">
           <button
             onClick={() => setMode('recipe')}
@@ -153,7 +225,7 @@ export default function AiIngredientPickerModal() {
             >
               {aiGenerating
                 ? <><Loader2 size={16} className="animate-spin" /> Generating...</>
-                : <><Sparkles size={16} /> Generate Recipe ({selected.size} ingredients)</>
+                : <><Sparkles size={16} /> Generate 3 Recipes ({selected.size} ingredients)</>
               }
             </button>
           ) : (

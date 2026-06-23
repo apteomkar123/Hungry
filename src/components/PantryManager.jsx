@@ -28,13 +28,19 @@ const isExpiringSoon = (date) => {
 };
 
 // ─── Ingredient Card Modal ────────────────────────────────────────────────────
-function IngredientCardModal({ item, onClose, onSave, onDelete, households }) {
+function IngredientCardModal({ item, onClose, onSave, onDelete, households, isPinned, onTogglePin, isRecurring, onToggleRecurring, shoppingHistory = {}, priceHistory = {} }) {
   const [name, setName] = useState(item.raw_name || '');
   const [expiry, setExpiry] = useState(item.expiry_date ? item.expiry_date.split('T')[0] : '');
   const [quantity, setQuantity] = useState(item.quantity > 0 ? item.quantity : 1);
   const [price, setPrice] = useState(item.price > 0 ? String(Number(item.price).toFixed(2)) : '');
   const [category, setCategory] = useState(item.categoryOverride || categorizeItem(item.raw_name || ''));
   const [splitCount, setSplitCount] = useState(2);
+
+  const histKey = (item.item_name || '').toLowerCase();
+  const histEntry = shoppingHistory[histKey];
+  const daysSinceBought = histEntry?.date ? Math.floor((Date.now() - new Date(histEntry.date)) / 86400000) : null;
+  const suggestRestock = daysSinceBought !== null && daysSinceBought > 14 && (histEntry?.count || 0) >= 2;
+  const itemPriceHistory = priceHistory[histKey] || [];
 
   // Actual nutrition (from barcode) takes priority; fall back to estimate
   const actualNutrition = item.nutrition?.kcal > 0 ? item.nutrition : null;
@@ -122,6 +128,44 @@ function IngredientCardModal({ item, onClose, onSave, onDelete, households }) {
               <span className="text-xs font-bold text-slate-600">{item.store_name}</span>
             </div>
           )}
+          {itemPriceHistory.length > 1 && (
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Price History</p>
+              <div className="space-y-1">
+                {itemPriceHistory.slice(-5).reverse().map((entry, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400">{entry.date}{entry.store ? ` · ${entry.store}` : ''}</span>
+                    <span className="text-[10px] font-black text-emerald-600">${Number(entry.price).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+              {itemPriceHistory.length >= 2 && (() => {
+                const latest = itemPriceHistory[itemPriceHistory.length - 1].price;
+                const prev = itemPriceHistory[itemPriceHistory.length - 2].price;
+                const diff = latest - prev;
+                if (diff === 0) return null;
+                return (
+                  <p className={`text-[9px] font-bold mt-2 ${diff > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {diff > 0 ? `↑ $${diff.toFixed(2)} from last scan` : `↓ $${Math.abs(diff).toFixed(2)} from last scan`}
+                  </p>
+                );
+              })()}
+            </div>
+          )}
+          {daysSinceBought !== null && (
+            <div className={`rounded-2xl px-4 py-2.5 flex items-center justify-between border ${suggestRestock ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Shopping History</p>
+                <p className="text-xs font-bold text-slate-600 mt-0.5">
+                  {daysSinceBought === 0 ? 'Bought today' : daysSinceBought === 1 ? 'Bought yesterday' : `Last bought ${daysSinceBought} days ago`}
+                  {histEntry?.count > 1 && <span className="text-slate-400 font-normal"> · {histEntry.count} times</span>}
+                </p>
+              </div>
+              {suggestRestock && (
+                <span className="text-[9px] font-black text-amber-600 bg-amber-100 px-2 py-1 rounded-full">Restock soon?</span>
+              )}
+            </div>
+          )}
 
           {displayNutrition && (
             <div className="bg-sky-50 rounded-2xl p-4">
@@ -179,7 +223,25 @@ function IngredientCardModal({ item, onClose, onSave, onDelete, households }) {
           )}
         </div>
 
-        <div className="flex gap-3 mt-6">
+        {/* Pin and Recurring toggles */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onTogglePin}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-black border transition-all ${isPinned ? 'bg-amber-50 text-amber-500 border-amber-100' : 'bg-slate-50 text-slate-400 border-slate-100 hover:border-amber-200'}`}
+          >
+            📌 {isPinned ? 'Pinned' : 'Pin to Top'}
+          </button>
+          <button
+            type="button"
+            onClick={onToggleRecurring}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-black border transition-all ${isRecurring ? 'bg-sky-50 text-[#6BAEE0] border-sky-100' : 'bg-slate-50 text-slate-400 border-slate-100 hover:border-sky-200'}`}
+          >
+            🔄 {isRecurring ? 'Always Buy' : 'Always Buy?'}
+          </button>
+        </div>
+
+        <div className="flex gap-3">
           <button
             onClick={() => { onDelete(item.id); onClose(); }}
             className="p-3 bg-red-50 text-red-400 rounded-2xl hover:bg-red-100 transition-colors"
@@ -199,10 +261,17 @@ function IngredientCardModal({ item, onClose, onSave, onDelete, households }) {
 }
 
 // ─── Category Bottom Sheet ────────────────────────────────────────────────────
-function CategorySheet({ category, items, onClose, onItemTap, onRemove, households, getHouseholdLabel, cycleItemHousehold, pickItemHousehold, hhPickerItemId, setCategoryOverrides, onAdjustQty }) {
+function CategorySheet({ category, items, onClose, onItemTap, onRemove, households, getHouseholdLabel, cycleItemHousehold, pickItemHousehold, hhPickerItemId, setCategoryOverrides, onAdjustQty, pinnedItems = new Set(), onTogglePin, shoppingHistory = {} }) {
   const [dragOverCat, setDragOverCat] = useState(null);
   const colorCls = CATEGORY_COLORS[category];
   const otherCats = CATEGORIES.filter(c => c !== category);
+
+  // The single item expiring soonest in this category (Eat Me First)
+  const eatMeFirstId = React.useMemo(() => {
+    const withExpiry = items.filter(i => i.expiry_date);
+    if (!withExpiry.length) return null;
+    return withExpiry.reduce((a, b) => new Date(a.expiry_date) < new Date(b.expiry_date) ? a : b).id;
+  }, [items]);
 
   const handleDrop = (e, targetCat) => {
     e.preventDefault();
@@ -253,19 +322,25 @@ function CategorySheet({ category, items, onClose, onItemTap, onRemove, househol
         <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-1.5 pt-1">
           {items.map(item => {
             const expiring = isExpiringSoon(item.expiry_date);
+            const isPinned = pinnedItems.has(item.id);
+            const isEatMeFirst = item.id === eatMeFirstId && expiring;
             return (
               <div
                 key={item.id}
                 draggable
                 onDragStart={(e) => e.dataTransfer.setData('itemId', item.id)}
-                className="flex items-center gap-3 px-4 py-3 bg-white border border-blue-50 rounded-2xl hover:border-sky-100 transition-all cursor-grab active:cursor-grabbing"
+                className={`flex items-center gap-3 px-4 py-3 bg-white border rounded-2xl hover:border-sky-100 transition-all cursor-grab active:cursor-grabbing ${isEatMeFirst ? 'border-rose-200 bg-rose-50/30' : 'border-blue-50'}`}
               >
                 <GripVertical size={14} className="text-slate-200 shrink-0" />
 
                 <button className="flex-1 text-left min-w-0" onClick={() => onItemTap(item)}>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-xs font-bold text-slate-700">{toTitleCase(item.raw_name || item.item_name || '')}</span>
-                    {expiring && <AlertCircle size={10} className="text-orange-400 animate-pulse shrink-0" />}
+                    {isPinned && <span className="text-[9px]">📌</span>}
+                    {isEatMeFirst && (
+                      <span className="text-[8px] font-black bg-rose-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wide">Eat Me First!</span>
+                    )}
+                    {expiring && !isEatMeFirst && <AlertCircle size={10} className="text-orange-400 animate-pulse shrink-0" />}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     {item.expiry_date && (
@@ -279,6 +354,17 @@ function CategorySheet({ category, items, onClose, onItemTap, onRemove, househol
                     {item.price > 0 && (
                       <span className="text-[9px] font-mono text-emerald-500">${Number(item.price).toFixed(2)}</span>
                     )}
+                    {(() => {
+                      const key = (item.item_name || '').toLowerCase();
+                      const hist = shoppingHistory[key];
+                      if (!hist?.date) return null;
+                      const days = Math.floor((Date.now() - new Date(hist.date)) / 86400000);
+                      return (
+                        <span className="text-[9px] font-mono text-slate-300">
+                          {days === 0 ? 'Bought today' : days === 1 ? 'Bought yesterday' : `Bought ${days}d ago`}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </button>
 
@@ -325,6 +411,15 @@ function CategorySheet({ category, items, onClose, onItemTap, onRemove, househol
                   </div>
                 )}
 
+                {onTogglePin && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onTogglePin(item.id); }}
+                    className={`shrink-0 p-1 transition-colors ${pinnedItems.has(item.id) ? 'text-amber-400' : 'text-slate-200 hover:text-amber-400'}`}
+                    title={pinnedItems.has(item.id) ? 'Unpin' : 'Pin to top'}
+                  >
+                    📌
+                  </button>
+                )}
                 <button onClick={() => onRemove(item.id)} className="text-slate-200 hover:text-red-400 transition-colors shrink-0 p-1">
                   <Trash2 size={14} />
                 </button>
@@ -345,11 +440,62 @@ export default function PantryManager({
   barcodeInput, setBarcodeInput, handleBarcodeLookup,
   barcodeLoading, barcodeResult, isScanningBarcode, setIsScanningBarcode,
   quantities = {}, adjustQuantity, setQuantityForItem,
+  shoppingHistory = {},
+  priceHistory = {},
 }) {
   const [manualItem, setManualItem] = useState('');
   const [selectedHouseholdId, setSelectedHouseholdId] = useState(activeHousehold?.id || null);
-  const [addToast, setAddToast] = useState(null); // { text }
+  const [addToast, setAddToast] = useState(null);
+  const [undoDeleteItem, setUndoDeleteItem] = useState(null); // { item, timerId }
+  const [pantrySearch, setPantrySearch] = useState('');
+  const [pinnedItems, setPinnedItems] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('pantry_pinned') || '[]')); } catch { return new Set(); }
+  });
+  const [recurringItems, setRecurringItems] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('pantry_recurring') || '[]')); } catch { return new Set(); }
+  });
   const toastTimerRef = useRef(null);
+  const undoTimerRef = useRef(null);
+
+  const togglePin = (id) => {
+    setPinnedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      localStorage.setItem('pantry_pinned', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const toggleRecurring = (id) => {
+    setRecurringItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      localStorage.setItem('pantry_recurring', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const handleDeleteWithUndo = (id) => {
+    const item = fridge.find(i => i.id === id);
+    if (!item) return;
+    // Optimistically remove
+    handleRemoveItem(id);
+    clearTimeout(undoTimerRef.current);
+    // Store undo info (the item is already removed from DB so undo re-adds it)
+    setUndoDeleteItem({ item, timerId: null });
+    undoTimerRef.current = setTimeout(() => setUndoDeleteItem(null), 5000);
+  };
+
+  const handleUndoDelete = () => {
+    if (!undoDeleteItem) return;
+    clearTimeout(undoTimerRef.current);
+    const { item } = undoDeleteItem;
+    handleAddManualItem(item.raw_name || item.item_name, item.household_id || null, {
+      price: item.price || 0,
+      expiry_date: item.expiry_date || null,
+    });
+    setUndoDeleteItem(null);
+  };
 
   const showAddToast = (itemName) => {
     const expiryDate = getEstimatedExpiry(itemName);
@@ -579,12 +725,24 @@ export default function PantryManager({
     categoryOverride: categoryOverrides[item.id] || null,
   })), [fridge, quantities, categoryOverrides]);
 
+  // Search-filtered fridge
+  const filteredFridge = useMemo(() => {
+    if (!pantrySearch.trim()) return enrichedFridge;
+    const q = pantrySearch.toLowerCase();
+    return enrichedFridge.filter(i => (i.raw_name || i.item_name || '').toLowerCase().includes(q));
+  }, [enrichedFridge, pantrySearch]);
+
   const groupedFridge = useMemo(() => CATEGORIES.reduce((acc, cat) => {
-    acc[cat] = enrichedFridge.filter(item =>
+    const items = filteredFridge.filter(item =>
       (categoryOverrides[item.id] || categorizeItem(item.raw_name || item.item_name || '')) === cat
     );
+    // Pinned items float to top within each category
+    acc[cat] = [
+      ...items.filter(i => pinnedItems.has(i.id)),
+      ...items.filter(i => !pinnedItems.has(i.id)),
+    ];
     return acc;
-  }, {}), [enrichedFridge, categoryOverrides]);
+  }, {}), [filteredFridge, categoryOverrides, pinnedItems]);
 
   const sheetItems = activeSheet ? (groupedFridge[activeSheet] || []) : [];
 
@@ -752,9 +910,18 @@ export default function PantryManager({
         </div>
       )}
 
+      {/* ── Undo Delete Toast ──────────────────────────────────────────────── */}
+      {undoDeleteItem && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-200 flex items-center gap-3 bg-slate-800 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl animate-in slide-in-from-bottom-4 duration-300">
+          <Trash2 size={13} className="text-red-400 shrink-0" />
+          <span className="truncate max-w-40">{undoDeleteItem.item.raw_name || undoDeleteItem.item.item_name} removed</span>
+          <button onClick={handleUndoDelete} className="ml-1 text-[#6BAEE0] font-black hover:text-sky-300 transition-colors shrink-0">Undo</button>
+        </div>
+      )}
+
       {/* ── Pantry Stock — Compact Category Grid ──────────────────────────── */}
       <section className="bg-white/80 backdrop-blur-lg p-6 rounded-[2.5rem] border border-white/20 shadow-xl shadow-blue-900/5">
-        <div className="flex justify-between items-center mb-5 px-1">
+        <div className="flex justify-between items-center mb-4 px-1">
           <div>
             <h2 className="text-[14px] font-bold text-slate-400">Pantry Stock</h2>
             {totalValue > 0 && (
@@ -766,6 +933,22 @@ export default function PantryManager({
           <span className="bg-blue-50 text-[#6BAEE0] border border-blue-100 px-3 py-1 rounded-full text-[10px] font-black">
             {fridge.length} items
           </span>
+        </div>
+
+        {/* Search bar */}
+        <div className="relative mb-4">
+          <input
+            type="text"
+            value={pantrySearch}
+            onChange={e => setPantrySearch(e.target.value)}
+            placeholder="Search pantry…"
+            className="w-full bg-blue-50/60 border border-blue-100 pl-4 pr-9 py-3 rounded-2xl text-xs font-semibold text-slate-700 focus:border-sky-300 focus:outline-none transition-all"
+          />
+          {pantrySearch && (
+            <button onClick={() => setPantrySearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         {fridge.length === 0 ? (
@@ -809,7 +992,7 @@ export default function PantryManager({
           items={sheetItems}
           onClose={() => setActiveSheet(null)}
           onItemTap={(item) => setActiveIngredient(item)}
-          onRemove={(id) => handleRemoveItem(id)}
+          onRemove={(id) => handleDeleteWithUndo(id)}
           households={households}
           getHouseholdLabel={getHouseholdLabel}
           cycleItemHousehold={cycleItemHousehold}
@@ -817,6 +1000,9 @@ export default function PantryManager({
           hhPickerItemId={hhPickerItemId}
           setCategoryOverrides={setCategoryOverrides}
           onAdjustQty={adjustQuantity}
+          pinnedItems={pinnedItems}
+          onTogglePin={togglePin}
+          shoppingHistory={shoppingHistory}
         />
       )}
 
@@ -826,8 +1012,14 @@ export default function PantryManager({
           item={activeIngredient}
           onClose={() => setActiveIngredient(null)}
           onSave={handleSaveIngredient}
-          onDelete={(id) => { handleRemoveItem(id); setActiveIngredient(null); setActiveSheet(null); }}
+          onDelete={(id) => { handleDeleteWithUndo(id); setActiveIngredient(null); setActiveSheet(null); }}
           households={households}
+          isPinned={pinnedItems.has(activeIngredient.id)}
+          onTogglePin={() => togglePin(activeIngredient.id)}
+          isRecurring={recurringItems.has(activeIngredient.id)}
+          onToggleRecurring={() => toggleRecurring(activeIngredient.id)}
+          shoppingHistory={shoppingHistory}
+          priceHistory={priceHistory}
         />
       )}
 

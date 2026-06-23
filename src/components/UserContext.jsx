@@ -102,7 +102,8 @@ export const UserProvider = ({ children }) => {
         activeId = profileActiveId;
       }
       if (ids.length > 0) {
-        supabase.auth.updateUser({ data: { household_ids: ids, active_household_id: activeId } }).then(() => {});
+        // Await so subsequent loads don't re-run the same fallback due to missing metadata
+        await supabase.auth.updateUser({ data: { household_ids: ids, active_household_id: activeId } });
       }
     }
 

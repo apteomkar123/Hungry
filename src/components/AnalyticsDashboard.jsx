@@ -63,6 +63,28 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
       });
   }, [user?.id]);
 
+  // ── Pantry value trend (week-over-week) ─────────────────────────────────
+  const [pantryValueTrend, setPantryValueTrend] = useState(null);
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const currentValue = fridge.reduce((sum, item) => sum + (item.price || 0), 0);
+    if (currentValue === 0) return;
+    try {
+      const hist = JSON.parse(localStorage.getItem('pantry_value_history') || '[]');
+      const updated = [...hist.filter(h => h.date !== today), { date: today, value: currentValue }].slice(-14);
+      localStorage.setItem('pantry_value_history', JSON.stringify(updated));
+      if (updated.length >= 7) {
+        const weekAgoDate = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+        const weekAgoEntry = updated.filter(h => h.date <= weekAgoDate).sort((a, b) => b.date.localeCompare(a.date))[0];
+        if (weekAgoEntry) {
+          const diff = currentValue - weekAgoEntry.value;
+          const pct = weekAgoEntry.value > 0 ? Math.round((diff / weekAgoEntry.value) * 100) : 0;
+          setPantryValueTrend({ diff, pct });
+        }
+      }
+    } catch {}
+  }, [fridge]);
+
   // ── Spending calcs ───────────────────────────────────────────────────────
   const { pantryValue, missingSpend, purchasedSpend, totalListCost, stockEfficiency, budgetLimit, budgetPercent, isOverBudget } = useMemo(() => {
     const pantryValue    = fridge.reduce((sum, item) => sum + (item.price || 0), 0);
@@ -568,6 +590,11 @@ export default function AnalyticsDashboard({ metrics, fridge, shoppingList, onAd
                 <div>
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Inventory Value</p>
                   <p className="text-lg font-bold text-slate-700">${pantryValue.toFixed(2)}</p>
+                  {pantryValueTrend && (
+                    <p className={`text-[9px] font-bold mt-0.5 ${pantryValueTrend.diff >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
+                      {pantryValueTrend.diff >= 0 ? '↑' : '↓'} ${Math.abs(pantryValueTrend.diff).toFixed(2)} ({pantryValueTrend.pct > 0 ? '+' : ''}{pantryValueTrend.pct}%) vs last week
+                    </p>
+                  )}
                 </div>
               </div>
               <p className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">In Stock</p>

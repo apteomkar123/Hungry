@@ -4,6 +4,32 @@ const CUISINES = [
   'turkish', 'thai', 'french', 'vietnamese', 'american', 'british'
 ];
 
+const EDAMAM_QUERIES = [
+  'chicken', 'pasta', 'beef', 'vegetarian', 'fish', 'salad',
+  'soup', 'breakfast', 'dessert', 'curry', 'stir fry', 'tacos',
+  'pizza', 'noodles', 'rice', 'shrimp', 'lamb', 'tofu',
+  'burger', 'sandwich', 'steak', 'salmon', 'lentils', 'beans'
+];
+
+const formatEdamamRecipe = (hit) => {
+  const r = hit.recipe;
+  const id = 'edamam-' + (r.uri || '').split('#recipe_')[1];
+  const cuisineTypes = (r.cuisineType || []).join(' ') || 'international';
+  const mealTypes = [...(r.mealType || []), ...(r.dishType || []), ...(r.dietLabels || [])];
+  return {
+    id,
+    name: r.label || '',
+    meal_type: mealTypes.join(' ') || 'General',
+    cuisine: cuisineTypes,
+    ingredients: r.ingredientLines || [],
+    steps: r.url
+      ? [`For step-by-step instructions, visit the original recipe: ${r.url}`]
+      : ['Prepare ingredients according to the list above.'],
+    image: r.image || '',
+    source_url: r.url || ''
+  };
+};
+
 const formatRecipe = (r, sourceCuisine) => {
   const ingredients = (r.extendedIngredients || []).map(ing => ing.original || ing.name || '');
   const steps = (r.analyzedInstructions || [])
@@ -33,7 +59,9 @@ export const handler = async (event) => {
   }
 
   const apiKey = (process.env.SPOONACULAR_API_KEY || '').trim();
-  if (!apiKey) {
+  const edamamId = (process.env.EDAMAM_APP_ID || '').trim();
+  const edamamKey = (process.env.EDAMAM_APP_KEY || '').trim();
+  if (!apiKey && (!edamamId || !edamamKey)) {
     return { statusCode: 200, headers, body: JSON.stringify({ recipes: [] }) };
   }
 
@@ -58,8 +86,8 @@ export const handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ recipes }) };
     }
 
-    // Default: fetch all cuisines in parallel, 50 each
-    const batches = await Promise.all(
+    // Default: fetch all cuisines in parallel, 50 each (Spoonacular)
+    const allRecipes = apiKey ? (await Promise.all(
       CUISINES.map(async (cuisine) => {
         try {
           const url = new URL('https://api.spoonacular.com/recipes/complexSearch');
@@ -76,12 +104,35 @@ export const handler = async (event) => {
           return (data.results || []).map(r => formatRecipe(r, cuisine));
         } catch { return []; }
       })
-    );
+    )).flat() : [];
 
-    const allRecipes = batches.flat();
-    // Deduplicate by Spoonacular ID
+    // Fetch Edamam recipes in parallel across queries
+    let edamamRecipes = [];
+    if (edamamId && edamamKey) {
+      const edamamBatches = await Promise.all(
+        EDAMAM_QUERIES.map(async (q) => {
+          try {
+            const url = new URL('https://api.edamam.com/api/recipes/v2');
+            url.searchParams.set('type', 'public');
+            url.searchParams.set('app_id', edamamId);
+            url.searchParams.set('app_key', edamamKey);
+            url.searchParams.set('q', q);
+            for (const f of ['label', 'cuisineType', 'mealType', 'dishType', 'dietLabels', 'ingredientLines', 'image', 'url', 'uri']) {
+              url.searchParams.append('field', f);
+            }
+            const res = await fetch(url.toString());
+            if (!res.ok) return [];
+            const data = await res.json();
+            return (data.hits || []).map(formatEdamamRecipe).filter(r => r.id && r.name);
+          } catch { return []; }
+        })
+      );
+      edamamRecipes = edamamBatches.flat();
+    }
+
+    // Deduplicate all recipes by ID
     const seen = new Set();
-    const unique = allRecipes.filter(r => {
+    const unique = [...allRecipes, ...edamamRecipes].filter(r => {
       if (seen.has(r.id)) return false;
       seen.add(r.id);
       return true;

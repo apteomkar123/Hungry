@@ -181,10 +181,33 @@ export const useInventory = (user, household) => {
         quantity: storedQtys[row.id] || 1,
         expiry_date: row.expiry_date,
         price: row.price || 0,
+        store_name: row.store_name || null,
         household_id: row.household_id || null,
         nutrition: null
       })).filter(item => item.raw_name);
-      setFridge(normalizedFridge);
+
+      // Fuzzy duplicate detection: merge items sharing the same cleaned name
+      const seen = new Map(); // cleaned name → item
+      const deduped = [];
+      const toDelete = [];
+      for (const item of normalizedFridge) {
+        const key = item.item_name;
+        if (seen.has(key)) {
+          // Merge: add quantity to existing item, schedule deletion of this one
+          const existing = seen.get(key);
+          existing.quantity = (existing.quantity || 1) + (item.quantity || 1);
+          toDelete.push(item.id);
+        } else {
+          seen.set(key, item);
+          deduped.push(item);
+        }
+      }
+      // Silently delete duplicates from DB
+      if (toDelete.length > 0) {
+        supabase.from('fridge_inventory').delete().in('id', toDelete).then(() => {});
+      }
+
+      setFridge(deduped);
       calculateMacroMetrics(normalizedFridge.map(f => f.item_name));
 
       // Fetch ALL shopping items belonging to this user (any household_id) plus household items
@@ -271,6 +294,25 @@ export const useInventory = (user, household) => {
 
     const sanitized = await resolveSanitizedTokenOnline(itemName);
     if (!sanitized) return;
+
+    // Track shopping history (last bought date)
+    try {
+      const hist = JSON.parse(localStorage.getItem('shopping_history') || '{}');
+      const key = sanitized;
+      hist[key] = { date: new Date().toISOString().slice(0, 10), count: (hist[key]?.count || 0) + 1 };
+      localStorage.setItem('shopping_history', JSON.stringify(hist));
+    } catch {}
+
+    // Track price history if a price is provided
+    if (extraData.price > 0) {
+      try {
+        const priceHist = JSON.parse(localStorage.getItem('price_history') || '{}');
+        const key = sanitized;
+        const entry = { date: new Date().toISOString().slice(0, 10), price: extraData.price, store: extraData.store_name || null };
+        priceHist[key] = [...(priceHist[key] || []).slice(-9), entry]; // keep last 10
+        localStorage.setItem('price_history', JSON.stringify(priceHist));
+      } catch {}
+    }
 
     // Consolidate: if item already exists in pantry, just increment its quantity
     const existing = fridgeRef.current.find(i =>
@@ -400,7 +442,17 @@ export const useInventory = (user, household) => {
     if (savedData && savedData.id) {
       setShoppingList(prev => prev.map(item => item.id === tempId ? { ...item, id: savedData.id } : item));
     }
-  }, [user, performMutation, shoppingList]);
+    // Write to LyfeWare Feed (fire-and-forget)
+    if (user?.id && householdId) {
+      supabase.from('cross_app_activity').insert({
+        user_id: user.id,
+        app: 'pantry',
+        activity_type: 'shopping_item_added',
+        is_public: false,
+        payload: { household_id: householdId, item: displayName },
+      }).then(() => {});
+    }
+  }, [user, performMutation, household]);
 
   const handleMoveShoppingItem = useCallback(async (id, newHouseholdId) => {
     const item = shoppingListRef.current.find(i => i.id === id);
@@ -453,6 +505,12 @@ export const useInventory = (user, household) => {
         await performMutation('shopping_list', 'DELETE', null, item.id);
       }
     }
+  }, [performMutation]);
+
+  const handleUpdateShoppingNote = useCallback(async (id, note) => {
+    const trimmed = (note || '').trim();
+    setShoppingList(prev => prev.map(i => i.id === id ? { ...i, note: trimmed || null } : i));
+    await performMutation('shopping_list', 'UPDATE', { note: trimmed || null }, id);
   }, [performMutation]);
 
   const handleMarkAllShoppingCompleted = useCallback(async () => {
@@ -572,7 +630,10 @@ export const useInventory = (user, household) => {
         if (receiptStore) setStoreName(receiptStore);
         if (Array.isArray(data.added) && data.added.length > 0) {
           for (const item of data.added) {
-            await handleAddManualItem(item, null, { store_name: receiptStore });
+            // item is now { name, price } or a plain string (legacy)
+            const itemName = typeof item === 'string' ? item : (item.name || item);
+            const itemPrice = typeof item === 'object' ? (parseFloat(item.price) || 0) : 0;
+            await handleAddManualItem(itemName, null, { store_name: receiptStore, price: itemPrice });
           }
           setReceiptMessage(`Added ${data.added.length} food item${data.added.length !== 1 ? 's' : ''} from receipt${receiptStore ? ` (${receiptStore})` : ''}`);
         } else {
@@ -802,9 +863,19 @@ export const useInventory = (user, household) => {
     if (match) await handleRemoveItem(match.id);
   }, [handleRemoveItem]);
 
+  const shoppingHistory = (() => {
+    try { return JSON.parse(localStorage.getItem('shopping_history') || '{}'); } catch { return {}; }
+  })();
+
+  const priceHistory = (() => {
+    try { return JSON.parse(localStorage.getItem('price_history') || '{}'); } catch { return {}; }
+  })();
+
   return {
     fridge,
     quantities,
+    shoppingHistory,
+    priceHistory,
     adjustQuantity,
     setQuantityForItem,
     shoppingList,
@@ -828,6 +899,7 @@ export const useInventory = (user, household) => {
     handleToggleShoppingCompleted,
     handleClearShoppingItem,
     handleRenameShoppingItem,
+    handleUpdateShoppingNote,
     handleMoveShoppingItem,
     handleClearAllShoppingItems,
     handleMarkAllShoppingCompleted,

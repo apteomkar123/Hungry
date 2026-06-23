@@ -57,7 +57,7 @@ export const useRecipes = () => {
 };
 
 export const RecipeProvider = ({ children, fridge }) => {
-  const { user, userSettings } = useUser();
+  const { user, userSettings, household } = useUser();
   const [masterRecipes, setMasterRecipes] = useState([]);
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [recipeSearch, setRecipeSearch] = useState('');
@@ -75,6 +75,7 @@ export const RecipeProvider = ({ children, fridge }) => {
 
   const [aiGenerating, setAiGenerating] = useState(false);
   const [isAiPickerOpen, setIsAiPickerOpen] = useState(false);
+  const [generatedRecipes, setGeneratedRecipes] = useState(null); // 3 AI-generated recipe choices
   const [activeModalRecipe, setActiveModalRecipe] = useState(null);
   const [multiplier, setMultiplier] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -199,10 +200,25 @@ export const RecipeProvider = ({ children, fridge }) => {
       setMasterRecipes(normalized);
 
       if (user) {
-        const { data } = await supabase.from('saved_recipes').select('*').eq('user_id', user.id);
-        const allRecords = data || [];
+        // Fetch personal + household saved recipes
+        const { data: personalData } = await supabase.from('saved_recipes').select('*').eq('user_id', user.id);
+        let hhData = [];
+        if (household?.id) {
+          const { data: hhRecipes } = await supabase.from('saved_recipes').select('*')
+            .eq('household_id', household.id)
+            .neq('user_id', user.id); // Other members' saves for this household
+          hhData = hhRecipes || [];
+        }
+        const allRecords = [...(personalData || []), ...hhData];
+        // Deduplicate by recipe_id
+        const seen = new Set();
+        const dedupedRecords = allRecords.filter(r => {
+          if (seen.has(r.recipe_id)) return false;
+          seen.add(r.recipe_id);
+          return true;
+        });
         // Separate regular saved recipes from backed-up meal plans
-        setSavedRecipes(allRecords.filter(r => r.meal_type !== '__meal_plan__'));
+        setSavedRecipes(dedupedRecords.filter(r => r.meal_type !== '__meal_plan__'));
         // Restore meal plans from Supabase if localStorage is empty
         const cloudPlans = allRecords
           .filter(r => r.meal_type === '__meal_plan__')
@@ -227,9 +243,19 @@ export const RecipeProvider = ({ children, fridge }) => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, household?.id]);
 
   useEffect(() => { loadRecipes(); }, [loadRecipes]);
+
+  // Real-time sync for household saved recipes
+  useEffect(() => {
+    if (!household?.id) return;
+    const hhId = household.id;
+    const ch = supabase.channel(`recipes-sync:${hhId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'saved_recipes', filter: `household_id=eq.${hhId}` }, loadRecipes)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [household?.id, loadRecipes]);
 
   // Deep Linking logic: capture recipe ID at mount (before auth can modify the URL)
   const pendingDeepLinkId = useRef(
@@ -255,11 +281,13 @@ export const RecipeProvider = ({ children, fridge }) => {
     if (pantry.length === 0) return alert("Add items to your pantry first so AI knows what you have.");
 
     setAiGenerating(true);
+    setGeneratedRecipes(null);
     try {
       const restrictions = (userSettings?.dietary_restrictions || []).join(', ');
       const goal = userSettings?.nutrition_goal || '';
       const dietContext = [restrictions, goal].filter(Boolean).join('; ');
-      const prompt = `Create a unique recipe using: ${pantry.slice(0, 10).join(', ')}${dietContext ? `. Dietary context: ${dietContext}` : ''}. Return ONLY valid JSON with keys recipeName, ingredients, and steps.`;
+      const seed = Date.now();
+      const prompt = `Create 3 distinct, delicious recipes using these ingredients: ${pantry.slice(0, 12).join(', ')}${dietContext ? `. Dietary context: ${dietContext}.` : ''} Make each recipe different (e.g. one quick, one hearty, one creative). Seed: ${seed}. Return ONLY valid JSON with no markdown: {"recipes":[{"recipeName":"...","description":"one-sentence description","ingredients":["..."],"steps":["..."]},{"recipeName":"...","description":"...","ingredients":["..."],"steps":["..."]}]}`;
       const res = await fetch('/.netlify/functions/scan-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -274,46 +302,33 @@ export const RecipeProvider = ({ children, fridge }) => {
       const text = await res.text();
       const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
       let parsed = {};
-      try {
-        parsed = JSON.parse(cleaned);
-      } catch (e) {
-        parsed = {};
-      }
+      try { parsed = JSON.parse(cleaned); } catch { parsed = {}; }
 
-      let recipeName = parsed.recipeName || parsed.name || parsed.title || '';
-      if (!recipeName) {
-        const match = cleaned.match(/"recipeName"\s*:\s*"([^"]+)"/i) || cleaned.match(/recipe name\s*[:\-]\s*([^\n"]+)/i);
-        if (match) recipeName = match[1].trim();
-      }
+      const rawRecipes = Array.isArray(parsed.recipes) ? parsed.recipes : parsed.recipeName ? [parsed] : [];
+      if (rawRecipes.length === 0) throw new Error('AI response was missing recipes. Please try again.');
 
-      const ingredients = Array.isArray(parsed.ingredients)
-        ? parsed.ingredients
-        : typeof parsed.ingredients === 'string'
-          ? parsed.ingredients.split(/\r?\n|,|;/).map(i => i.trim()).filter(Boolean)
-          : [];
-
-      const steps = Array.isArray(parsed.steps)
-        ? parsed.steps
-        : typeof parsed.steps === 'string'
-          ? parsed.steps.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
-          : [];
-
-      if (!recipeName) throw new Error('AI response was missing recipe name. Please try again.');
-
-      setActiveModalRecipe({
-        id: `ai-${Date.now()}`,
-        name: recipeName,
-        meal_type: 'Creative',
-        ingredients,
-        cleanedIngredients: ingredients.map(cleanIngredientLocally).filter(Boolean),
-        steps: steps.length > 0 ? steps : ['Follow the ingredient list to prepare this dish.']
+      const recipes = rawRecipes.map((r, i) => {
+        const recipeName = r.recipeName || r.name || r.title || `Recipe ${i + 1}`;
+        const ingredients = Array.isArray(r.ingredients) ? r.ingredients
+          : typeof r.ingredients === 'string' ? r.ingredients.split(/\r?\n|;/).map(s => s.trim()).filter(Boolean) : [];
+        const steps = Array.isArray(r.steps) ? r.steps
+          : typeof r.steps === 'string' ? r.steps.split(/\r?\n/).map(s => s.trim()).filter(Boolean) : [];
+        return {
+          id: `ai-${seed}-${i}`,
+          name: recipeName,
+          description: r.description || '',
+          meal_type: 'Creative',
+          ingredients,
+          cleanedIngredients: ingredients.map(cleanIngredientLocally).filter(Boolean),
+          steps: steps.length > 0 ? steps : ['Prepare all ingredients and cook until ready.'],
+        };
       });
-      setMultiplier(1);
-      setIsAiPickerOpen(false); // close picker only on success
+
+      setGeneratedRecipes(recipes);
+      // Picker stays open to show choices
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Could not generate recipe. Please try again.');
-      // Leave picker open so user can retry — do NOT blank the screen
+      alert(err.message || 'Could not generate recipes. Please try again.');
     } finally {
       setAiGenerating(false);
     }
@@ -623,6 +638,8 @@ Return ONLY valid JSON: {"proteinIngredient": "name and quantity", "proteinAdded
       aiGenerating,
       isAiPickerOpen,
       setIsAiPickerOpen,
+      generatedRecipes,
+      setGeneratedRecipes,
       handleGenerateAiRecipe,
       onSaveRecipe,
       onRemoveSavedRecipe,

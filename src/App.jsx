@@ -55,6 +55,7 @@ function AppContent({ inventory }) {
     handleMoveShoppingItem,
     handleClearAllShoppingItems,
     handleMarkAllShoppingCompleted,
+    handleUpdateShoppingNote,
     handleBarcodeLookup,
     handleFileUpload,
     handleUpdateItem,
@@ -151,6 +152,15 @@ function AppContent({ inventory }) {
     else if (deltaX < -60 && navOpen) setNavOpen(false);
     touchStartX.current = null;
   }, [navOpen]);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const setOn = () => setIsOnline(true);
+    const setOff = () => setIsOnline(false);
+    window.addEventListener('online', setOn);
+    window.addEventListener('offline', setOff);
+    return () => { window.removeEventListener('online', setOn); window.removeEventListener('offline', setOff); };
+  }, []);
+
   const [shopCategoryFilters, setShopCategoryFilters] = useState([]);
   const [shopDietFilters, setShopDietFilters] = useState([]);
   const [shopCuisineFilters, setShopCuisineFilters] = useState([]);
@@ -187,6 +197,13 @@ function AppContent({ inventory }) {
 
   return (
     <div className="h-[100dvh] flex bg-blue-50/50 text-slate-800 font-sans antialiased selection:bg-[#6BAEE0] selection:text-white overflow-hidden">
+
+      {/* ── Offline banner ─────────────────────────────────────────────────── */}
+      {!isOnline && (
+        <div className="fixed top-0 inset-x-0 z-200 bg-slate-800 text-white text-[10px] font-bold text-center py-2 tracking-wide">
+          Working offline — changes will sync when you reconnect
+        </div>
+      )}
 
       {/* ── Nav Backdrop ───────────────────────────────────────────────────── */}
       {navOpen && (
@@ -227,7 +244,16 @@ function AppContent({ inventory }) {
       {/* Scrollable area — Header sticky inside here */}
       <main ref={mainRef} className="flex-1 overflow-y-auto w-full">
         <div className="w-full flex justify-center">
-          <Header scrollToTop={scrollToTop} onOpenNav={() => setNavOpen(true)} />
+          <Header
+            scrollToTop={scrollToTop}
+            onOpenNav={() => setNavOpen(true)}
+            fridge={fridge}
+            quantities={quantities}
+            onRemoveItem={handleRemoveItem}
+            onAdjustQuantity={adjustQuantity}
+            onUpdateItem={handleUpdateItem}
+            onAddShoppingItem={handleAddShoppingItem}
+          />
         </div>
         <div className="w-full flex justify-center px-4 sm:px-6 py-8">
           <div className="w-full max-w-5xl pb-4">
@@ -254,9 +280,11 @@ function AppContent({ inventory }) {
                 quantities={quantities}
                 adjustQuantity={adjustQuantity}
                 setQuantityForItem={setQuantityForItem}
+                shoppingHistory={inventory.shoppingHistory}
+                priceHistory={inventory.priceHistory}
               /></div>
             )}
-            {activeTab === 'recipes' && <div id="tut-recipes"><RecipeExplorer initialMood={vinylMood} /></div>}
+            {activeTab === 'recipes' && <div id="tut-recipes"><RecipeExplorer initialMood={vinylMood} fridge={fridge} /></div>}
             {activeTab === 'shopping' && (() => {
               // Show items belonging to the active household; personal items (null household_id) always show
               const hhId = activeHousehold?.id;
@@ -285,6 +313,7 @@ function AppContent({ inventory }) {
                     onAddToPantry={handleAddManualItem}
                     onRemoveFromPantry={handleRemoveFromPantryByName}
                     onMoveItem={handleMoveShoppingItem}
+                    onUpdateNote={handleUpdateShoppingNote}
                     households={households}
                     activeHousehold={activeHousehold}
                   /></div>

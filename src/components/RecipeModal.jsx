@@ -1,7 +1,8 @@
 ﻿import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw, Dumbbell, ChefHat, ShoppingCart, Users, ChevronDown, ChevronLeft, ChevronRight, Mic, BookOpen } from 'lucide-react';
+import { X, Share2, Play, RefreshCw, Plus, Star, Refrigerator, Check, Wand2, Loader2, RotateCcw, Dumbbell, ChefHat, ShoppingCart, Users, ChevronDown, ChevronLeft, ChevronRight, Mic, BookOpen, ThumbsUp, ThumbsDown, Calendar, ExternalLink } from 'lucide-react';
 import { useRecipes } from './RecipeContext';
 import { useUser } from './UserContext';
+import { supabase } from '../supabaseClient';
 import { parseRecipeIngredientMeasurements, cleanIngredientLocally, normalizeIngredientTokens, fuzzyTokenMatch, stripIngredientNotes, estimateNutrition, isRecipeMeat, isRecipeFish, isRecipeVegan, matchesRecipeFilter, locallyAdaptRecipe, getStaticRecipeSteps } from './recipeUtils';
 
 // Returns true if pantryQty (count) satisfies the needed amount from a recipe ingredient string
@@ -33,11 +34,14 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     fridge,
   } = useRecipes();
 
-  const { userSettings, households } = useUser();
+  const { userSettings, households, user, household: activeHousehold } = useUser();
   const [showHouseholdMenu, setShowHouseholdMenu] = useState(false);
   const starBtnRef = useRef(null);
 
   const [pantryAdded, setPantryAdded] = useState(new Set());
+  const [recipeFeedback, setRecipeFeedback] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('recipe_feedback') || '{}'); } catch { return {}; }
+  });
   const [adaptedRecipe, setAdaptedRecipe] = useState(null);
   const [adapting, setAdapting] = useState(null);
   const [substitutes, setSubstitutes] = useState({});
@@ -48,6 +52,42 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
   const [pantryOverrides, setPantryOverrides] = useState({});
   const [showCookingChoice, setShowCookingChoice] = useState(false);
   const [simpleViewStep, setSimpleViewStep] = useState(null);
+  const [schedulePicking, setSchedulePicking] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleMsg, setScheduleMsg] = useState(null);
+
+  const scheduleRecipe = async () => {
+    if (!scheduleDate || !user?.id || !activeHousehold?.id || scheduleLoading) return;
+    const displayRecipeLocal = recipe; // capture current recipe
+    setScheduleLoading(true);
+    setScheduleMsg(null);
+    try {
+      const { error } = await supabase.from('recipe_nights').insert({
+        household_id: activeHousehold.id,
+        scheduled_by: user.id,
+        recipe_name: displayRecipeLocal?.name || 'Unknown Recipe',
+        recipe_id: displayRecipeLocal?.id ? String(displayRecipeLocal.id) : null,
+        recipe_image: displayRecipeLocal?.image_url || null,
+        scheduled_date: scheduleDate,
+        notes: null,
+      });
+      if (error) throw error;
+      await supabase.from('cross_app_activity').insert({
+        user_id: user.id,
+        app: 'pantry',
+        activity_type: 'recipe_scheduled',
+        is_public: true,
+        payload: { household_id: activeHousehold.id, recipe_name: displayRecipeLocal?.name, date: scheduleDate, recipe_id: String(displayRecipeLocal?.id || '') },
+      });
+      setScheduleMsg({ ok: true, text: `Scheduled for ${scheduleDate}! Shown on HomeBase calendar.` });
+      setSchedulePicking(false);
+      setScheduleDate('');
+    } catch {
+      setScheduleMsg({ ok: false, text: 'Could not schedule. Try again.' });
+    }
+    setScheduleLoading(false);
+  };
 
   // Reset all local state when a new recipe is opened
   useEffect(() => {
@@ -204,6 +244,35 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     });
   };
 
+  // Estimate meal cost from pantry item prices
+  const mealCostEstimate = useMemo(() => {
+    if (!fridge || fridge.length === 0) return null;
+    const fridgeWithPrice = fridge.filter(f => f.price && f.price > 0);
+    if (fridgeWithPrice.length === 0) return null;
+    let totalCost = 0;
+    let matchedCount = 0;
+    (displayRecipe.ingredients || []).forEach(ing => {
+      const cleaned = cleanIngredientLocally(stripIngredientNotes(ing));
+      if (!cleaned) return;
+      const match = fridgeWithPrice.find(f => {
+        const fc = cleanIngredientLocally(f.raw_name || f.item_name || '');
+        return fc === cleaned || normalizeIngredientTokens(fc).some(t => fuzzyTokenMatch(t, new Set(normalizeIngredientTokens(cleaned))));
+      });
+      if (match) {
+        totalCost += match.price;
+        matchedCount++;
+      }
+    });
+    if (matchedCount === 0) return null;
+    const servings = 4 * multiplier;
+    return {
+      total: Math.round(totalCost * 100) / 100,
+      perServing: Math.round((totalCost / servings) * 100) / 100,
+      matchedCount,
+      totalIngredients: (displayRecipe.ingredients || []).length,
+    };
+  }, [fridge, displayRecipe, multiplier]);
+
   // Estimate total nutrition for the recipe (per serving, ~4 servings assumed)
   const recipeNutrition = useMemo(() => {
     const ings = displayRecipe.cleanedIngredients || [];
@@ -231,6 +300,17 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
       proteinDelta: proteinDeltaPerServing,
     };
   }, [displayRecipe.cleanedIngredients, multiplier, proteinResult]);
+
+  const handleFeedback = (vote) => {
+    const id = String(recipe?.id || '');
+    if (!id) return;
+    setRecipeFeedback(prev => {
+      const next = prev[id] === vote ? { ...prev } : { ...prev, [id]: vote };
+      if (prev[id] === vote) delete next[id];
+      try { localStorage.setItem('recipe_feedback', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}?recipe=${recipe.id}`;
@@ -329,6 +409,22 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
                   ))}
                 </div>
               )}
+            </div>
+            <div className="flex gap-1 bg-slate-50 border border-slate-100 rounded-2xl p-1">
+              <button
+                onClick={() => handleFeedback('up')}
+                className={`p-1.5 rounded-xl transition-colors ${recipeFeedback[String(recipe?.id)] === 'up' ? 'bg-emerald-100 text-emerald-500' : 'text-slate-300 hover:text-emerald-400'}`}
+                title="Good recipe"
+              >
+                <ThumbsUp size={15} />
+              </button>
+              <button
+                onClick={() => handleFeedback('down')}
+                className={`p-1.5 rounded-xl transition-colors ${recipeFeedback[String(recipe?.id)] === 'down' ? 'bg-red-100 text-red-400' : 'text-slate-300 hover:text-red-400'}`}
+                title="Not for me"
+              >
+                <ThumbsDown size={15} />
+              </button>
             </div>
             <button onClick={handleShare} className="p-2.5 bg-white border border-blue-100 rounded-2xl text-[#6BAEE0] hover:bg-sky-50 transition-colors"><Share2 size={18} /></button>
             <button onClick={() => setModal(null)} className="p-2.5 bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors"><X size={18} /></button>
@@ -490,6 +586,19 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
                 </div>
               ))}
             </div>
+            {displayRecipe.source_url && (
+              <a
+                href={displayRecipe.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-[11px] font-bold text-[#6BAEE0] hover:underline mt-1"
+              >
+                <ExternalLink size={12} /> View full recipe on original site
+              </a>
+            )}
+            {(displayRecipe.id || '').startsWith('edamam-') && (
+              <p className="text-[9px] text-slate-400 mt-1">Powered by <span className="font-bold">Edamam</span></p>
+            )}
           </section>
         </div>
 
@@ -508,6 +617,25 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
               </div>
               <div><p className="text-base font-black text-amber-500">{recipeNutrition.carbs}g</p><p className="text-[9px] text-slate-400">carbs</p></div>
               <div><p className="text-base font-black text-rose-500">{recipeNutrition.fat}g</p><p className="text-[9px] text-slate-400">fat</p></div>
+            </div>
+          </div>
+        )}
+
+        {mealCostEstimate && (
+          <div className="mt-4 bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Est. Meal Cost</p>
+              <span className="text-[9px] font-bold text-emerald-500 bg-emerald-100 px-2 py-0.5 rounded-full">{mealCostEstimate.matchedCount}/{mealCostEstimate.totalIngredients} items priced</span>
+            </div>
+            <div className="flex items-end gap-4">
+              <div>
+                <p className="text-2xl font-black text-emerald-600">${mealCostEstimate.perServing}</p>
+                <p className="text-[9px] text-slate-400">per serving</p>
+              </div>
+              <div className="pb-0.5">
+                <p className="text-sm font-black text-slate-500">${mealCostEstimate.total}</p>
+                <p className="text-[9px] text-slate-400">total ({4 * multiplier} servings)</p>
+              </div>
             </div>
           </div>
         )}
@@ -566,6 +694,39 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
             >
               <ChefHat size={17} /> {cooked ? '✓ Cooked! Pantry updated' : 'Cooked!'}
             </button>
+          )}
+          {/* Schedule for a Night */}
+          {activeHousehold?.id && (
+            <div>
+              {!schedulePicking ? (
+                <button
+                  onClick={() => { setSchedulePicking(true); setScheduleMsg(null); const d = new Date(); d.setDate(d.getDate()+1); setScheduleDate(d.toISOString().split('T')[0]); }}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm bg-violet-50 text-violet-600 border border-violet-200 hover:bg-violet-100 active:scale-95 transition-all"
+                >
+                  <Calendar size={16} /> Schedule for a Night
+                </button>
+              ) : (
+                <div className="bg-violet-50 border border-violet-200 rounded-2xl p-3 space-y-2">
+                  <p className="text-[10px] font-black text-violet-500 uppercase tracking-widest">Pick a night</p>
+                  <input
+                    type="date"
+                    value={scheduleDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={e => setScheduleDate(e.target.value)}
+                    className="w-full bg-white border border-violet-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus:border-violet-400"
+                  />
+                  {scheduleMsg && (
+                    <p className={`text-[11px] font-semibold ${scheduleMsg.ok ? 'text-emerald-500' : 'text-red-400'}`}>{scheduleMsg.text}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <button onClick={scheduleRecipe} disabled={scheduleLoading || !scheduleDate} className="flex-1 bg-violet-500 text-white py-2 rounded-xl text-xs font-black disabled:opacity-50">
+                      {scheduleLoading ? '…' : 'Schedule It'}
+                    </button>
+                    <button onClick={() => { setSchedulePicking(false); setScheduleMsg(null); }} className="flex-1 bg-white text-slate-400 py-2 rounded-xl text-xs font-black border border-slate-200">Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
         </div>{/* end body */}

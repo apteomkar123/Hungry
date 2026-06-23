@@ -16,7 +16,7 @@ const MOODS = [
   { key: 'late_night',  label: '🌙 Late Night',    keywords: ['snack', 'pizza', 'ramen', 'noodle', 'grilled cheese', 'quesadilla', 'nachos', 'fries', 'wings', 'quick', 'easy', 'toast', 'eggs'] },
 ];
 
-export default function RecipeExplorer({ initialMood = null }) {
+export default function RecipeExplorer({ initialMood = null, fridge = [] }) {
   const [shareMenuId, setShareMenuId] = useState(null);
   const [selectedMood, setSelectedMood] = useState(initialMood);
   const [customIngredients, setCustomIngredients] = useState('');
@@ -158,6 +158,27 @@ export default function RecipeExplorer({ initialMood = null }) {
     };
     return [...recipes].sort((a, b) => score(b) - score(a));
   }, [recipes, selectedMood]);
+
+  // "Use Before It Expires" — recipes matching pantry items expiring soonest
+  const expiringIngredients = useMemo(() => {
+    if (!fridge.length) return [];
+    const now = new Date();
+    return fridge
+      .filter(i => i.expiry_date && (new Date(i.expiry_date) - now) / (1000 * 60 * 60 * 24) <= 7)
+      .sort((a, b) => new Date(a.expiry_date) - new Date(b.expiry_date))
+      .map(i => cleanIngredientLocally(i.item_name || i.raw_name || ''))
+      .filter(Boolean);
+  }, [fridge]);
+
+  const useBeforeExpiresRecipes = useMemo(() => {
+    if (!expiringIngredients.length) return [];
+    return moodFilteredRecipes
+      .filter(r => {
+        const ings = r.cleanedIngredients || [];
+        return expiringIngredients.some(exp => ings.some(ri => ri.includes(exp) || exp.includes(ri)));
+      })
+      .slice(0, 8);
+  }, [moodFilteredRecipes, expiringIngredients]);
 
   // "Your Taste" section — recipes matching the user's top cuisines (from chef history)
   const yourTasteRecipes = useMemo(() => {
@@ -381,6 +402,22 @@ export default function RecipeExplorer({ initialMood = null }) {
           </>
         )}
       </div>
+
+      {/* Use Before It Expires section */}
+      {useBeforeExpiresRecipes.length > 0 && (
+        <div className="bg-amber-50/80 backdrop-blur-lg p-5 rounded-[2.5rem] border border-amber-100 shadow-xl shadow-amber-900/5">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-lg">⏰</span>
+            <h3 className="text-[14px] font-bold text-amber-800">Use Before It Expires</h3>
+          </div>
+          <p className="text-[11px] text-amber-600 font-medium mb-4">
+            Recipes using your {expiringIngredients.slice(0, 3).join(', ')}{expiringIngredients.length > 3 ? ` +${expiringIngredients.length - 3} more` : ''} before they expire
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {useBeforeExpiresRecipes.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} />)}
+          </div>
+        </div>
+      )}
 
       {/* Your Taste section */}
       {yourTasteRecipes.length > 0 && (
