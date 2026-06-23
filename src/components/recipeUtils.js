@@ -167,6 +167,8 @@ export const cleanIngredientLocally = (rawName) => {
   name = name.replace(/[\u2013\u2014•]/g, ' ');
   // Strip leading measurement + count patterns before digit removal
   name = name.replace(/^[\d\/\.\s\-½⅓¼¾⅛]+(?:cups?|tbsps?|tsps?|tablespoons?|teaspoons?|oz|ounces?|g|kg|lb|lbs|mls?|l|pieces?|cloves?|heads?|bunches?|sprigs?|stalks?|cans?|jars?|bags?|pinch(?:es)?|dash(?:es)?|handful|handfuls?)?\s*/i, '');
+  // Strip leading prepositions/articles left after measurement removal ("1 cup of flour" → "of flour" → "flour")
+  name = name.replace(/^(?:of|a|an)\s+/i, '');
   name = name.replace(/\d+/g, ' ');
   // Measurement & packaging words
   name = name.replace(/\b(?:organic|fresh|freshly|large|small|medium|extra|reduced fat|low fat|low-sodium|low sodium|unsalted|sliced|diced|chopped|shredded|minced|ground|boneless|skinless|prepared|peeled|packaged|package|pack|can|canned|jar|bottle|tube|stick|slice|pieces|piece|cups?|tablespoons?|tbsps?|teaspoons?|tsps?|grams?|g|kg|pounds?|lb|lbs|oz|ounces?|fluid|fl oz|mls?|ltrs?|liters?|litres?|pkg|ct|count)\b/g, ' ');

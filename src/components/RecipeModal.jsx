@@ -240,7 +240,7 @@ export default function RecipeModal({ onStartCooking, addedItems, onAddIngredien
     missing.forEach(ing => {
       const stripped = stripIngredientNotes(ing);
       const cleaned = cleanIngredientLocally(stripped);
-      if (cleaned && !addedItems?.has(cleaned)) onAddIngredient(stripped || cleaned);
+      if (cleaned && !addedItems?.has(cleaned)) onAddIngredient(cleaned);
     });
   };
 

@@ -666,3 +666,7 @@ FEATURES ADDED (Session 33 / 2026-06-23)
 19. Offline indicator — banner when working offline.
 20. Undo for pantry deletions — 5-second undo toast.
 21. Quick-add from notification — "Add to Shopping List" button in expiry panel.
+
+BUGS TO FIX (Session 36 / 2026-06-23) — COMPLETED
+-----------------------------------------------------
+When ingredients are added to the shopping list from a recipe, they're still carrying forward units to the shopping list sometimes

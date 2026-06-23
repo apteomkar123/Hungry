@@ -4,6 +4,14 @@ A living document tracking what's shipped, what works, and what's blocked until 
 
 ---
 
+## Session 36 (2026-06-23) — Bug Fixes
+
+| Feature | Status | Notes |
+|---|---|---|
+| **Shopping list unit carry-through** — when adding ingredients from a recipe, units were sometimes carried forward to the shopping list | ✅ Fixed | `RecipeModal.jsx` — batch add now passes `cleaned` (unit-stripped) instead of `stripped`; `recipeUtils.js` — `cleanIngredientLocally` now strips leading prepositions ("of", "a", "an") left after measurement removal (e.g. "1 cup of flour" → "flour") |
+
+---
+
 ## Session 35 (2026-06-23) — LyfeWare Ecosystem Features
 
 | Feature | Status | Notes |
